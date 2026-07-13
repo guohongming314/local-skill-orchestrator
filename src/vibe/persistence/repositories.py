@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
+from typing import cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import InstrumentedAttribute, Session, sessionmaker
 
-from vibe.persistence.models import CodexThread, Run
+from vibe.persistence.models import (
+    AuditEvent,
+    CapabilityVerification,
+    CodexThread,
+    InventoryCache,
+    Run,
+    UserTrustDecision,
+)
 
 
 class RunStatus(StrEnum):
@@ -159,3 +169,345 @@ class CodexThreadRepository:
         with self._session_factory() as session:
             thread = session.scalar(select(CodexThread).where(field == value))
             return None if thread is None else _thread_record(thread)
+
+
+type JsonScalar = str | int | float | bool | None
+type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
+
+_SECRET_KEY_TERMS = ("secret", "password", "credential", "api_key", "private_key")
+
+
+class SecretLikePayloadError(ValueError):
+    """Raised before a payload with a secret-like field can reach persistence."""
+
+
+def _reject_secret_like_fields(value: JsonValue, path: tuple[str, ...] = ()) -> None:
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            normalized = key.lower().replace("-", "_").replace(" ", "_")
+            is_secret = any(term in normalized for term in _SECRET_KEY_TERMS)
+            is_token = normalized == "token" or normalized.endswith("_token")
+            if is_secret or is_token:
+                location = ".".join((*path, key))
+                raise SecretLikePayloadError(f"secret-like field {location!r} is not allowed")
+            _reject_secret_like_fields(nested, (*path, key))
+    elif isinstance(value, list):
+        for index, nested in enumerate(value):
+            _reject_secret_like_fields(nested, (*path, str(index)))
+
+
+def _comparable_time(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value
+    return value.astimezone(UTC).replace(tzinfo=None)
+
+
+def _payload(value: Mapping[str, JsonValue]) -> dict[str, JsonValue]:
+    payload = dict(value)
+    _reject_secret_like_fields(payload)
+    return payload
+
+
+def _encode(value: Mapping[str, JsonValue]) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _decode(value: str) -> dict[str, JsonValue]:
+    return cast(dict[str, JsonValue], json.loads(value))
+
+
+@dataclass(frozen=True)
+class InventoryCacheRecord:
+    source_digest: str
+    scope: tuple[str, ...]
+    snapshot: dict[str, JsonValue]
+    created_at: datetime
+    expires_at: datetime | None
+
+
+class InventoryCacheRepository:
+    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+        self._session_factory = session_factory
+
+    def put(
+        self,
+        *,
+        source_digest: str,
+        scope: Sequence[str],
+        snapshot: Mapping[str, JsonValue],
+        expires_at: datetime | None = None,
+    ) -> InventoryCacheRecord:
+        safe_snapshot = _payload(snapshot)
+        envelope: dict[str, JsonValue] = {
+            "scope": list(scope),
+            "snapshot": safe_snapshot,
+        }
+        with self._session_factory.begin() as session:
+            model = session.scalar(
+                select(InventoryCache).where(InventoryCache.source_digest == source_digest)
+            )
+            if model is None:
+                model = InventoryCache(
+                    source_digest=source_digest,
+                    inventory_json=_encode(envelope),
+                    expires_at=expires_at,
+                )
+                session.add(model)
+            else:
+                model.inventory_json = _encode(envelope)
+                model.expires_at = expires_at
+            session.flush()
+            session.refresh(model)
+            return self._record(model)
+
+    def get(
+        self,
+        source_digest: str,
+        scope: Sequence[str],
+        *,
+        as_of: datetime | None = None,
+    ) -> InventoryCacheRecord | None:
+        with self._session_factory() as session:
+            model = session.scalar(
+                select(InventoryCache).where(InventoryCache.source_digest == source_digest)
+            )
+            if model is None:
+                return None
+            record = self._record(model)
+            if record.scope != tuple(scope):
+                return None
+            checked_at = as_of or datetime.now(UTC)
+            if record.expires_at is not None and _comparable_time(
+                record.expires_at
+            ) <= _comparable_time(checked_at):
+                return None
+            return record
+
+    @staticmethod
+    def _record(model: InventoryCache) -> InventoryCacheRecord:
+        envelope = _decode(model.inventory_json)
+        return InventoryCacheRecord(
+            source_digest=model.source_digest,
+            scope=tuple(cast(list[str], envelope["scope"])),
+            snapshot=cast(dict[str, JsonValue], envelope["snapshot"]),
+            created_at=model.created_at,
+            expires_at=model.expires_at,
+        )
+
+
+@dataclass(frozen=True)
+class CapabilityVerificationRecord:
+    capability_id: str
+    content_digest: str
+    scope: tuple[str, ...]
+    status: str
+    reason: str
+    details: dict[str, JsonValue]
+    verified_at: datetime
+
+
+class CapabilityVerificationRepository:
+    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+        self._session_factory = session_factory
+
+    def record(
+        self,
+        *,
+        capability_id: str,
+        content_digest: str,
+        scope: Sequence[str],
+        status: str,
+        reason: str,
+        details: Mapping[str, JsonValue],
+    ) -> CapabilityVerificationRecord:
+        envelope: dict[str, JsonValue] = {
+            "scope": list(scope),
+            "reason": reason,
+            "details": _payload(details),
+        }
+        with self._session_factory.begin() as session:
+            model = session.scalar(
+                select(CapabilityVerification).where(
+                    CapabilityVerification.capability_id == capability_id,
+                    CapabilityVerification.content_digest == content_digest,
+                )
+            )
+            if model is None:
+                model = CapabilityVerification(
+                    capability_id=capability_id,
+                    content_digest=content_digest,
+                    status=status,
+                    details_json=_encode(envelope),
+                )
+                session.add(model)
+            else:
+                model.status = status
+                model.details_json = _encode(envelope)
+            session.flush()
+            session.refresh(model)
+            return self._record(model)
+
+    def get(self, capability_id: str, content_digest: str) -> CapabilityVerificationRecord | None:
+        with self._session_factory() as session:
+            model = session.scalar(
+                select(CapabilityVerification).where(
+                    CapabilityVerification.capability_id == capability_id,
+                    CapabilityVerification.content_digest == content_digest,
+                )
+            )
+            return None if model is None else self._record(model)
+
+    @staticmethod
+    def _record(model: CapabilityVerification) -> CapabilityVerificationRecord:
+        envelope = _decode(model.details_json)
+        return CapabilityVerificationRecord(
+            capability_id=model.capability_id,
+            content_digest=model.content_digest,
+            scope=tuple(cast(list[str], envelope["scope"])),
+            status=model.status,
+            reason=cast(str, envelope["reason"]),
+            details=cast(dict[str, JsonValue], envelope["details"]),
+            verified_at=model.verified_at,
+        )
+
+
+class TrustDecision(StrEnum):
+    SELECTED = "selected"
+    REJECTED = "rejected"
+    DEFERRED = "deferred"
+
+
+@dataclass(frozen=True)
+class TrustDecisionRecord:
+    capability_id: str
+    content_digest: str
+    scope: tuple[str, ...]
+    decision: TrustDecision
+    permissions: tuple[str, ...]
+    reason: str
+    created_at: datetime
+
+
+class TrustDecisionRepository:
+    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+        self._session_factory = session_factory
+
+    def record(
+        self,
+        *,
+        capability_id: str,
+        content_digest: str,
+        scope: Sequence[str],
+        decision: TrustDecision,
+        permissions: Sequence[str],
+        reason: str,
+    ) -> TrustDecisionRecord:
+        envelope: dict[str, JsonValue] = {
+            "scope": list(scope),
+            "permissions": list(permissions),
+            "reason": reason,
+        }
+        with self._session_factory.begin() as session:
+            model = session.scalar(
+                select(UserTrustDecision).where(
+                    UserTrustDecision.capability_id == capability_id,
+                    UserTrustDecision.content_digest == content_digest,
+                )
+            )
+            if model is None:
+                model = UserTrustDecision(
+                    capability_id=capability_id,
+                    content_digest=content_digest,
+                    decision=decision.value,
+                    permissions_json=_encode(envelope),
+                )
+                session.add(model)
+            else:
+                model.decision = decision.value
+                model.permissions_json = _encode(envelope)
+            session.flush()
+            session.refresh(model)
+            return self._record(model)
+
+    def get(self, capability_id: str, content_digest: str) -> TrustDecisionRecord | None:
+        with self._session_factory() as session:
+            model = session.scalar(
+                select(UserTrustDecision).where(
+                    UserTrustDecision.capability_id == capability_id,
+                    UserTrustDecision.content_digest == content_digest,
+                )
+            )
+            return None if model is None else self._record(model)
+
+    @staticmethod
+    def _record(model: UserTrustDecision) -> TrustDecisionRecord:
+        envelope = _decode(model.permissions_json)
+        return TrustDecisionRecord(
+            capability_id=model.capability_id,
+            content_digest=model.content_digest,
+            scope=tuple(cast(list[str], envelope["scope"])),
+            decision=TrustDecision(model.decision),
+            permissions=tuple(cast(list[str], envelope["permissions"])),
+            reason=cast(str, envelope["reason"]),
+            created_at=model.created_at,
+        )
+
+
+@dataclass(frozen=True)
+class AuditEventRecord:
+    event_id: int
+    run_id: str | None
+    event_type: str
+    summary: str
+    details: dict[str, JsonValue]
+    redacted: bool
+    created_at: datetime
+
+
+class AuditEventRepository:
+    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+        self._session_factory = session_factory
+
+    def write(
+        self,
+        *,
+        event_type: str,
+        summary: str,
+        details: Mapping[str, JsonValue],
+        run_id: str | None = None,
+    ) -> AuditEventRecord:
+        envelope: dict[str, JsonValue] = {
+            "summary": summary,
+            "details": _payload(details),
+        }
+        with self._session_factory.begin() as session:
+            if run_id is not None and session.get(Run, run_id) is None:
+                raise LookupError(f"run {run_id!r} does not exist")
+            model = AuditEvent(
+                run_id=run_id,
+                event_type=event_type,
+                event_json=_encode(envelope),
+                redacted=True,
+            )
+            session.add(model)
+            session.flush()
+            session.refresh(model)
+            return self._record(model)
+
+    def get(self, event_id: int) -> AuditEventRecord | None:
+        with self._session_factory() as session:
+            model = session.get(AuditEvent, event_id)
+            return None if model is None else self._record(model)
+
+    @staticmethod
+    def _record(model: AuditEvent) -> AuditEventRecord:
+        envelope = _decode(model.event_json)
+        return AuditEventRecord(
+            event_id=model.id,
+            run_id=model.run_id,
+            event_type=model.event_type,
+            summary=cast(str, envelope["summary"]),
+            details=cast(dict[str, JsonValue], envelope["details"]),
+            redacted=model.redacted,
+            created_at=model.created_at,
+        )
