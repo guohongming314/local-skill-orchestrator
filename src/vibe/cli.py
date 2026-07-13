@@ -5,6 +5,7 @@ from rich.console import Console
 
 from vibe import __version__
 from vibe.commands.capabilities import capabilities_app
+from vibe.commands.init import init_command
 from vibe.commands.inspect import inspect_command
 from vibe.commands.schema import schema_app
 from vibe.commands.spike_codex import checkpoint_resume, checkpoint_start, spike_codex
@@ -19,6 +20,7 @@ app.add_typer(schema_app, name="schema")
 app.add_typer(capabilities_app, name="capabilities")
 app.command("spike-codex")(spike_codex)
 app.command("inspect")(inspect_command)
+app.command("init")(init_command)
 app.command("checkpoint-start")(checkpoint_start)
 app.command("checkpoint-resume")(checkpoint_resume)
 
