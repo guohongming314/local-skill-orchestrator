@@ -53,7 +53,7 @@ def _source_files(root: Path) -> list[Path]:
         (
             path
             for path in root.rglob("*")
-            if path.is_file() and ".git" not in path.relative_to(root).parts
+            if path.is_file() and _is_source_path(path.relative_to(root))
         ),
         key=lambda path: path.relative_to(root).as_posix(),
     )
@@ -63,9 +63,42 @@ def _source_digest(root: Path, files: tuple[Path, ...]) -> str:
     digest = hashlib.sha256()
     for path in files:
         relative = path.relative_to(root).as_posix().encode("utf-8")
-        content = path.read_bytes()
+        content = _source_content(root, path)
         digest.update(len(relative).to_bytes(8, "big"))
         digest.update(relative)
         digest.update(len(content).to_bytes(8, "big"))
         digest.update(content)
     return digest.hexdigest()
+
+
+_MANAGED_BEGIN = b"<!-- local-skill-orchestrator:begin -->"
+_MANAGED_END = b"<!-- local-skill-orchestrator:end -->"
+
+
+def _is_source_path(relative: Path) -> bool:
+    parts = relative.parts
+    if ".git" in parts or (parts and parts[0] == ".ai-project"):
+        return False
+    if parts[:3] == (".agents", "skills", "project-development"):
+        return False
+    return not relative.name.startswith(".vibe-init-checkpoints.sqlite3")
+
+
+def _source_content(root: Path, path: Path) -> bytes:
+    content = path.read_bytes()
+    if path.relative_to(root).as_posix() != "AGENTS.md":
+        return content
+    newline = b"\r\n" if b"\r\n" in content else b"\n"
+    begin = content.find(_MANAGED_BEGIN)
+    end = content.find(_MANAGED_END)
+    if begin < 0 and end < 0:
+        return content.rstrip(b"\r\n") + newline
+    if begin < 0 or end < begin or content.find(_MANAGED_BEGIN, begin + 1) >= 0:
+        return content
+    end += len(_MANAGED_END)
+    if content[end : end + 2] == b"\r\n":
+        end += 2
+    elif content[end : end + 1] in (b"\r", b"\n"):
+        end += 1
+    unmanaged = content[:begin].rstrip(b"\r\n") + content[end:]
+    return unmanaged.rstrip(b"\r\n") + newline
