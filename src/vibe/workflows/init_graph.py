@@ -1,4 +1,4 @@
-﻿"""Validated state machine for resumable project initialization."""
+"""Validated state machine for resumable project initialization."""
 
 from __future__ import annotations
 
@@ -67,6 +67,21 @@ class InitializationGraph:
         )
         return self._replace(previous, current)
 
+    def revise(
+        self,
+        run_id: str,
+        *,
+        confirmed: Mapping[str, Any],
+    ) -> InitCheckpoint:
+        """Persist reviewed values without advancing the current stage."""
+        previous = self.load(run_id)
+        self._require_status(previous, InitStatus.RUNNING)
+        current = replace(
+            previous,
+            confirmed=self._merge(previous, confirmed),
+            revision=previous.revision + 1,
+        )
+        return self._replace(previous, current)
     def pause(self, run_id: str) -> InitCheckpoint:
         previous = self.load(run_id)
         self._require_status(previous, InitStatus.RUNNING)
