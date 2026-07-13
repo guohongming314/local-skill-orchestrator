@@ -32,6 +32,7 @@ from vibe.persistence.repositories import (
     RunRepository,
     RunStatus,
 )
+from vibe.workflows.checkpoint_spike import CheckpointSpike, StaleCheckpointError
 
 
 class SpikeResult(VersionedModel):
@@ -170,3 +171,55 @@ def spike_codex(
         )
     )
     typer.echo(json.dumps(result.model_dump(mode="json"), sort_keys=True))
+
+
+def _checkpoint_spike(
+    *, database: Path, checkpoints: Path
+) -> CheckpointSpike:
+    command.upgrade(migration_config(database), "head")
+    factory = sessionmaker(
+        create_sqlite_engine(database), class_=Session, expire_on_commit=False
+    )
+    return CheckpointSpike(
+        checkpoint_path=checkpoints,
+        runs=RunRepository(factory),
+        threads=CodexThreadRepository(factory),
+    )
+
+
+def checkpoint_start(
+    database: Annotated[Path, typer.Option("--database")],
+    checkpoints: Annotated[Path, typer.Option("--checkpoints")],
+    graph_run_id: Annotated[str, typer.Option("--graph-run-id")],
+    codex_thread_id: Annotated[str, typer.Option("--codex-thread-id")],
+    repository_digest: Annotated[str, typer.Option("--repository-digest")],
+    permission_state_digest: Annotated[str, typer.Option("--permission-state-digest")],
+) -> None:
+    """Start and durably pause the checkpoint recovery spike."""
+    result = _checkpoint_spike(database=database, checkpoints=checkpoints).start(
+        graph_run_id=graph_run_id,
+        codex_thread_id=codex_thread_id,
+        repository_digest=repository_digest,
+        permission_state_digest=permission_state_digest,
+    )
+    typer.echo(json.dumps(result, sort_keys=True))
+
+
+def checkpoint_resume(
+    database: Annotated[Path, typer.Option("--database")],
+    checkpoints: Annotated[Path, typer.Option("--checkpoints")],
+    graph_run_id: Annotated[str, typer.Option("--graph-run-id")],
+    repository_digest: Annotated[str, typer.Option("--repository-digest")],
+    permission_state_digest: Annotated[str, typer.Option("--permission-state-digest")],
+) -> None:
+    """Revalidate safety inputs and resume a checkpoint in this process."""
+    try:
+        result = _checkpoint_spike(database=database, checkpoints=checkpoints).resume(
+            graph_run_id=graph_run_id,
+            repository_digest=repository_digest,
+            permission_state_digest=permission_state_digest,
+        )
+    except StaleCheckpointError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2) from exc
+    typer.echo(json.dumps(result, sort_keys=True))
