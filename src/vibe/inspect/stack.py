@@ -147,7 +147,10 @@ def _add(values: dict[str, set[str]], value: str, source: str) -> None:
 def _read_json(path: Path) -> dict[str, Any] | None:
     if not path.is_file():
         return None
-    value = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid JSON in {path.name}: {exc.msg}") from exc
     return value if isinstance(value, dict) else None
 
 

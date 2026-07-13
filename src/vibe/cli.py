@@ -4,6 +4,7 @@ import typer
 from rich.console import Console
 
 from vibe import __version__
+from vibe.commands.inspect import inspect_command
 from vibe.commands.schema import schema_app
 from vibe.commands.spike_codex import checkpoint_resume, checkpoint_start, spike_codex
 
@@ -15,6 +16,7 @@ app = typer.Typer(
 console = Console()
 app.add_typer(schema_app, name="schema")
 app.command("spike-codex")(spike_codex)
+app.command("inspect")(inspect_command)
 app.command("checkpoint-start")(checkpoint_start)
 app.command("checkpoint-resume")(checkpoint_resume)
 
