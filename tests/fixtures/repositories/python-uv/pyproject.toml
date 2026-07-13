@@ -1,0 +1,6 @@
+[project]
+name = "api"
+dependencies = ["fastapi>=0.100"]
+
+[tool.uv.workspace]
+members = ["packages/*"]
