@@ -87,7 +87,7 @@ def _verify_before_digests(root: Path, operations: tuple[ChangeOperation, ...]) 
         target = _target(root, operation.path)
         if target.is_file():
             try:
-                content = target.open("r", encoding="utf-8-sig", newline="").read()
+                content = target.open("r", encoding="utf-8", newline="").read()
             except (OSError, UnicodeError) as error:
                 raise ConcurrentChangeError(f"cannot verify {operation.path}: {error}") from error
             digest = _content_digest(content)
@@ -150,4 +150,3 @@ def _rollback(
         with contextlib.suppress(OSError):
             directory.rmdir()
     return errors
-
