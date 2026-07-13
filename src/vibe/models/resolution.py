@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from vibe.models.base import VersionedModel
 
@@ -17,6 +17,12 @@ class CapabilityResolution(VersionedModel):
     status: ResolutionStatus
     capability_id: str | None = None
     reason: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def selected_resolution_has_capability(self) -> "CapabilityResolution":
+        if self.status is ResolutionStatus.SELECTED and self.capability_id is None:
+            raise ValueError("selected resolution requires capability_id")
+        return self
 
 
 class ResolutionPlan(VersionedModel):

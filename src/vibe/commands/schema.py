@@ -10,6 +10,7 @@ from vibe.models import (
     ContextCapsule,
     RepositorySnapshot,
     ResolutionPlan,
+    Risk,
     TaskPlan,
 )
 from vibe.models.base import VersionedModel
@@ -22,6 +23,7 @@ SCHEMA_MODELS: dict[str, type[VersionedModel]] = {
     "context-capsule": ContextCapsule,
     "repository-snapshot": RepositorySnapshot,
     "resolution-plan": ResolutionPlan,
+    "risk": Risk,
     "task-plan": TaskPlan,
 }
 
