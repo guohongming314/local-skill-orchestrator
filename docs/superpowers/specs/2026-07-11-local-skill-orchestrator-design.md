@@ -1,8 +1,12 @@
 ﻿# Local Skill Orchestrator Design
 
 **Date:** 2026-07-11  
-**Status:** Approved for planning  
+**Status:** 已于 2026-07-13 被新设计替代
 **Repository:** `local-skill-orchestrator`
+
+> 本设计已被 `2026-07-13-project-ai-capability-bootstrapper-design.md`
+> 替代。原有的运行时 Skill 路由思路仅作为历史背景保留，产品方向已经调整为
+> 项目初始化、能力解析和持续治理。
 
 ## Purpose
 
