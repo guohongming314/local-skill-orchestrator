@@ -1,9 +1,9 @@
 from enum import StrEnum
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from vibe.models.base import VersionedModel
-from vibe.models.blueprint import RiskLevel
+from vibe.models.risk import RiskLevel
 
 
 class WorkflowMode(StrEnum):
@@ -27,4 +27,11 @@ class TaskPlan(VersionedModel):
     workflow_mode: WorkflowMode
     acceptance_criteria: tuple[str, ...] = Field(min_length=1)
     phases: tuple[TaskPhase, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def phase_ids_are_unique(self) -> "TaskPlan":
+        phase_ids = [phase.phase_id for phase in self.phases]
+        if len(phase_ids) != len(set(phase_ids)):
+            raise ValueError("TaskPlan phase_id values must be unique")
+        return self
 

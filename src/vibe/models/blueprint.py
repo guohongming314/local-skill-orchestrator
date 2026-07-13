@@ -3,6 +3,7 @@ from enum import StrEnum
 from pydantic import Field
 
 from vibe.models.base import VersionedModel
+from vibe.models.risk import RiskLevel as RiskLevel
 
 
 class LifecycleStage(StrEnum):
@@ -10,13 +11,6 @@ class LifecycleStage(StrEnum):
     ACTIVE_DEVELOPMENT = "active-development"
     MAINTENANCE = "maintenance"
     PRODUCTION = "production"
-
-
-class RiskLevel(StrEnum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
 
 
 class ProjectConstraint(VersionedModel):

@@ -5,6 +5,7 @@ from vibe.models.capability import CapabilityManifest
 from vibe.models.capsule import ContextCapsule
 from vibe.models.repository import RepositorySnapshot
 from vibe.models.resolution import ResolutionPlan
+from vibe.models.risk import Risk
 from vibe.models.task import TaskPlan
 
 __all__ = [
@@ -13,6 +14,7 @@ __all__ = [
     "ContextCapsule",
     "RepositorySnapshot",
     "ResolutionPlan",
+    "Risk",
     "TaskPlan",
 ]
 
