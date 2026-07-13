@@ -113,17 +113,23 @@ class CodexAppServerClient:
         )
         return _parse_thread(result)
 
-    async def start_turn(self, thread_id: str, text: str) -> CodexTurn:
+    async def start_turn(
+        self,
+        thread_id: str,
+        text: str,
+        *,
+        output_schema: JsonObject | None = None,
+    ) -> CodexTurn:
         """Start a text turn on an existing thread."""
         self._ensure_initialized()
+        params: JsonObject = {
+            "threadId": thread_id,
+            "input": [{"type": "text", "text": text}],
+        }
+        if output_schema is not None:
+            params["outputSchema"] = output_schema
         result = _expect_object(
-            await self._transport.request(
-                "turn/start",
-                {
-                    "threadId": thread_id,
-                    "input": [{"type": "text", "text": text}],
-                },
-            ),
+            await self._transport.request("turn/start", params),
             "turn/start result",
         )
         turn = _expect_object(result.get("turn"), "turn/start turn")
@@ -146,9 +152,10 @@ class CodexAppServerClient:
         text: str,
         *,
         timeout: float = 300.0,
+        output_schema: JsonObject | None = None,
     ) -> CodexTurnResult:
         """Run a turn to completion, interrupting it before reporting a timeout."""
-        turn = await self.start_turn(thread_id, text)
+        turn = await self.start_turn(thread_id, text, output_schema=output_schema)
         events: list[CodexEvent] = []
         try:
             with anyio.fail_after(timeout):
@@ -245,3 +252,17 @@ def _optional_string(value: JsonValue | None, label: str) -> str | None:
     if not isinstance(value, str):
         raise CodexProtocolError(f"{label} must be a string")
     return value
+
+
+def agent_message_text(result: CodexTurnResult) -> str:
+    """Return the last completed agent message from a turn."""
+    for event in reversed(result.events):
+        item = event.item
+        if (
+            event.kind is CodexEventKind.ITEM_COMPLETED
+            and item is not None
+            and item.get("type") == "agentMessage"
+            and isinstance(item.get("text"), str)
+        ):
+            return str(item["text"])
+    raise CodexProtocolError("turn completed without an agent message")

@@ -498,6 +498,15 @@ class AuditEventRepository:
         with self._session_factory() as session:
             model = session.get(AuditEvent, event_id)
             return None if model is None else self._record(model)
+    def list_for_run(self, run_id: str) -> tuple[AuditEventRecord, ...]:
+        """Return a run's audit trail in stable creation order."""
+        with self._session_factory() as session:
+            models = session.scalars(
+                select(AuditEvent)
+                .where(AuditEvent.run_id == run_id)
+                .order_by(AuditEvent.id)
+            )
+            return tuple(self._record(model) for model in models)
 
     @staticmethod
     def _record(model: AuditEvent) -> AuditEventRecord:

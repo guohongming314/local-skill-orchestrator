@@ -5,6 +5,7 @@ from rich.console import Console
 
 from vibe import __version__
 from vibe.commands.schema import schema_app
+from vibe.commands.spike_codex import spike_codex
 
 app = typer.Typer(
     name="vibe",
@@ -13,6 +14,7 @@ app = typer.Typer(
 )
 console = Console()
 app.add_typer(schema_app, name="schema")
+app.command("spike-codex")(spike_codex)
 
 
 def version_callback(value: bool) -> None:
