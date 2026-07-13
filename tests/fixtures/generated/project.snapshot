@@ -1,0 +1,142 @@
+=== .agents/skills/project-development/SKILL.md ===
+---
+name: project-development
+description: Develop demo-project with local policy and verified capabilities.
+version: 1.0.0
+---
+
+# Project development
+
+Use the project's deterministic configuration when planning and implementing changes.
+
+- Read [capability routing](references/capability-routing.md) before choosing tools.
+- Follow the [quality gates](references/quality-gates.md) before completion.
+=== .agents/skills/project-development/references/capability-routing.md ===
+# Capability routing
+
+## Selected providers
+- `cli.pytest`: quality.gates, testing
+
+## Gaps
+- release-automation
+=== .agents/skills/project-development/references/quality-gates.md ===
+# Quality gates
+
+Before completing a change:
+
+1. Run focused verification.
+2. Run the full test suite.
+3. Run lint and static type checks.
+4. Build the distributable artifact.
+5. Require CI to pass before merge.
+=== .ai-project/blueprint.yaml ===
+constraints:
+- locked: true
+  name: python
+  schema_version: '1'
+  value: '3.12'
+goal: Build a reliable command-line service
+lifecycle_stage: active-development
+preferences:
+  parallelism: 1
+  testing: test-first
+project_name: demo-project
+repository_digest: repository-digest
+risk_level: medium
+schema_version: '1'
+target_platforms:
+- codex
+=== .ai-project/capabilities.lock ===
+inventory_digest: inventory-digest
+providers:
+- content_digest: pytest-content-digest
+  kind: cli-tool
+  provider_id: cli.pytest
+  scope: user
+  source: local:cli.pytest
+  version: 1.2.3
+schema_version: '1'
+=== .ai-project/capabilities.yaml ===
+blueprint_digest: blueprint-digest
+inventory_digest: inventory-digest
+resolutions:
+- capability_id: cli.pytest
+  reason: selected deterministic local provider
+  requirement: quality.gates
+  schema_version: '1'
+  status: selected
+- capability_id: null
+  reason: no local provider
+  requirement: release-automation
+  schema_version: '1'
+  status: gap
+- capability_id: mcp.search
+  reason: higher permission provider rejected
+  requirement: semantic-search
+  schema_version: '1'
+  status: rejected
+schema_version: '1'
+=== .ai-project/capability-usage.yaml ===
+routes:
+- permissions:
+  - read-project
+  provider_id: cli.pytest
+  provides:
+  - quality.gates
+  - testing
+schema_version: '1'
+=== .ai-project/decisions.md ===
+# Project decisions
+
+- Project: demo-project
+- Goal: Build a reliable command-line service
+- Lifecycle: active-development
+- Risk: medium
+
+## Constraints
+- python: 3.12 (locked)
+
+## Preferences
+- parallelism: 1
+- testing: test-first
+=== .ai-project/policy.yaml ===
+permissions:
+- read-project
+risk_level: medium
+schema_version: '1'
+target_platforms:
+- codex
+=== .ai-project/quality-gates.md ===
+# Quality gates
+
+Before completing a change:
+
+1. Run focused verification.
+2. Run the full test suite.
+3. Run lint and static type checks.
+4. Build the distributable artifact.
+5. Require CI to pass before merge.
+=== .ai-project/task-policies.yaml ===
+policies:
+- name: testing
+  value: test-first
+- name: parallelism
+  value: 1
+- name: risk
+  value: medium
+schema_version: '1'
+=== .ai-project/workflows.yaml ===
+schema_version: '1'
+workflows:
+- name: develop
+  steps:
+  - plan
+  - test
+  - implement
+  - verify
+- name: change
+  steps:
+  - preview
+  - approve
+  - apply
+  - verify
