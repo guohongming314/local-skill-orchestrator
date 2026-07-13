@@ -13,6 +13,7 @@ dependencies = [
   "langgraph>=1.0,<2",
   "langgraph-checkpoint-sqlite>=3,<4",
   "platformdirs>=4.3,<5",
+  "pyyaml>=6.0,<7",
   "pydantic>=2.10,<3",
   "rich>=13.9,<15",
   "sqlalchemy>=2.0,<3",
@@ -28,6 +29,7 @@ dev = [
   "pytest>=8.3,<9",
   "pytest-asyncio>=0.25,<1",
   "ruff>=0.9,<1",
+  "types-pyyaml>=6.0,<7",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -48,4 +50,3 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 python_version = "3.12"
 strict = true
 files = ["src", "tests"]
-

@@ -1,0 +1,23 @@
+﻿schema_version: '1'
+pack_id: database-backed
+name: Database Backed
+description: Persistence safety and migration practices
+priority: 50
+match:
+  all_of:
+    - field: uses_database
+      operator: equals
+      value: true
+requirements:
+  - requirement_id: database-migration-testing
+    capability: database.migration-testing
+    strength: required
+    rationale: Protect stored data across schema changes
+    verification:
+      - Run upgrade and rollback migration tests
+  - requirement_id: database-transaction-review
+    capability: database.transaction-review
+    strength: recommended
+    rationale: Preserve atomic persistence behavior
+    verification:
+      - Verify transaction boundaries

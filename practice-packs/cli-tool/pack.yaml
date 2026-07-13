@@ -1,0 +1,23 @@
+﻿schema_version: '1'
+pack_id: cli-tool
+name: CLI Tool
+description: Command-line interface behavior practices
+priority: 50
+match:
+  all_of:
+    - field: project_type
+      operator: equals
+      value: cli-tool
+requirements:
+  - requirement_id: cli-integration-testing
+    capability: cli.integration-testing
+    strength: required
+    rationale: Validate commands through the public CLI
+    verification:
+      - Run CLI integration tests
+  - requirement_id: cli-help-review
+    capability: cli.help-review
+    strength: recommended
+    rationale: Keep command help discoverable
+    verification:
+      - Inspect generated command help
