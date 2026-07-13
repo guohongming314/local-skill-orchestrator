@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import hashlib
 import json
@@ -124,7 +124,7 @@ def _build_operation(root: Path, proposal: ChangeProposal) -> ChangeOperation:
     target = (root / Path(*PurePosixPath(proposal.path).parts)).resolve()
     if not target.is_relative_to(root):
         raise ValueError(f"path escapes project root: {proposal.path}")
-    before = target.open("r", encoding="utf-8-sig", newline="").read() if target.is_file() else None
+    before = target.open("r", encoding="utf-8", newline="").read() if target.is_file() else None
     after = proposal.desired_content
     if proposal.ownership is FileOwnership.OBSERVED:
         after = before

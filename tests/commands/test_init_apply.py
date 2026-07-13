@@ -77,7 +77,7 @@ def test_init_applies_complete_configuration_preserves_user_content_and_is_idemp
     root = tmp_path / "project"
     root.mkdir()
     (root / "pyproject.toml").write_text("[project]\nname='demo'\n", encoding="utf-8")
-    (root / "AGENTS.md").write_text("# User guidance\n\nKeep this.\n", encoding="utf-8")
+    (root / "AGENTS.md").write_bytes(b"\xef\xbb\xbf# User guidance\n\nKeep this.\n")
     answer_path = answers(tmp_path)
 
     first = invoke(root, answer_path, run_id="apply-one")
@@ -87,8 +87,9 @@ def test_init_applies_complete_configuration_preserves_user_content_and_is_idemp
     assert payload["status"] == "completed"
     assert (root / ".ai-project/capabilities.lock").is_file()
     assert (root / ".agents/skills/project-development/SKILL.md").is_file()
-    agents = (root / "AGENTS.md").read_text(encoding="utf-8")
+    agents = (root / "AGENTS.md").read_text(encoding="utf-8-sig")
     assert agents.startswith("# User guidance\n\nKeep this.\n")
+    assert (root / "AGENTS.md").read_bytes().startswith(b"\xef\xbb\xbf")
     assert "local-skill-orchestrator:begin" in agents
     before = project_files(root)
 
@@ -97,4 +98,3 @@ def test_init_applies_complete_configuration_preserves_user_content_and_is_idemp
     assert second.exit_code == 0, second.output
     assert project_files(root) == before
     assert json.loads(second.stdout)["applied_paths"] == []
-
