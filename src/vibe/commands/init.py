@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping
 from pathlib import Path
@@ -12,8 +13,20 @@ import typer
 from vibe.commands.inspect import _complete_snapshot
 from vibe.conversation.interview import InterviewInput, build_interview
 from vibe.conversation.structured_result import StructuredProjectResult, ValueSource
+from vibe.inventory.service import InventoryResult
+from vibe.materialize.agents_md import merge_agents_md
+from vibe.materialize.changeset import (
+    ChangeProposal,
+    ChangeSet,
+    build_changeset,
+    render_dry_run,
+)
+from vibe.materialize.ownership import FileOwnership
+from vibe.materialize.templates import render_project_configuration
+from vibe.materialize.writer import ApplyFailure, ConcurrentChangeError, apply_changeset
 from vibe.models.blueprint import Blueprint
 from vibe.models.repository import RepositorySnapshot
+from vibe.models.resolution import ResolutionPlan
 from vibe.workflows.checkpoints import CheckpointConflict, SqliteCheckpointStore
 from vibe.workflows.init_graph import InitializationGraph, InvalidTransition
 from vibe.workflows.state import InitCheckpoint, InitStage, InitStatus
@@ -35,10 +48,11 @@ def init_command(
     confirm: Annotated[bool, typer.Option("--confirm")] = False,
     cancel: Annotated[bool, typer.Option("--cancel")] = False,
     json_output: Annotated[bool, typer.Option("--json")] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
 ) -> None:
-    """Inspect, interview, and review a Blueprint without materializing a project."""
-    if not model_only:
-        typer.echo("only --model-only initialization is available", err=True)
+    """Inspect, review, and optionally materialize project AI configuration."""
+    if model_only and dry_run:
+        typer.echo("--dry-run cannot be combined with --model-only", err=True)
         raise typer.Exit(2)
     root = (path or Path.cwd()).resolve()
     checkpoint_path = (checkpoints or root / ".vibe-init-checkpoints.sqlite3").resolve()
@@ -54,7 +68,7 @@ def init_command(
             resume=resume,
         )
         if cancel:
-            cancelled = workflow.cancel(run_id, reason="user cancelled model-only review")
+            cancelled = workflow.cancel(run_id, reason="user cancelled initialization")
             _emit({"run_id": run_id, "status": cancelled.status.value}, json_output)
             return
 
@@ -131,22 +145,89 @@ def init_command(
             return
         if checkpoint.stage is not InitStage.REVIEW:
             raise InvalidTransition(
-                f"run {run_id!r} cannot continue model-only review from {checkpoint.stage.value}"
+                f"run {run_id!r} cannot continue review from {checkpoint.stage.value}"
             )
 
         checkpoint = workflow.advance(run_id, InitStage.APPLY)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(structured.blueprint.model_dump_json(indent=2), encoding="utf-8")
+        if model_only:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(
+                structured.blueprint.model_dump_json(indent=2), encoding="utf-8"
+            )
+            applied_paths: tuple[str, ...] = ()
+            completion_details = {"blueprint_output": str(output_path)}
+        else:
+            changeset = _project_changeset(root, structured.blueprint)
+            preview = render_dry_run(changeset)
+            if dry_run:
+                applied_paths = ()
+                completion_details = {"dry_run_changeset": changeset.digest}
+                review_payload.update(status="dry-run", preview=preview, applied_paths=[])
+            else:
+                result = apply_changeset(changeset)
+                applied_paths = result.applied_paths
+                completion_details = {"applied_changeset": changeset.digest}
         workflow.advance(run_id, InitStage.VERIFY)
-        completed = workflow.complete(
-            run_id,
-            confirmed={"blueprint_output": str(output_path)},
-        )
-        review_payload.update(status=completed.status.value, stage=completed.stage.value)
+        completed = workflow.complete(run_id, confirmed=completion_details)
+        if not dry_run:
+            review_payload.update(
+                status=completed.status.value,
+                stage=completed.stage.value,
+                applied_paths=list(applied_paths),
+            )
         _emit(review_payload, json_output)
-    except (OSError, ValueError, CheckpointConflict, InvalidTransition) as exc:
+    except (
+        OSError,
+        UnicodeError,
+        ValueError,
+        ApplyFailure,
+        ConcurrentChangeError,
+        CheckpointConflict,
+        InvalidTransition,
+    ) as exc:
         typer.echo(f"initialization failed: {exc}", err=True)
         raise typer.Exit(2) from exc
+
+
+def _project_changeset(root: Path, blueprint: Blueprint) -> ChangeSet:
+    inventory = InventoryResult(capabilities=(), diagnostics=(), inventory_digest="0" * 64)
+    blueprint_digest = hashlib.sha256(
+        blueprint.model_dump_json().encode("utf-8")
+    ).hexdigest()
+    resolution = ResolutionPlan(
+        blueprint_digest=blueprint_digest,
+        inventory_digest=inventory.inventory_digest,
+        resolutions=(),
+    )
+    rendered = render_project_configuration(blueprint, resolution, inventory)
+    proposals = [
+        ChangeProposal(
+            path=path,
+            desired_content=content,
+            ownership=FileOwnership.OWNED,
+            source="project-configuration-template-v1",
+            reason="materialize approved project AI configuration",
+        )
+        for path, content in rendered.as_dict().items()
+    ]
+    agents_path = root / "AGENTS.md"
+    existing_agents = agents_path.read_bytes() if agents_path.is_file() else None
+    managed_guidance = (
+        "## Project development\n\n"
+        "Use the project-development Skill at "
+        "`.agents/skills/project-development/SKILL.md`.\n"
+    )
+    merged_agents = merge_agents_md(existing_agents, managed_guidance).decode("utf-8")
+    proposals.append(
+        ChangeProposal(
+            path="AGENTS.md",
+            desired_content=merged_agents,
+            ownership=FileOwnership.MANAGED,
+            source="project-development-skill-v1",
+            reason="route project work through generated local guidance",
+        )
+    )
+    return build_changeset(root, tuple(proposals))
 
 
 def _open_run(
