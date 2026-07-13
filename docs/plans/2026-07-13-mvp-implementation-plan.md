@@ -106,6 +106,9 @@
 - `inventory_cache`
 - `capability_verifications`
 - `user_trust_decisions`
+- `audit_events`
+
+LangGraph Checkpoint 使用其 SQLite Checkpointer 管理的表结构，不由业务 ORM 重复建模；业务库保存 Graph Run ID、Codex Thread ID 和 Checkpoint Namespace 的关联。
 
 ### 测试
 
@@ -113,6 +116,8 @@
 - Alembic 初始迁移。
 - 升级和降级迁移测试。
 - Run 创建和恢复。
+- Graph Run、Codex Thread 和 Checkpoint Namespace 关联。
+- Audit Event 写入和敏感字段脱敏。
 - 不保存 Secret 字段。
 
 ## Step 4：Codex app-server Spike
@@ -140,6 +145,8 @@
 - 最终输出 JSON 并通过 Pydantic 验证。
 - 验证失败后修复一次。
 - 验证 `codex exec --json --output-schema` 回退。
+- 创建最小 LangGraph 初始化 Graph，使用 SQLite Checkpoint 暂停并恢复一次。
+- 验证 Codex Thread ID 与 Graph Run ID 分离，恢复前重新验证仓库输入摘要。
 
 ### 决策输出
 
@@ -150,6 +157,7 @@
 - 结构化结果方案。
 - 用户认证方式。
 - 测试中如何使用 Fake app-server Process。
+- LangGraph Checkpoint 与业务持久化的边界和恢复策略。
 
 ## Step 5：仓库扫描
 
@@ -193,6 +201,7 @@
 - `src/vibe/inventory/adapters/cli_tool.py`
 - `src/vibe/inventory/adapters/codex_mcp.py`
 - `src/vibe/inventory/adapters/codex_plugin.py`
+- `src/vibe/inventory/adapters/codex_hook.py`
 - `src/vibe/commands/capabilities.py`
 
 ### 行为
@@ -202,6 +211,7 @@
 - 识别依赖文件和脚本。
 - 检测 Tool 版本。
 - 读取 MCP 和 Plugin 元数据。
+- 只读扫描 Hook 元数据、触发条件和声明权限，不执行 Hook。
 - 规范化 Manifest。
 - 运行只读验证。
 
@@ -213,6 +223,7 @@
 - 依赖 Tool 缺失。
 - 重复能力。
 - 本地复合能力。
+- Hook 元数据正常、损坏和权限过宽场景。
 
 ## Step 7：初始化状态机
 
@@ -282,7 +293,11 @@
 - `practice-packs/base-engineering/`
 - `practice-packs/web-application/`
 - `practice-packs/backend-api/`
+- `practice-packs/cli-tool/`
+- `practice-packs/open-source-library/`
+- `practice-packs/database-backed/`
 - `practice-packs/security-sensitive/`
+- `practice-packs/ai-application/`
 - `src/vibe/practices/loader.py`
 - `src/vibe/practices/matcher.py`
 - `src/vibe/practices/evaluator.py`
@@ -381,7 +396,7 @@
 - `src/vibe/models/task.py`
 - `src/vibe/models/risk.py`
 
-### 首批场景
+### P0 完整纵向场景
 
 - Bug。
 - Feature。
@@ -390,7 +405,18 @@
 - Migration。
 - Review。
 
-其余场景在同一 Registry 上扩展。
+### P1 Registry 场景
+
+- Performance。
+- Dependency Upgrade。
+- Testing。
+- UI/Accessibility。
+- Documentation。
+- Release。
+- Incident。
+- Exploration。
+
+P1 场景必须提供注册定义、风险策略、Fixture、可解释路由和安全降级；只有评测证明需要时才增加专用工作流。
 
 ### 测试
 
@@ -458,6 +484,8 @@
 - `tests/scenarios/tasks/`
 - `tests/e2e/`
 - `tests/results-template.md`
+- `tests/evaluation/task-routing/`
+- `src/vibe/evaluation/task_routing.py`
 
 ### 场景
 
@@ -472,6 +500,27 @@
 - 简单任务零能力。
 - 高风险任务严格流程。
 
+### 任务路由评测集
+
+- 30 个简单任务。
+- 30 个普通任务。
+- 30 个高风险任务。
+- 20 个不应调用额外能力的负样本。
+- 20 个用户中途改变目标的样本。
+- 20 个能力名称或描述冲突样本。
+
+### 评测指标
+
+- 意图分类准确率。
+- 风险分类准确率。
+- Capability Recall@K。
+- 无关能力选择率。
+- Context Capsule 大小。
+- 用户覆盖率。
+- 错误权限请求率。
+- 端到端配置成功率。
+- Doctor 漂移检测率。
+
 ### 发布门禁
 
 - 单元测试通过。
@@ -480,6 +529,7 @@
 - Skill 校验通过。
 - `git diff --check` 通过。
 - 核心场景人工审阅通过。
+- 生成版本化评测报告；首次报告记录基线，发布候选必须满足基于该基线固化的门禁阈值。
 
 ## 目标与工作项映射
 

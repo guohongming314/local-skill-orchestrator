@@ -103,7 +103,8 @@ local-skill-orchestrator/
 │       │       ├── agent_skill.py
 │       │       ├── cli_tool.py
 │       │       ├── codex_mcp.py
-│       │       └── codex_plugin.py
+│       │       ├── codex_plugin.py
+│       │       └── codex_hook.py
 │       ├── conversation/
 │       │   ├── interview.py
 │       │   ├── prompts.py
@@ -436,6 +437,8 @@ class CapabilityAdapter(Protocol):
 
 第一版 Adapter 只读，不安装和修改外部能力。
 
+Hook Adapter 只读取 Hook 元数据、触发条件和声明权限，不执行 Hook，也不修改全局或项目级 Host 配置。Plugin 提供的 Hook 可以保留其 Plugin 来源关系，但应规范化为独立、可审计的能力组件。
+
 ## Practice Pack
 
 Practice Pack 是版本化 YAML 数据，不是可执行代码。
@@ -490,6 +493,8 @@ ChangeOperation = CreateOperation | UpdateOperation | DeleteOperation
 - Capability Verification。
 - Trust Decision。
 - Audit Event。
+
+LangGraph Checkpoint 使用官方 SQLite Checkpointer 管理的表结构，不由 SQLAlchemy 业务模型重复实现。业务持久化只保存 Graph Run ID、Codex Thread ID、Checkpoint Namespace 和当前输入摘要之间的关联，以便恢复前重新验证状态。
 
 ### Alembic
 
@@ -583,4 +588,3 @@ ChangeOperation = CreateOperation | UpdateOperation | DeleteOperation
 - PolicyEngineAdapter。
 - TelemetryExporter。
 - TemplateAdapter。
-
