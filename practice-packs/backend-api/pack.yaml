@@ -1,0 +1,23 @@
+﻿schema_version: '1'
+pack_id: backend-api
+name: Backend API
+description: Service API correctness and compatibility practices
+priority: 50
+match:
+  all_of:
+    - field: project_type
+      operator: equals
+      value: backend-api
+requirements:
+  - requirement_id: api-contract-testing
+    capability: api.contract-testing
+    strength: required
+    rationale: Protect API contracts from regressions
+    verification:
+      - Run API contract tests
+  - requirement_id: observability-validation
+    capability: observability.validation
+    strength: recommended
+    rationale: Ensure service behavior can be diagnosed
+    verification:
+      - Verify structured logs and health signals

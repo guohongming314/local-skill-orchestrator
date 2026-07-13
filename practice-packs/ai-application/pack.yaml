@@ -1,0 +1,23 @@
+﻿schema_version: '1'
+pack_id: ai-application
+name: AI Application
+description: Evaluation and safety practices for model-backed systems
+priority: 50
+match:
+  all_of:
+    - field: project_type
+      operator: equals
+      value: ai-application
+requirements:
+  - requirement_id: ai-evaluation
+    capability: ai.evaluation
+    strength: required
+    rationale: Measure model behavior against stable scenarios
+    verification:
+      - Run the evaluation suite
+  - requirement_id: ai-prompt-review
+    capability: ai.prompt-review
+    strength: recommended
+    rationale: Keep model instructions reviewable
+    verification:
+      - Review prompt and context changes

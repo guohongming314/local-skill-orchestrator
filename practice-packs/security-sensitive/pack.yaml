@@ -1,0 +1,40 @@
+schema_version: '1'
+pack_id: security-sensitive
+name: Security Sensitive
+description: Security review and least-privilege practices
+priority: 50
+match:
+  all_of:
+    - field: risk_level
+      operator: in
+      value: [high, critical]
+requirements:
+  - requirement_id: security-threat-model
+    capability: security.threat-model
+    strength: required
+    rationale: Identify trust boundaries before sensitive changes
+    verification:
+      - Review threats and mitigations
+  - requirement_id: security-secret-scan
+    capability: security.secret-scan
+    strength: required
+    rationale: Prevent credential material from entering outputs
+    verification:
+      - Run credential marker scan
+exceptions:
+  - exception_id: trusted-offline-prototype
+    when:
+      all_of:
+        - field: lifecycle_stage
+          operator: equals
+          value: exploration
+        - field: network_access
+          operator: equals
+          value: false
+    suppress_requirements:
+      - security-secret-scan
+    rationale: An isolated disposable prototype has no credential input.
+conflicts:
+  - pack_id: rapid-prototyping
+    resolution: prefer-self
+    rationale: Security requirements take precedence over prototype speed.

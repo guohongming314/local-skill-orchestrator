@@ -1,0 +1,23 @@
+﻿schema_version: '1'
+pack_id: open-source-library
+name: Open Source Library
+description: Public library compatibility and release practices
+priority: 50
+match:
+  all_of:
+    - field: distribution
+      operator: equals
+      value: open-source-library
+requirements:
+  - requirement_id: public-api-compatibility
+    capability: public-api.compatibility
+    strength: required
+    rationale: Avoid unplanned public API breakage
+    verification:
+      - Run compatibility tests
+  - requirement_id: release-documentation
+    capability: release.documentation
+    strength: recommended
+    rationale: Document user-facing release changes
+    verification:
+      - Verify changelog and package metadata
