@@ -24,6 +24,34 @@ class SourceTier(IntEnum):
     GENERAL_SEARCH = 10
 
 
+class PermissionLevel(StrEnum):
+    L0 = "L0"
+    L1 = "L1"
+    L2 = "L2"
+    L3 = "L3"
+    L4 = "L4"
+
+
+class PublisherVerification(StrEnum):
+    UNVERIFIED = "unverified"
+    ALLOWLIST = "allowlist"
+    ORG_SIGNATURE = "org-signature"
+
+
+class Provenance(VersionedModel):
+    """Verified evidence reusable by the capability lockfile."""
+
+    source: str = Field(min_length=1)
+    publisher: str | None = None
+    digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    source_verified: bool
+    publisher_verified: bool
+    publisher_verification: PublisherVerification
+    digest_verified: bool
+    permission_level: PermissionLevel
+    reason: str = Field(min_length=1)
+
+
 class CacheStatus(StrEnum):
     FRESH = "fresh"
     STALE = "stale"
@@ -43,6 +71,7 @@ class RemoteCandidate(VersionedModel):
     publisher: str | None = None
     permissions_as_declared: tuple[str, ...] = ()
     source_tier: SourceTier
+    provenance: Provenance | None = None
 
 
 class SearchResult(VersionedModel):
