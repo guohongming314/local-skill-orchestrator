@@ -519,6 +519,31 @@ class AuditEventRepository:
             )
             return tuple(self._record(model) for model in models)
 
+    def query(
+        self,
+        *,
+        from_time: datetime | None = None,
+        to_time: datetime | None = None,
+        event_kind: str | None = None,
+        capability_id: str | None = None,
+    ) -> tuple[AuditEventRecord, ...]:
+        """Return matching audit events ordered by creation time and event ID."""
+        statement = select(AuditEvent)
+        if from_time is not None:
+            statement = statement.where(AuditEvent.created_at >= _comparable_time(from_time))
+        if to_time is not None:
+            statement = statement.where(AuditEvent.created_at <= _comparable_time(to_time))
+        if event_kind is not None:
+            statement = statement.where(AuditEvent.event_type == event_kind)
+        statement = statement.order_by(AuditEvent.created_at, AuditEvent.id)
+        with self._session_factory() as session:
+            records = tuple(self._record(model) for model in session.scalars(statement))
+        if capability_id is None:
+            return records
+        return tuple(
+            record for record in records if _event_mentions_capability(record, capability_id)
+        )
+
     @staticmethod
     def _record(model: AuditEvent) -> AuditEventRecord:
         envelope = _decode(model.event_json)
@@ -531,6 +556,17 @@ class AuditEventRepository:
             redacted=model.redacted,
             created_at=model.created_at,
         )
+
+
+def _event_mentions_capability(record: AuditEventRecord, capability_id: str) -> bool:
+    for key in ("capability_id", "capability", "provider_id"):
+        if record.details.get(key) == capability_id:
+            return True
+    for key in ("capabilities", "capabilities_used", "unused_recommendations"):
+        value = record.details.get(key)
+        if isinstance(value, list) and capability_id in value:
+            return True
+    return False
 
 
 @dataclass(frozen=True)

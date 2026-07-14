@@ -4,6 +4,7 @@ import typer
 from rich.console import Console
 
 from vibe import __version__
+from vibe.commands.audit import audit_command
 from vibe.commands.capabilities import capabilities_app
 from vibe.commands.diff import diff_command
 from vibe.commands.doctor import doctor_command
@@ -30,6 +31,7 @@ app.add_typer(capabilities_app, name="capabilities")
 app.command("spike-codex")(spike_codex)
 app.command("inspect")(inspect_command)
 app.command("doctor")(doctor_command)
+app.command("audit")(audit_command)
 app.command("explain-task")(explain_task_command)
 app.command("diff")(diff_command)
 app.command("plan")(plan_command)
