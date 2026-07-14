@@ -1,0 +1,18 @@
+{
+  "codegraph": {
+    "capability_ids": ["product.codegraph"],
+    "statuses": ["gap", "rejected"]
+  },
+  "large-monorepo": {
+    "capability_ids": ["product.codegraph"],
+    "statuses": ["selected"]
+  },
+  "memory-provider": {
+    "capability_ids": ["memory.local-leads"],
+    "statuses": ["deferred"]
+  },
+  "no-skill": {
+    "capability_ids": [],
+    "statuses": []
+  }
+}
