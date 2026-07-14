@@ -140,7 +140,7 @@ def render_project_configuration(
         ".ai-project/capabilities.yaml": _yaml(capabilities.model_dump(mode="json")),
         ".ai-project/capabilities.lock": _yaml(lock.model_dump(mode="json")),
         ".ai-project/policy.yaml": _yaml(policy.model_dump(mode="json")),
-        ".ai-project/decisions.md": _decisions(blueprint),
+        ".ai-project/decisions.md": _decisions(blueprint, resolution_plan),
         ".ai-project/quality-gates.md": _quality_gates(),
         ".ai-project/workflows.yaml": _yaml(workflows.model_dump(mode="json")),
         ".ai-project/task-policies.yaml": _yaml(task_policies.model_dump(mode="json")),
@@ -206,7 +206,7 @@ def _yaml(payload: dict[str, Any]) -> str:
     )
 
 
-def _decisions(blueprint: Blueprint) -> str:
+def _decisions(blueprint: Blueprint, resolution_plan: ResolutionPlan) -> str:
     lines = [
         "# Project decisions",
         "",
@@ -223,6 +223,25 @@ def _decisions(blueprint: Blueprint) -> str:
     )
     lines.extend(["", "## Preferences"])
     lines.extend(f"- {key}: {blueprint.preferences[key]}" for key in sorted(blueprint.preferences))
+    recommendations = [
+        item
+        for item in resolution_plan.resolutions
+        if item.status is ResolutionStatus.GAP and item.recommendation is not None
+    ]
+    if recommendations:
+        lines.extend(["", "## Capability gap recommendations"])
+        for resolution in sorted(recommendations, key=lambda item: item.requirement):
+            recommendation = resolution.recommendation
+            if recommendation is None:
+                continue
+            lines.extend(["", f"### {resolution.requirement}: {recommendation.why}"])
+            for index, candidate in enumerate(recommendation.candidates, start=1):
+                permissions = ", ".join(permission.value for permission in candidate.permissions)
+                lines.append(
+                    f"{index}. {candidate.provider} ({candidate.kind.value}, "
+                    f"{candidate.strength.value}) — permissions: {permissions}; "
+                    f"why: {candidate.why}"
+                )
     return "\n".join(lines) + "\n"
 
 

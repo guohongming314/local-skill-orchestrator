@@ -383,6 +383,7 @@ def _plan_payload(
             ],
             "digest": inventory.inventory_digest,
         },
+        "resolution": resolution.model_dump(mode="json"),
         "requirements": [
             item.model_dump(mode="json")
             for item in sorted(requirements, key=lambda value: value.capability)

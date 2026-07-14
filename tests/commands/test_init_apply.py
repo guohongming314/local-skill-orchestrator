@@ -6,6 +6,7 @@ from pathlib import Path
 from typer.testing import CliRunner, Result
 
 from vibe.cli import app
+from vibe.models.resolution import ResolutionPlan
 
 runner = CliRunner()
 
@@ -126,3 +127,39 @@ def test_init_review_surfaces_practice_pack_origins_and_reasons(tmp_path: Path) 
     assert requirements["browser.validation"]["reasons"] == [
         "Validate user-visible browser behavior"
     ]
+
+
+def test_init_json_exposes_schema_valid_gap_recommendations(tmp_path: Path) -> None:
+    root = tmp_path / "web-project"
+    root.mkdir()
+    answer_path = tmp_path / "web-answers.json"
+    answer_path.write_text(
+        json.dumps(
+            {
+                "goal": "Build a web application",
+                "lifecycle_stage": "active-development",
+                "risk_level": "medium",
+                "project_type": "web-application",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = invoke(root, answer_path, run_id="web-recommendations", dry_run=True)
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    resolution = ResolutionPlan.model_validate(payload["resolution"])
+    browser_gap = next(
+        item
+        for item in resolution.resolutions
+        if item.requirement == "browser.validation" and item.status.value == "gap"
+    )
+    assert browser_gap.recommendation is not None
+    assert [item.provider for item in browser_gap.recommendation.candidates] == [
+        "playwright",
+        "chrome-devtools",
+    ]
+    assert payload["decisions"][0].get("recommendation") is not None or any(
+        item.get("recommendation") is not None for item in payload["decisions"]
+    )

@@ -3,6 +3,8 @@ from enum import StrEnum
 from pydantic import Field, model_validator
 
 from vibe.models.base import VersionedModel
+from vibe.models.capability import CapabilityKind, Permission
+from vibe.practices.models import RequirementStrength
 
 
 class ResolutionStatus(StrEnum):
@@ -12,11 +14,27 @@ class ResolutionStatus(StrEnum):
     GAP = "gap"
 
 
+class RecommendationCandidate(VersionedModel):
+    kind: CapabilityKind
+    provider: str = Field(min_length=1)
+    permissions: tuple[Permission, ...]
+    why: str = Field(min_length=1)
+    strength: RequirementStrength
+
+
+class CapabilityRecommendation(VersionedModel):
+    why: str = Field(min_length=1)
+    candidates: tuple[RecommendationCandidate, ...] = Field(min_length=1)
+
+
 class CapabilityResolution(VersionedModel):
     requirement: str = Field(min_length=1)
     status: ResolutionStatus
     capability_id: str | None = None
     reason: str = Field(min_length=1)
+    recommendation: CapabilityRecommendation | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
     @model_validator(mode="after")
     def selected_resolution_has_capability(self) -> "CapabilityResolution":
