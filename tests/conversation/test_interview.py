@@ -136,3 +136,54 @@ def test_question_order_is_stable_and_tool_names_are_not_exposed() -> None:
         "preferences.workflow",
     ]
     assert "secret-tool-name" not in " ".join(q.text for q in first.questions)
+
+
+def test_blank_repository_always_asks_for_project_type() -> None:
+    result = build_interview(
+        InterviewInput(
+            repository=snapshot(empty=True),
+            unknowns=("project.goal",),
+        )
+    )
+
+    assert "project.type" in ids(result)
+
+
+def test_inferred_project_type_is_not_reasked() -> None:
+    result = build_interview(
+        InterviewInput(
+            repository=snapshot(
+                empty=False,
+                facts=(
+                    RepositoryFact(
+                        key="project_type",
+                        value="web-application",
+                        confidence=FactConfidence.INFERRED,
+                        sources=("package.json",),
+                    ),
+                ),
+            ),
+        )
+    )
+
+    assert "project.type" not in ids(result)
+
+
+def test_conflicting_project_type_is_reasked() -> None:
+    result = build_interview(
+        InterviewInput(
+            repository=snapshot(
+                empty=False,
+                facts=(
+                    RepositoryFact(
+                        key="project_type",
+                        value=["backend-api", "web-application"],
+                        confidence=FactConfidence.CONFLICT,
+                        sources=("package.json", "pyproject.toml"),
+                    ),
+                ),
+            ),
+        )
+    )
+
+    assert "project.type" in ids(result)

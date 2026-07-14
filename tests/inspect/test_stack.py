@@ -98,3 +98,47 @@ def test_node_lockfiles_confirm_each_supported_manager(
     assert fact.value == [manager]
     assert fact.confidence is FactConfidence.CONFIRMED
     assert fact.sources == (signal,)
+
+
+@pytest.mark.parametrize(
+    ("fixture", "project_type"),
+    [
+        ("node-pnpm", "web-application"),
+        ("python-uv", "backend-api"),
+        ("rust", "backend-api"),
+        ("go", "backend-api"),
+        ("node-inferred", "open-source-library"),
+    ],
+)
+def test_stack_fixtures_infer_project_type(
+    fixture: str, project_type: str
+) -> None:
+    fact = facts(fixture)["project_type"]
+
+    assert fact.value == project_type
+    assert fact.confidence is FactConfidence.INFERRED
+
+
+def test_console_entry_point_infers_cli_project_type(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "tool"\n[project.scripts]\ntool = "tool:main"\n',
+        encoding="utf-8",
+    )
+
+    fact = {item.key: item for item in inspect_stack(tmp_path)}["project_type"]
+
+    assert fact.value == "cli-tool"
+    assert fact.confidence is FactConfidence.INFERRED
+    assert fact.sources == ("pyproject.toml:project.scripts",)
+
+
+def test_ml_dependency_infers_ai_application(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "assistant"\ndependencies = ["langchain>=1"]\n',
+        encoding="utf-8",
+    )
+
+    fact = {item.key: item for item in inspect_stack(tmp_path)}["project_type"]
+
+    assert fact.value == "ai-application"
+    assert fact.confidence is FactConfidence.INFERRED

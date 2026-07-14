@@ -25,7 +25,7 @@ from vibe.materialize.ownership import FileOwnership
 from vibe.materialize.templates import render_project_configuration
 from vibe.materialize.writer import ApplyFailure, ConcurrentChangeError, apply_changeset
 from vibe.models.blueprint import Blueprint
-from vibe.models.repository import RepositorySnapshot
+from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
 from vibe.models.resolution import ResolutionPlan
 from vibe.workflows.checkpoints import CheckpointConflict, SqliteCheckpointStore
 from vibe.workflows.init_graph import InitializationGraph, InvalidTransition
@@ -136,6 +136,13 @@ def init_command(
             checkpoint = workflow.advance(run_id, InitStage.REVIEW)
 
         assert structured is not None
+        stored_answers = checkpoint.confirmed.get("answers", {})
+        fact_answers = (
+            answer_payload
+            if answer_payload is not None
+            else stored_answers if isinstance(stored_answers, Mapping) else {}
+        )
+        snapshot = _repository_with_project_type(snapshot, fact_answers)
         project_plan = build_project_plan(
             root, structured.blueprint, snapshot, inventory=inventory
         )
@@ -272,6 +279,22 @@ def _load_answers(path: Path | None) -> dict[str, Any] | None:
     if not isinstance(raw, dict):
         raise ValueError("answers must be a JSON object")
     return cast(dict[str, Any], raw)
+
+
+def _repository_with_project_type(
+    snapshot: RepositorySnapshot, answers: Mapping[str, Any]
+) -> RepositorySnapshot:
+    answer = answers.get("project_type", answers.get("project.type"))
+    if not isinstance(answer, str) or not answer.strip():
+        return snapshot
+    confirmed = RepositoryFact(
+        key="project_type",
+        value=answer.strip(),
+        confidence=FactConfidence.CONFIRMED,
+        sources=("interview:project.type",),
+    )
+    facts = tuple(fact for fact in snapshot.facts if fact.key != "project_type")
+    return snapshot.model_copy(update={"facts": (*facts, confirmed)})
 
 
 def _build_structured(

@@ -13,6 +13,7 @@ class PromptTemplate:
 
 QUESTION_ORDER = (
     "project.goal",
+    "project.type",
     "project.lifecycle",
     "risk.tolerance",
     "constraints.deadline",
@@ -25,6 +26,11 @@ QUESTION_ORDER = (
 )
 
 PROMPTS: dict[str, PromptTemplate] = {
+    "project.type": PromptTemplate(
+        "project",
+        "What type of project is this: web application, backend API, CLI tool, "
+        "open-source library, or AI application?",
+    ),
     "project.lifecycle": PromptTemplate(
         "lifecycle", "What lifecycle stage should this project target?"
     ),
