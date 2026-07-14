@@ -98,3 +98,31 @@ def test_init_applies_complete_configuration_preserves_user_content_and_is_idemp
     assert second.exit_code == 0, second.output
     assert project_files(root) == before
     assert json.loads(second.stdout)["applied_paths"] == []
+
+
+def test_init_review_surfaces_practice_pack_origins_and_reasons(tmp_path: Path) -> None:
+    root = tmp_path / "web-project"
+    root.mkdir()
+    answer_path = tmp_path / "web-answers.json"
+    answer_path.write_text(
+        json.dumps(
+            {
+                "goal": "Build a web application",
+                "lifecycle_stage": "active-development",
+                "risk_level": "medium",
+                "project_type": "web-application",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = invoke(root, answer_path, run_id="web-review", dry_run=True)
+
+    assert result.exit_code == 0, result.output
+    requirements = {
+        item["capability"]: item for item in json.loads(result.stdout)["requirements"]
+    }
+    assert requirements["browser.validation"]["originating_packs"] == ["web-application"]
+    assert requirements["browser.validation"]["reasons"] == [
+        "Validate user-visible browser behavior"
+    ]
