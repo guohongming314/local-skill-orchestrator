@@ -1,6 +1,7 @@
 from pydantic import Field, model_validator
 
 from vibe.models.base import VersionedModel
+from vibe.models.capability import Permission
 
 
 class SourceReference(VersionedModel):
@@ -16,6 +17,7 @@ class ContextCapsule(VersionedModel):
     acceptance_criteria: tuple[str, ...] = Field(min_length=1)
     current_phase: str = Field(min_length=1)
     selected_capability_ids: tuple[str, ...] = ()
+    requested_permissions: tuple[Permission, ...] = ()
     deferred_capability_ids: tuple[str, ...] = ()
     rejected_capability_ids: tuple[str, ...] = ()
     sources: tuple[SourceReference, ...] = Field(min_length=1)

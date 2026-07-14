@@ -1,0 +1,5555 @@
+{
+  "samples": [
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "documentation evaluation task 00",
+      "phase": "inspect",
+      "sample_id": "simple-00",
+      "scenario": "documentation",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_00.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "goal_change": null,
+      "intent": "review evaluation task 01",
+      "phase": "inspect",
+      "sample_id": "simple-01",
+      "scenario": "review",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_01.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "testing evaluation task 02",
+      "phase": "inspect",
+      "sample_id": "simple-02",
+      "scenario": "testing",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_02.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "documentation evaluation task 03",
+      "phase": "inspect",
+      "sample_id": "simple-03",
+      "scenario": "documentation",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_03.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "goal_change": null,
+      "intent": "review evaluation task 04",
+      "phase": "inspect",
+      "sample_id": "simple-04",
+      "scenario": "review",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_04.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "testing evaluation task 05",
+      "phase": "inspect",
+      "sample_id": "simple-05",
+      "scenario": "testing",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_05.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "documentation evaluation task 06",
+      "phase": "inspect",
+      "sample_id": "simple-06",
+      "scenario": "documentation",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_06.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "goal_change": null,
+      "intent": "review evaluation task 07",
+      "phase": "inspect",
+      "sample_id": "simple-07",
+      "scenario": "review",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_07.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "testing evaluation task 08",
+      "phase": "inspect",
+      "sample_id": "simple-08",
+      "scenario": "testing",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_08.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "documentation evaluation task 09",
+      "phase": "inspect",
+      "sample_id": "simple-09",
+      "scenario": "documentation",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_09.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "goal_change": null,
+      "intent": "review evaluation task 10",
+      "phase": "inspect",
+      "sample_id": "simple-10",
+      "scenario": "review",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_10.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "testing evaluation task 11",
+      "phase": "inspect",
+      "sample_id": "simple-11",
+      "scenario": "testing",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_11.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "documentation evaluation task 12",
+      "phase": "inspect",
+      "sample_id": "simple-12",
+      "scenario": "documentation",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_12.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "goal_change": null,
+      "intent": "review evaluation task 13",
+      "phase": "inspect",
+      "sample_id": "simple-13",
+      "scenario": "review",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_13.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "testing evaluation task 14",
+      "phase": "inspect",
+      "sample_id": "simple-14",
+      "scenario": "testing",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_14.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "documentation evaluation task 15",
+      "phase": "inspect",
+      "sample_id": "simple-15",
+      "scenario": "documentation",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_15.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "goal_change": null,
+      "intent": "review evaluation task 16",
+      "phase": "inspect",
+      "sample_id": "simple-16",
+      "scenario": "review",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_16.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "testing evaluation task 17",
+      "phase": "inspect",
+      "sample_id": "simple-17",
+      "scenario": "testing",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_17.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "documentation evaluation task 18",
+      "phase": "inspect",
+      "sample_id": "simple-18",
+      "scenario": "documentation",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_18.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "goal_change": null,
+      "intent": "review evaluation task 19",
+      "phase": "inspect",
+      "sample_id": "simple-19",
+      "scenario": "review",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_19.py"
+      ],
+      "tags": [
+        "zero-extra-capability"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "testing evaluation task 20",
+      "phase": "inspect",
+      "sample_id": "simple-20",
+      "scenario": "testing",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_20.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "documentation evaluation task 21",
+      "phase": "inspect",
+      "sample_id": "simple-21",
+      "scenario": "documentation",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_21.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "goal_change": null,
+      "intent": "review evaluation task 22",
+      "phase": "inspect",
+      "sample_id": "simple-22",
+      "scenario": "review",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_22.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "testing evaluation task 23",
+      "phase": "inspect",
+      "sample_id": "simple-23",
+      "scenario": "testing",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_23.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "documentation evaluation task 24",
+      "phase": "inspect",
+      "sample_id": "simple-24",
+      "scenario": "documentation",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_24.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "goal_change": null,
+      "intent": "review evaluation task 25",
+      "phase": "inspect",
+      "sample_id": "simple-25",
+      "scenario": "review",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_25.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "testing evaluation task 26",
+      "phase": "inspect",
+      "sample_id": "simple-26",
+      "scenario": "testing",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_26.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "documentation evaluation task 27",
+      "phase": "inspect",
+      "sample_id": "simple-27",
+      "scenario": "documentation",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_27.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "goal_change": null,
+      "intent": "review evaluation task 28",
+      "phase": "inspect",
+      "sample_id": "simple-28",
+      "scenario": "review",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_28.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "simple",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "testing evaluation task 29",
+      "phase": "inspect",
+      "sample_id": "simple-29",
+      "scenario": "testing",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_29.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 00",
+      "intent": "bug evaluation task 00",
+      "phase": "inspect",
+      "sample_id": "normal-00",
+      "scenario": "bug",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_00.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 01",
+      "intent": "feature evaluation task 01",
+      "phase": "inspect",
+      "sample_id": "normal-01",
+      "scenario": "feature",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_01.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 02",
+      "intent": "refactor evaluation task 02",
+      "phase": "inspect",
+      "sample_id": "normal-02",
+      "scenario": "refactor",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_02.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 03",
+      "intent": "bug evaluation task 03",
+      "phase": "inspect",
+      "sample_id": "normal-03",
+      "scenario": "bug",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_03.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 04",
+      "intent": "feature evaluation task 04",
+      "phase": "inspect",
+      "sample_id": "normal-04",
+      "scenario": "feature",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_04.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 05",
+      "intent": "refactor evaluation task 05",
+      "phase": "inspect",
+      "sample_id": "normal-05",
+      "scenario": "refactor",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_05.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 06",
+      "intent": "bug evaluation task 06",
+      "phase": "inspect",
+      "sample_id": "normal-06",
+      "scenario": "bug",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_06.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 07",
+      "intent": "feature evaluation task 07",
+      "phase": "inspect",
+      "sample_id": "normal-07",
+      "scenario": "feature",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_07.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 08",
+      "intent": "refactor evaluation task 08",
+      "phase": "inspect",
+      "sample_id": "normal-08",
+      "scenario": "refactor",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_08.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 09",
+      "intent": "bug evaluation task 09",
+      "phase": "inspect",
+      "sample_id": "normal-09",
+      "scenario": "bug",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_09.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 10",
+      "intent": "feature evaluation task 10",
+      "phase": "inspect",
+      "sample_id": "normal-10",
+      "scenario": "feature",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_10.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 11",
+      "intent": "refactor evaluation task 11",
+      "phase": "inspect",
+      "sample_id": "normal-11",
+      "scenario": "refactor",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_11.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 12",
+      "intent": "bug evaluation task 12",
+      "phase": "inspect",
+      "sample_id": "normal-12",
+      "scenario": "bug",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_12.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 13",
+      "intent": "feature evaluation task 13",
+      "phase": "inspect",
+      "sample_id": "normal-13",
+      "scenario": "feature",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_13.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 14",
+      "intent": "refactor evaluation task 14",
+      "phase": "inspect",
+      "sample_id": "normal-14",
+      "scenario": "refactor",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_14.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 15",
+      "intent": "bug evaluation task 15",
+      "phase": "inspect",
+      "sample_id": "normal-15",
+      "scenario": "bug",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_15.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 16",
+      "intent": "feature evaluation task 16",
+      "phase": "inspect",
+      "sample_id": "normal-16",
+      "scenario": "feature",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_16.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 17",
+      "intent": "refactor evaluation task 17",
+      "phase": "inspect",
+      "sample_id": "normal-17",
+      "scenario": "refactor",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_17.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 18",
+      "intent": "bug evaluation task 18",
+      "phase": "inspect",
+      "sample_id": "normal-18",
+      "scenario": "bug",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_18.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": "Revised normal task goal 19",
+      "intent": "feature evaluation task 19",
+      "phase": "inspect",
+      "sample_id": "normal-19",
+      "scenario": "feature",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_19.py"
+      ],
+      "tags": [
+        "goal-change"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "refactor evaluation task 20",
+      "phase": "inspect",
+      "sample_id": "normal-20",
+      "scenario": "refactor",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_20.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "bug evaluation task 21",
+      "phase": "inspect",
+      "sample_id": "normal-21",
+      "scenario": "bug",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_21.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "feature evaluation task 22",
+      "phase": "inspect",
+      "sample_id": "normal-22",
+      "scenario": "feature",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_22.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "refactor evaluation task 23",
+      "phase": "inspect",
+      "sample_id": "normal-23",
+      "scenario": "refactor",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_23.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "bug evaluation task 24",
+      "phase": "inspect",
+      "sample_id": "normal-24",
+      "scenario": "bug",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_24.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "feature evaluation task 25",
+      "phase": "inspect",
+      "sample_id": "normal-25",
+      "scenario": "feature",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_25.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "refactor evaluation task 26",
+      "phase": "inspect",
+      "sample_id": "normal-26",
+      "scenario": "refactor",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_26.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "bug evaluation task 27",
+      "phase": "inspect",
+      "sample_id": "normal-27",
+      "scenario": "bug",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_27.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "normal",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "feature evaluation task 28",
+      "phase": "inspect",
+      "sample_id": "normal-28",
+      "scenario": "feature",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_28.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "normal",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "goal_change": null,
+      "intent": "refactor evaluation task 29",
+      "phase": "inspect",
+      "sample_id": "normal-29",
+      "scenario": "refactor",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_29.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.00",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release",
+        "conflict.00"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "security evaluation task 00",
+      "phase": "inspect",
+      "sample_id": "high-risk-00",
+      "scenario": "security",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_00.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.01",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release",
+        "conflict.01"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "migration evaluation task 01",
+      "phase": "inspect",
+      "sample_id": "high-risk-01",
+      "scenario": "migration",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_01.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.02",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release",
+        "conflict.02"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "release evaluation task 02",
+      "phase": "inspect",
+      "sample_id": "high-risk-02",
+      "scenario": "release",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_02.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.03",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release",
+        "conflict.03"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "security evaluation task 03",
+      "phase": "inspect",
+      "sample_id": "high-risk-03",
+      "scenario": "security",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_03.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.04",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release",
+        "conflict.04"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "migration evaluation task 04",
+      "phase": "inspect",
+      "sample_id": "high-risk-04",
+      "scenario": "migration",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_04.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.05",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release",
+        "conflict.05"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "release evaluation task 05",
+      "phase": "inspect",
+      "sample_id": "high-risk-05",
+      "scenario": "release",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_05.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.06",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release",
+        "conflict.06"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "security evaluation task 06",
+      "phase": "inspect",
+      "sample_id": "high-risk-06",
+      "scenario": "security",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_06.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.07",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release",
+        "conflict.07"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "migration evaluation task 07",
+      "phase": "inspect",
+      "sample_id": "high-risk-07",
+      "scenario": "migration",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_07.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.08",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release",
+        "conflict.08"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "release evaluation task 08",
+      "phase": "inspect",
+      "sample_id": "high-risk-08",
+      "scenario": "release",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_08.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.09",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release",
+        "conflict.09"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "security evaluation task 09",
+      "phase": "inspect",
+      "sample_id": "high-risk-09",
+      "scenario": "security",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_09.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.10",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release",
+        "conflict.10"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "migration evaluation task 10",
+      "phase": "inspect",
+      "sample_id": "high-risk-10",
+      "scenario": "migration",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_10.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.11",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release",
+        "conflict.11"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "release evaluation task 11",
+      "phase": "inspect",
+      "sample_id": "high-risk-11",
+      "scenario": "release",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_11.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.12",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release",
+        "conflict.12"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "security evaluation task 12",
+      "phase": "inspect",
+      "sample_id": "high-risk-12",
+      "scenario": "security",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_12.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.13",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release",
+        "conflict.13"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "migration evaluation task 13",
+      "phase": "inspect",
+      "sample_id": "high-risk-13",
+      "scenario": "migration",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_13.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.14",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release",
+        "conflict.14"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "release evaluation task 14",
+      "phase": "inspect",
+      "sample_id": "high-risk-14",
+      "scenario": "release",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_14.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.15",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release",
+        "conflict.15"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "security evaluation task 15",
+      "phase": "inspect",
+      "sample_id": "high-risk-15",
+      "scenario": "security",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_15.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.16",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release",
+        "conflict.16"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "migration evaluation task 16",
+      "phase": "inspect",
+      "sample_id": "high-risk-16",
+      "scenario": "migration",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_16.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.17",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release",
+        "conflict.17"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "release evaluation task 17",
+      "phase": "inspect",
+      "sample_id": "high-risk-17",
+      "scenario": "release",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_17.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.18",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release",
+        "conflict.18"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "security evaluation task 18",
+      "phase": "inspect",
+      "sample_id": "high-risk-18",
+      "scenario": "security",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_18.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        },
+        {
+          "capability_id": "conflict.19",
+          "description": "Read-only documentation helper",
+          "name": "Release automation",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "documentation-search"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release",
+        "conflict.19"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "migration evaluation task 19",
+      "phase": "inspect",
+      "sample_id": "high-risk-19",
+      "scenario": "migration",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_19.py"
+      ],
+      "tags": [
+        "capability-conflict"
+      ]
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "release evaluation task 20",
+      "phase": "inspect",
+      "sample_id": "high-risk-20",
+      "scenario": "release",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_20.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "security evaluation task 21",
+      "phase": "inspect",
+      "sample_id": "high-risk-21",
+      "scenario": "security",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_21.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "migration evaluation task 22",
+      "phase": "inspect",
+      "sample_id": "high-risk-22",
+      "scenario": "migration",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_22.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "release evaluation task 23",
+      "phase": "inspect",
+      "sample_id": "high-risk-23",
+      "scenario": "release",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_23.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "security evaluation task 24",
+      "phase": "inspect",
+      "sample_id": "high-risk-24",
+      "scenario": "security",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_24.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "migration evaluation task 25",
+      "phase": "inspect",
+      "sample_id": "high-risk-25",
+      "scenario": "migration",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_25.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "release evaluation task 26",
+      "phase": "inspect",
+      "sample_id": "high-risk-26",
+      "scenario": "release",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_26.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "security evaluation task 27",
+      "phase": "inspect",
+      "sample_id": "high-risk-27",
+      "scenario": "security",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_27.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": true,
+      "difficulty": "high-risk",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_rejected": [
+        "automation.release"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "migration evaluation task 28",
+      "phase": "inspect",
+      "sample_id": "high-risk-28",
+      "scenario": "migration",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_28.py"
+      ],
+      "tags": []
+    },
+    {
+      "acceptance": [
+        "The requested behavior is verified."
+      ],
+      "candidates": [
+        {
+          "capability_id": "analysis.code-relationships",
+          "description": "Analyze relationships between code symbols",
+          "name": "Code relationships",
+          "permissions": [
+            "read-project"
+          ],
+          "phases": [
+            "inspect"
+          ],
+          "provides": [
+            "code-relationship-analysis"
+          ]
+        },
+        {
+          "capability_id": "automation.release",
+          "description": "Prepare and publish a project release",
+          "name": "Release automation",
+          "permissions": [
+            "execute-command",
+            "network"
+          ],
+          "phases": [
+            "implement"
+          ],
+          "provides": [
+            "release-automation"
+          ]
+        }
+      ],
+      "cross_module": false,
+      "difficulty": "high-risk",
+      "expected_permissions": [],
+      "expected_rejected": [
+        "analysis.code-relationships",
+        "automation.release"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "goal_change": null,
+      "intent": "release evaluation task 29",
+      "phase": "inspect",
+      "sample_id": "high-risk-29",
+      "scenario": "release",
+      "schema_version": "1",
+      "scope": [
+        "src/sample_29.py"
+      ],
+      "tags": []
+    }
+  ],
+  "schema_version": "1"
+}
