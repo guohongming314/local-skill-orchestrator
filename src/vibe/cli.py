@@ -13,6 +13,7 @@ from vibe.commands.inspect import inspect_command
 from vibe.commands.install import install_command
 from vibe.commands.migrate import migrate_command
 from vibe.commands.plan import plan_command
+from vibe.commands.reconcile import reconcile_command
 from vibe.commands.run import run_command
 from vibe.commands.schema import schema_app
 from vibe.commands.spike_codex import checkpoint_resume, checkpoint_start, spike_codex
@@ -33,6 +34,7 @@ app.command("explain-task")(explain_task_command)
 app.command("diff")(diff_command)
 app.command("plan")(plan_command)
 app.command("run")(run_command)
+app.command("reconcile")(reconcile_command)
 app.command("init")(init_command)
 app.command("install")(install_command)
 app.command("migrate")(migrate_command)

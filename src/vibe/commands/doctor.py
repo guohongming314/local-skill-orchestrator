@@ -1,7 +1,8 @@
-﻿"""Expose project configuration health as human-readable or stable JSON output."""
+"""Expose project configuration health as human-readable or stable JSON output."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Annotated
@@ -98,7 +99,12 @@ def _project_report(root: Path) -> DoctorReport:
         resolution=project_plan.resolution,
     )
     drift = detect_drift(baseline, current, changeset)
-    drift_findings = tuple(_drift_finding(reason) for reason in drift.reasons)
+    drift_findings = tuple(
+        finding
+        for reason in drift.reasons
+        if (finding := _drift_finding(reason)) is not None
+        and not _accepted_reality(root, finding)
+    )
     return aggregate_findings((*health.findings, *drift_findings))
 
 
@@ -131,6 +137,38 @@ def _load_blueprint(root: Path) -> Blueprint | None:
         )
     except (OSError, UnicodeError, yaml.YAMLError, ValidationError, ValueError):
         return None
+
+
+def _accepted_reality(root: Path, finding: DoctorFinding) -> bool:
+    decisions = root / ".ai-project" / "decisions.md"
+    if not decisions.is_file():
+        return False
+    if finding.evidence == (".ai-project/decisions.md",):
+        return True
+    try:
+        lines = decisions.read_text(encoding="utf-8-sig").splitlines()
+    except (OSError, UnicodeError):
+        return False
+    prefix = "<!-- vibe-reconcile "
+    for line in lines:
+        if not line.startswith(prefix) or not line.endswith(" -->"):
+            continue
+        try:
+            entry = json.loads(line[len(prefix) : -4])
+        except (json.JSONDecodeError, TypeError):
+            continue
+        path = entry.get("path")
+        target = root / path if isinstance(path, str) else None
+        if (
+            entry.get("resolution") == "accept-reality"
+            and entry.get("code") == finding.code
+            and path in finding.evidence
+            and target is not None
+            and target.is_file()
+            and entry.get("digest") == hashlib.sha256(target.read_bytes()).hexdigest()
+        ):
+            return True
+    return False
 
 
 def _drift_finding(reason: InvalidationReason) -> DoctorFinding:
