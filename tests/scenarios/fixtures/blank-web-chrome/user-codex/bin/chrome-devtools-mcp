@@ -1,0 +1,2 @@
+#!/bin/sh
+echo "chrome-devtools-mcp 1.0.0"
