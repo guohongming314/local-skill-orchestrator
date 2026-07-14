@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable
 from enum import StrEnum
 from pathlib import Path
@@ -19,6 +20,12 @@ from vibe.compiler.context import (
 from vibe.compiler.intent import TaskIntent
 from vibe.models.outcome import TaskOutcome
 from vibe.models.task import TaskPhase, TaskPlan
+from vibe.routing.phase_exposure import GatewayPhaseExposure, PhaseExposure
+
+_LOGGER = logging.getLogger(__name__)
+_SOFT_ROUTING_NOTICE = (
+    "Hard routing gateway is not configured; hard tool isolation unavailable, using soft routing."
+)
 
 
 class TaskRunStatus(StrEnum):
@@ -58,6 +65,7 @@ class TaskRunCheckpoint(BaseModel):
     completed_phase_ids: tuple[str, ...] = ()
     phase_results: tuple[PhaseExecutionResult, ...] = ()
     confirmed_facts: tuple[str, ...] = ()
+    exposure_digest: str | None = None
     error: str | None = None
 
 
@@ -69,6 +77,17 @@ class TaskAppServer(Protocol):
     async def resume_thread(self, thread_id: str) -> str: ...
 
     async def execute_phase(self, thread_id: str, prompt: str) -> PhaseExecutionResult: ...
+
+
+class PhaseSessionAppServer(Protocol):
+    """Optional app-server extension that creates a configured phase handoff."""
+
+    async def start_phase_thread(
+        self,
+        root: Path,
+        previous_thread_id: str | None,
+        session_config: dict[str, object],
+    ) -> str: ...
 
 
 class TaskRunner:
@@ -84,6 +103,7 @@ class TaskRunner:
         blueprint_digest_provider: Callable[[], str],
         approval_provider: Callable[[TaskPhase], bool],
         outcome_recorder: Callable[[str, TaskOutcome], object] | None = None,
+        phase_exposure: GatewayPhaseExposure | None = None,
     ) -> None:
         self.root = root.resolve()
         self.app_server = app_server
@@ -92,6 +112,7 @@ class TaskRunner:
         self.blueprint_digest_provider = blueprint_digest_provider
         self.approval_provider = approval_provider
         self.outcome_recorder = outcome_recorder
+        self.phase_exposure = phase_exposure
 
     def run(
         self,
@@ -149,7 +170,9 @@ class TaskRunner:
             checkpoint = self._load()
             if checkpoint.task_id != plan.task_id:
                 raise ValueError("checkpoint task_id does not match the task plan")
-            thread_id = await self.app_server.resume_thread(checkpoint.codex_thread_id)
+            thread_id = checkpoint.codex_thread_id
+            if self.phase_exposure is None:
+                thread_id = await self.app_server.resume_thread(thread_id)
             checkpoint = checkpoint.model_copy(
                 update={
                     "status": TaskRunStatus.RUNNING,
@@ -160,7 +183,9 @@ class TaskRunner:
                 }
             )
         else:
-            thread_id = await self.app_server.start_thread(self.root)
+            thread_id = ""
+            if self.phase_exposure is None:
+                thread_id = await self.app_server.start_thread(self.root)
             checkpoint = TaskRunCheckpoint(
                 task_id=plan.task_id,
                 status=TaskRunStatus.RUNNING,
@@ -169,6 +194,8 @@ class TaskRunner:
                 blueprint_digest=current_blueprint,
                 next_phase_id=plan.phases[0].phase_id,
             )
+        if self.phase_exposure is None:
+            _LOGGER.warning(_SOFT_ROUTING_NOTICE)
         self._save(checkpoint)
 
         for index in range(checkpoint.next_phase_index, len(plan.phases)):
@@ -202,6 +229,29 @@ class TaskRunner:
                 head=live_head,
                 user_scope_digest=user_scope_digest,
             )
+            exposure: PhaseExposure | None = None
+            if self.phase_exposure is not None:
+                exposure = self.phase_exposure.expose(
+                    phase.phase_id, capsule.selected_capability_ids
+                )
+                phase_server = cast(PhaseSessionAppServer, self.app_server)
+                start_phase_thread = getattr(phase_server, "start_phase_thread", None)
+                if start_phase_thread is None:
+                    raise RuntimeError(
+                        "hard routing requires app_server.start_phase_thread"
+                    )
+                thread_id = await start_phase_thread(
+                    self.root,
+                    thread_id or None,
+                    exposure.thread_config,
+                )
+                checkpoint = checkpoint.model_copy(
+                    update={
+                        "codex_thread_id": thread_id,
+                        "exposure_digest": exposure.exposure_digest,
+                    }
+                )
+                self._save(checkpoint)
             prompt = self._phase_prompt(capsule.model_dump(mode="json"), checkpoint, candidates)
             result = await self.app_server.execute_phase(thread_id, prompt)
             self._verify_phase(phase, result)
