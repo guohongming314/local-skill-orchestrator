@@ -111,16 +111,31 @@ def init_command(
                     ),
                 )
             )
-            conversation_result = anyio.run(
-                partial(
-                    ConversationRunner(app_server_command=APP_SERVER_COMMAND).run,
-                    repository=snapshot,
-                    interview=interview,
-                    ask_user=_ask_interview_question,
-                    checkpoint_store=checkpoint_store,
-                    run_id=run_id,
+            try:
+                conversation_result = anyio.run(
+                    partial(
+                        ConversationRunner(app_server_command=APP_SERVER_COMMAND).run,
+                        repository=snapshot,
+                        interview=interview,
+                        ask_user=_ask_interview_question,
+                        checkpoint_store=checkpoint_store,
+                        run_id=run_id,
+                    )
                 )
-            )
+            except BaseExceptionGroup as exc:
+                if not _contains_user_abort(exc):
+                    raise
+                paused = workflow.pause(run_id)
+                typer.echo()
+                _emit(
+                    {
+                        "run_id": run_id,
+                        "stage": paused.stage.value,
+                        "status": paused.status.value,
+                    },
+                    json_output,
+                )
+                return
 
         structured = _structured_from_checkpoint(checkpoint)
         if checkpoint.stage is InitStage.INTERVIEW:
@@ -223,6 +238,14 @@ def init_command(
     ) as exc:
         typer.echo(f"initialization failed: {exc}", err=True)
         raise typer.Exit(2) from exc
+
+
+def _contains_user_abort(exc: BaseExceptionGroup) -> bool:
+    return any(
+        isinstance(item, typer.Abort)
+        or (isinstance(item, BaseExceptionGroup) and _contains_user_abort(item))
+        for item in exc.exceptions
+    )
 
 
 def _interview_unknowns(snapshot: RepositorySnapshot) -> tuple[str, ...]:
