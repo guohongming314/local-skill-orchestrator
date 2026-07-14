@@ -25,6 +25,7 @@ from vibe.materialize.ownership import FileOwnership
 from vibe.materialize.writer import apply_changeset
 from vibe.models.base import VersionedModel
 from vibe.remote.models import PermissionLevel, RemoteCandidate
+from vibe.remote.preflight import PreflightResult, run_preflight
 from vibe.remote.provenance import DigestMismatchError
 
 _LOCK_PATH = ".ai-project/capabilities.lock"
@@ -48,6 +49,7 @@ class InstallFile(VersionedModel):
 class InstallPackage(VersionedModel):
     files: tuple[InstallFile, ...]
     commands: tuple[tuple[str, ...], ...] = ()
+    preflight_argv: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def paths_are_unique(self) -> InstallPackage:
@@ -72,6 +74,9 @@ class InstallResult:
 
 
 InventoryScan = Callable[[Path], InventoryResult]
+PreflightRun = Callable[
+    [RemoteCandidate, tuple[InstallFile, ...], tuple[str, ...]], PreflightResult
+]
 
 
 def build_install_plan(
@@ -103,7 +108,7 @@ def build_install_plan(
         for item in package.files
     )
     transaction_path = _transaction_path(_provider_id(candidate))
-    if (root / transaction_path).exists():
+    if (root / transaction_path).exists() and not _passed_preflight(root, candidate):
         raise ValueError(f"install transaction already exists for {candidate.name}")
     transaction_content = _render_transaction(
         root,
@@ -153,7 +158,11 @@ def build_install_plan(
 
 
 def execute_install(
-    plan: InstallPlan, *, approved: bool, inventory_scan: InventoryScan
+    plan: InstallPlan,
+    *,
+    approved: bool,
+    inventory_scan: InventoryScan,
+    preflight_run: PreflightRun = run_preflight,
 ) -> InstallResult:
     """Stage, install, verify, and atomically commit, leaving no failure residue."""
     if not approved:
@@ -162,11 +171,17 @@ def execute_install(
         )
 
     root = plan.root.resolve()
+    if _passed_preflight(root, plan.candidate):
+        return InstallResult(inventory=inventory_scan(root), applied_paths=())
+
     with tempfile.TemporaryDirectory(prefix="vibe-install-") as temporary:
         staged_root = Path(temporary) / "project"
         shutil.copytree(root, staged_root, ignore=shutil.ignore_patterns(".git"))
         staged_changeset = _retarget_changeset(plan.changeset, staged_root)
         apply_changeset(staged_changeset)
+        preflight = preflight_run(
+            plan.candidate, plan.package.files, plan.package.preflight_argv
+        )
         inventory = inventory_scan(staged_root)
         provider_id = _provider_id(plan.candidate)
         if not any(item.manifest.capability_id == provider_id for item in inventory.capabilities):
@@ -178,7 +193,7 @@ def execute_install(
         lock_path.write_text(
             _render_lock(
                 staged_root,
-                _provider_entry(plan.candidate),
+                _provider_entry(plan.candidate, preflight=preflight),
                 inventory_digest=inventory.inventory_digest,
             ),
             encoding="utf-8",
@@ -269,7 +284,9 @@ def _provider_id(candidate: RemoteCandidate) -> str:
     return f"{prefixes[candidate.kind.value]}.{candidate.name}"
 
 
-def _provider_entry(candidate: RemoteCandidate) -> dict[str, object]:
+def _provider_entry(
+    candidate: RemoteCandidate, *, preflight: PreflightResult | None = None
+) -> dict[str, object]:
     provenance = candidate.provenance
     if provenance is None:
         raise ValueError("candidate provenance is required")
@@ -286,7 +303,45 @@ def _provider_entry(candidate: RemoteCandidate) -> dict[str, object]:
         "publisher_verification": provenance.publisher_verification.value,
         "digest_verified": provenance.digest_verified,
         "permission_level": provenance.permission_level.value,
+        **(
+            {
+                "preflight": {
+                    "status": "passed",
+                    "digest": provenance.digest,
+                    "tools": list(preflight.tools),
+                    "observed_permissions": list(preflight.observed_permissions),
+                }
+            }
+            if preflight is not None
+            else {}
+        ),
     }
+
+
+def _passed_preflight(root: Path, candidate: RemoteCandidate) -> bool:
+    provenance = candidate.provenance
+    if provenance is None:
+        return False
+    lock_path = root / _LOCK_PATH
+    if not lock_path.is_file():
+        return False
+    try:
+        loaded = yaml.safe_load(lock_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, yaml.YAMLError):
+        return False
+    if not isinstance(loaded, dict) or not isinstance(loaded.get("providers"), list):
+        return False
+    for provider in loaded["providers"]:
+        if not isinstance(provider, dict) or provider.get("provider_id") != _provider_id(candidate):
+            continue
+        preflight = provider.get("preflight")
+        return (
+            provider.get("content_digest") == provenance.digest
+            and isinstance(preflight, dict)
+            and preflight.get("status") == "passed"
+            and preflight.get("digest") == provenance.digest
+        )
+    return False
 
 
 def _render_lock(root: Path, provider: dict[str, object], *, inventory_digest: str) -> str:
