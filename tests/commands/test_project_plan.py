@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from vibe.commands.project_plan import build_project_plan
 from vibe.models.blueprint import Blueprint, LifecycleStage
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
@@ -79,3 +81,46 @@ def test_repeat_plan_is_deterministic(tmp_path: Path) -> None:
     assert first.inventory.inventory_digest == second.inventory.inventory_digest
     assert first.resolution == second.resolution
     assert first.requirements == second.requirements
+
+
+def test_init_inventory_lists_user_codex_mcp_with_permissions_and_verification(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    codex_home = tmp_path / "codex-home"
+    codex_home.mkdir()
+    executable = tmp_path / "chrome-devtools-mcp"
+    executable.write_text(
+        "#!/bin/sh\necho chrome-devtools-mcp 1.0.0\n", encoding="utf-8"
+    )
+    executable.chmod(0o755)
+    (codex_home / "config.toml").write_text(
+        "\n".join(
+            (
+                "[mcp_servers.chrome-devtools]",
+                f'command = "{executable}"',
+                "connected = true",
+            )
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
+
+    plan = build_project_plan(
+        tmp_path,
+        _blueprint(tmp_path),
+        _repository(tmp_path, "web-application"),
+    )
+
+    chrome = next(
+        item
+        for item in plan.inventory.capabilities
+        if item.manifest.capability_id == "mcp.chrome-devtools"
+    )
+    assert chrome.manifest.scope.value == "user"
+    assert {permission.value for permission in chrome.manifest.permissions} == {
+        "execute-command"
+    }
+    assert chrome.manifest.verified is True
+    assert chrome.verification.verified is True
+    assert chrome.verification.details == ("configured", "connected")
