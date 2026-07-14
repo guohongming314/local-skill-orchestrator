@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
 
@@ -72,13 +72,12 @@ def write_configuration(root: Path, current: InventoryResult) -> None:
             ),
         ),
     )
-    for relative, content in render_project_configuration(
-        blueprint, plan, current
-    ).as_dict().items():
+    for relative, content in (
+        render_project_configuration(blueprint, plan, current).as_dict().items()
+    ):
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
-
 
 
 def test_healthy_configuration_reports_success(tmp_path: Path) -> None:
@@ -129,16 +128,12 @@ def test_missing_command_and_provider_are_actionable_distinct_findings(tmp_path:
 def test_permission_expansion_reports_only_permission_names(tmp_path: Path) -> None:
     locked = inventory(permissions=frozenset({Permission.EXECUTE_COMMAND}))
     write_configuration(tmp_path, locked)
-    expanded = inventory(
-        permissions=frozenset({Permission.EXECUTE_COMMAND, Permission.NETWORK})
-    )
+    expanded = inventory(permissions=frozenset({Permission.EXECUTE_COMMAND, Permission.NETWORK}))
 
     report = run_health_checks(tmp_path, expanded, lambda command: command)
 
     finding = next(
-        item
-        for item in report.findings
-        if item.code == "capability.permission-expanded"
+        item for item in report.findings if item.code == "capability.permission-expanded"
     )
     assert finding.severity is Severity.ERROR
     assert finding.evidence == ("cli.pytest", "network")
@@ -160,3 +155,38 @@ def test_report_aggregates_checks_deterministically(tmp_path: Path) -> None:
     assert tuple(item.code for item in first.findings) == tuple(
         sorted(item.code for item in first.findings)
     )
+
+
+def test_orphaned_threads_and_stale_interview_checkpoints_are_reported(
+    tmp_path: Path,
+) -> None:
+    from vibe.workflows.checkpoints import SqliteCheckpointStore
+    from vibe.workflows.init_graph import InitializationGraph
+    from vibe.workflows.state import InitStage
+
+    path = tmp_path / ".vibe-init-checkpoints.sqlite3"
+    store = SqliteCheckpointStore(path)
+    stale = InitializationGraph(store)
+    stale.start("stale-run", repository_digest="repo-v1")
+    stale.advance("stale-run", InitStage.INVENTORY)
+    stale.advance("stale-run", InitStage.INTERVIEW)
+
+    orphan = InitializationGraph(store)
+    orphan.start("orphan-run", repository_digest="repo-v1")
+    orphan.advance("orphan-run", InitStage.INVENTORY)
+    orphan.advance("orphan-run", InitStage.INTERVIEW)
+    store.save_interview_progress(
+        "orphan-run",
+        thread_id="thread-orphan",
+        answers={},
+        provenance={},
+        locked_questions=frozenset(),
+    )
+    orphan.cancel("orphan-run", reason="cancelled")
+
+    report = run_health_checks(tmp_path, inventory())
+
+    assert {finding.code for finding in report.findings} >= {
+        "conversation.checkpoint-stale",
+        "conversation.thread-orphaned",
+    }

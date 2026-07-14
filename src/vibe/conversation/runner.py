@@ -25,6 +25,7 @@ from vibe.conversation.structured_result import (
     lock_decisions,
 )
 from vibe.models.repository import RepositorySnapshot
+from vibe.workflows.checkpoints import SqliteCheckpointStore
 
 AskUser = Callable[[InterviewQuestion], str]
 
@@ -56,24 +57,68 @@ class ConversationRunner:
         repository: RepositorySnapshot,
         interview: InterviewResult,
         ask_user: AskUser,
+        checkpoint_store: SqliteCheckpointStore | None = None,
+        run_id: str | None = None,
     ) -> StructuredProjectResult:
         """Run the interview turns, falling back once when final output is malformed."""
         prompt = _context_prompt(repository, interview)
+        if (checkpoint_store is None) != (run_id is None):
+            raise ValueError("checkpoint_store and run_id must be provided together")
         answers: dict[str, str] = {}
         provenance: dict[str, FieldProvenance] = {}
         locked_questions: set[str] = set()
+        saved_thread_id: str | None = None
+        if checkpoint_store is not None and run_id is not None:
+            progress = checkpoint_store.load_interview_progress(run_id)
+            saved_thread_id = progress.thread_id
+            answers.update(progress.answers)
+            provenance.update(
+                {key: FieldProvenance(value) for key, value in progress.provenance.items()}
+            )
+            locked_questions.update(progress.locked_questions)
         async with JsonRpcSubprocessClient(self._app_server_command) as transport:
             client = CodexAppServerClient(transport)
             await client.initialize()
-            thread = await client.start_thread(cwd=repository.root)
+            resumed = False
+            if saved_thread_id is not None:
+                try:
+                    thread = await client.resume_thread(saved_thread_id)
+                    resumed = True
+                except Exception:
+                    thread = await client.start_thread(cwd=repository.root)
+            else:
+                thread = await client.start_thread(cwd=repository.root)
+            if checkpoint_store is not None and run_id is not None:
+                checkpoint_store.save_interview_progress(
+                    run_id,
+                    thread_id=thread.id,
+                    answers=answers,
+                    provenance={key: value.value for key, value in provenance.items()},
+                    locked_questions=frozenset(locked_questions),
+                )
             async with anyio.create_task_group() as tasks:
                 tasks.start_soon(_deny_approval_requests, transport)
                 try:
-                    await client.run_turn(thread.id, prompt, timeout=self._timeout)
+                    if not resumed:
+                        await client.run_turn(thread.id, prompt, timeout=self._timeout)
+                        for question_id, answer in answers.items():
+                            await client.run_turn(
+                                thread.id,
+                                _answer_prompt(
+                                    question_id,
+                                    answer,
+                                    provenance[question_id],
+                                    question_id in locked_questions,
+                                ),
+                                timeout=self._timeout,
+                            )
                     index = 0
                     questions = interview.questions
                     while index < len(questions):
                         question = questions[index]
+                        if question.question_id in answers:
+                            index += 1
+                            continue
                         response = ask_user(question).strip()
                         command, _, argument = response.partition(" ")
                         if command.lower() == "revise" and argument:
@@ -108,17 +153,22 @@ class ConversationRunner:
                         provenance[question.question_id] = answer_provenance
                         await client.run_turn(
                             thread.id,
-                            json.dumps(
-                                {
-                                    "question_id": question.question_id,
-                                    "answer": answer,
-                                    "provenance": answer_provenance.value,
-                                    "locked": question.question_id in locked_questions,
-                                },
-                                sort_keys=True,
+                            _answer_prompt(
+                                question.question_id,
+                                answer,
+                                answer_provenance,
+                                question.question_id in locked_questions,
                             ),
                             timeout=self._timeout,
                         )
+                        if checkpoint_store is not None and run_id is not None:
+                            checkpoint_store.save_interview_progress(
+                                run_id,
+                                thread_id=thread.id,
+                                answers=answers,
+                                provenance={key: value.value for key, value in provenance.items()},
+                                locked_questions=frozenset(locked_questions),
+                            )
                         index += 1
                     final_turn = await client.run_turn(
                         thread.id,
@@ -153,6 +203,18 @@ class ConversationRunner:
                 cwd=repository.root,
             )
         return _reconcile_answers(result, answers, provenance, locked_questions)
+
+
+def _answer_prompt(question_id: str, answer: str, provenance: FieldProvenance, locked: bool) -> str:
+    return json.dumps(
+        {
+            "question_id": question_id,
+            "answer": answer,
+            "provenance": provenance.value,
+            "locked": locked,
+        },
+        sort_keys=True,
+    )
 
 
 def _question_index(questions: tuple[InterviewQuestion, ...], question_id: str) -> int:
@@ -197,9 +259,7 @@ def _reconcile_answers(
     )
 
 
-def _context_prompt(
-    repository: RepositorySnapshot, interview: InterviewResult
-) -> str:
+def _context_prompt(repository: RepositorySnapshot, interview: InterviewResult) -> str:
     return json.dumps(
         {
             "instruction": (

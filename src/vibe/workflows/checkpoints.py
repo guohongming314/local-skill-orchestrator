@@ -1,9 +1,10 @@
-﻿"""Durable checkpoint storage owned by initialization workflows."""
+"""Durable checkpoint storage owned by initialization workflows."""
 
 from __future__ import annotations
 
 import json
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
@@ -16,6 +17,16 @@ class CheckpointNotFound(LookupError):
 
 class CheckpointConflict(RuntimeError):
     """Raised when a stale owner attempts to replace a checkpoint."""
+
+
+@dataclass(frozen=True)
+class InterviewProgress:
+    """Additive conversation state associated with one graph run."""
+
+    thread_id: str | None
+    answers: dict[str, str]
+    provenance: dict[str, str]
+    locked_questions: frozenset[str]
 
 
 class SqliteCheckpointStore:
@@ -41,12 +52,72 @@ class SqliteCheckpointStore:
                 )
                 """
             )
+            columns = {
+                row[1] for row in connection.execute("PRAGMA table_info(vibe_init_checkpoints)")
+            }
+            additions = {
+                "codex_thread_id": "TEXT",
+                "interview_answers_json": "TEXT NOT NULL DEFAULT '{}'",
+                "interview_provenance_json": "TEXT NOT NULL DEFAULT '{}'",
+                "interview_locked_json": "TEXT NOT NULL DEFAULT '[]'",
+            }
+            for name, definition in additions.items():
+                if name not in columns:
+                    connection.execute(
+                        f"ALTER TABLE vibe_init_checkpoints ADD COLUMN {name} {definition}"
+                    )
+
+    def save_interview_progress(
+        self,
+        run_id: str,
+        *,
+        thread_id: str | None,
+        answers: dict[str, str],
+        provenance: dict[str, str],
+        locked_questions: frozenset[str],
+    ) -> None:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """UPDATE vibe_init_checkpoints
+                   SET codex_thread_id = ?, interview_answers_json = ?,
+                       interview_provenance_json = ?, interview_locked_json = ?
+                   WHERE run_id = ?""",
+                (
+                    thread_id,
+                    self._encode(answers),
+                    self._encode(provenance),
+                    self._encode(sorted(locked_questions)),
+                    run_id,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise CheckpointNotFound(f"checkpoint for run {run_id!r} does not exist")
+
+    def load_interview_progress(self, run_id: str) -> InterviewProgress:
+        with self._connect() as connection:
+            row = connection.execute(
+                """SELECT codex_thread_id, interview_answers_json,
+                          interview_provenance_json, interview_locked_json
+                   FROM vibe_init_checkpoints WHERE run_id = ?""",
+                (run_id,),
+            ).fetchone()
+        if row is None:
+            raise CheckpointNotFound(f"checkpoint for run {run_id!r} does not exist")
+        return InterviewProgress(
+            thread_id=cast(str | None, row[0]),
+            answers=cast(dict[str, str], json.loads(cast(str, row[1]))),
+            provenance=cast(dict[str, str], json.loads(cast(str, row[2]))),
+            locked_questions=frozenset(cast(list[str], json.loads(cast(str, row[3])))),
+        )
 
     def create(self, checkpoint: InitCheckpoint) -> None:
         try:
             with self._connect() as connection:
                 connection.execute(
-                    """INSERT INTO vibe_init_checkpoints VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    """INSERT INTO vibe_init_checkpoints
+                       (run_id, checkpoint_id, repository_digest, stage, status,
+                        confirmed_json, attempt, revision, error, cancellation_reason)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     self._values(checkpoint),
                 )
         except sqlite3.IntegrityError as exc:

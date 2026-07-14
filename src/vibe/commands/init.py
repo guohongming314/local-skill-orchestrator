@@ -49,9 +49,7 @@ def init_command(
     ] = None,
     run_id: Annotated[str, typer.Option("--run-id")] = "init",
     checkpoints: Annotated[Path | None, typer.Option("--checkpoints")] = None,
-    answers: Annotated[
-        Path | None, typer.Option("--answers", exists=True, dir_okay=False)
-    ] = None,
+    answers: Annotated[Path | None, typer.Option("--answers", exists=True, dir_okay=False)] = None,
     output: Annotated[Path | None, typer.Option("--output")] = None,
     resume: Annotated[bool, typer.Option("--resume")] = False,
     confirm: Annotated[bool, typer.Option("--confirm")] = False,
@@ -67,7 +65,8 @@ def init_command(
     root = (path or Path.cwd()).resolve()
     checkpoint_path = (checkpoints or root / ".vibe-init-checkpoints.sqlite3").resolve()
     output_path = (output or root / "blueprint.json").resolve()
-    workflow = InitializationGraph(SqliteCheckpointStore(checkpoint_path))
+    checkpoint_store = SqliteCheckpointStore(checkpoint_path)
+    workflow = InitializationGraph(checkpoint_store)
 
     try:
         snapshot = _complete_snapshot(root)
@@ -118,6 +117,8 @@ def init_command(
                     repository=snapshot,
                     interview=interview,
                     ask_user=_ask_interview_question,
+                    checkpoint_store=checkpoint_store,
+                    run_id=run_id,
                 )
             )
 
@@ -147,12 +148,12 @@ def init_command(
         fact_answers = (
             answer_payload
             if answer_payload is not None
-            else stored_answers if isinstance(stored_answers, Mapping) else {}
+            else stored_answers
+            if isinstance(stored_answers, Mapping)
+            else {}
         )
         snapshot = _repository_with_project_type(snapshot, fact_answers)
-        project_plan = build_project_plan(
-            root, structured.blueprint, snapshot, inventory=inventory
-        )
+        project_plan = build_project_plan(root, structured.blueprint, snapshot, inventory=inventory)
         if checkpoint.stage is InitStage.REVIEW and answer_payload is not None:
             structured = _build_structured(snapshot, answer_payload)
             checkpoint = workflow.revise(
@@ -181,9 +182,7 @@ def init_command(
         checkpoint = workflow.advance(run_id, InitStage.APPLY)
         if model_only:
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_text(
-                structured.blueprint.model_dump_json(indent=2), encoding="utf-8"
-            )
+            output_path.write_text(structured.blueprint.model_dump_json(indent=2), encoding="utf-8")
             applied_paths: tuple[str, ...] = ()
             completion_details = {"blueprint_output": str(output_path)}
         else:
@@ -309,9 +308,11 @@ def _open_run(
     checkpoint = workflow.load(run_id)
     if checkpoint.status is InitStatus.PAUSED:
         return workflow.resume(run_id, repository_digest=repository_digest)
-    raise InvalidTransition(
-        f"run {run_id!r} is {checkpoint.status.value}, not paused"
-    )
+    if checkpoint.status is InitStatus.RUNNING and checkpoint.stage is InitStage.INTERVIEW:
+        if checkpoint.repository_digest != repository_digest:
+            raise InvalidTransition("repository digest changed; direct resume rejected")
+        return checkpoint
+    raise InvalidTransition(f"run {run_id!r} is {checkpoint.status.value}, not paused")
 
 
 def _load_answers(path: Path | None) -> dict[str, Any] | None:
@@ -359,9 +360,7 @@ def _build_structured(
     blueprint = Blueprint.model_validate(blueprint_payload)
     confirmed_fields = set(answers) & set(Blueprint.model_fields)
     field_sources = {
-        field: (
-            ValueSource.CONFIRMED if field in confirmed_fields else ValueSource.INFERRED
-        )
+        field: (ValueSource.CONFIRMED if field in confirmed_fields else ValueSource.INFERRED)
         for field in blueprint_payload
     }
     return StructuredProjectResult(
@@ -404,9 +403,7 @@ def _plan_payload(
 ) -> dict[str, object]:
     return {
         "inventory": {
-            "capability_ids": [
-                item.manifest.capability_id for item in inventory.capabilities
-            ],
+            "capability_ids": [item.manifest.capability_id for item in inventory.capabilities],
             "diagnostics": [
                 {
                     "adapter_id": item.adapter_id,
@@ -430,7 +427,9 @@ def _plan_payload(
             for item in sorted(
                 resolution.resolutions,
                 key=lambda value: (
-                    value.requirement, value.status.value, value.capability_id or ""
+                    value.requirement,
+                    value.status.value,
+                    value.capability_id or "",
                 ),
             )
         ],
