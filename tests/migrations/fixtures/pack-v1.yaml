@@ -1,0 +1,17 @@
+schema_version: '1'
+pack_id: base-engineering
+name: Base Engineering
+description: Baseline engineering practices
+priority: 100
+match:
+  all_of:
+    - field: project_name
+      operator: exists
+      value: true
+requirements:
+  - requirement_id: quality-gates
+    capability: quality.gates
+    strength: required
+    rationale: Run project quality gates
+    verification:
+      - Run the test suite
