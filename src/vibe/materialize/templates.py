@@ -42,6 +42,12 @@ class CapabilityLockEntry(BaseModel):
     source: str = Field(min_length=1)
     version: str | None = None
     content_digest: str = Field(min_length=8)
+    publisher: str | None = None
+    source_verified: bool | None = None
+    publisher_verified: bool | None = None
+    publisher_verification: str | None = None
+    digest_verified: bool | None = None
+    permission_level: str | None = None
 
 
 class CapabilityLock(VersionedModel):
@@ -138,7 +144,7 @@ def render_project_configuration(
     files = {
         ".ai-project/blueprint.yaml": _yaml(blueprint.model_dump(mode="json")),
         ".ai-project/capabilities.yaml": _yaml(capabilities.model_dump(mode="json")),
-        ".ai-project/capabilities.lock": _yaml(lock.model_dump(mode="json")),
+        ".ai-project/capabilities.lock": _yaml(lock.model_dump(mode="json", exclude_none=True)),
         ".ai-project/policy.yaml": _yaml(policy.model_dump(mode="json")),
         ".ai-project/decisions.md": _decisions(blueprint, resolution_plan),
         ".ai-project/quality-gates.md": _quality_gates(),

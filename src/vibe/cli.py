@@ -10,6 +10,7 @@ from vibe.commands.doctor import doctor_command
 from vibe.commands.explain_task import explain_task_command
 from vibe.commands.init import init_command
 from vibe.commands.inspect import inspect_command
+from vibe.commands.install import install_command
 from vibe.commands.plan import plan_command
 from vibe.commands.run import run_command
 from vibe.commands.schema import schema_app
@@ -31,6 +32,7 @@ app.command("diff")(diff_command)
 app.command("plan")(plan_command)
 app.command("run")(run_command)
 app.command("init")(init_command)
+app.command("install")(install_command)
 app.command("checkpoint-start")(checkpoint_start)
 app.command("checkpoint-resume")(checkpoint_resume)
 
