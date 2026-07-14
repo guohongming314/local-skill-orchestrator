@@ -7,6 +7,7 @@ from vibe import __version__
 from vibe.commands.capabilities import capabilities_app
 from vibe.commands.diff import diff_command
 from vibe.commands.doctor import doctor_command
+from vibe.commands.explain_task import explain_task_command
 from vibe.commands.init import init_command
 from vibe.commands.inspect import inspect_command
 from vibe.commands.plan import plan_command
@@ -24,6 +25,7 @@ app.add_typer(capabilities_app, name="capabilities")
 app.command("spike-codex")(spike_codex)
 app.command("inspect")(inspect_command)
 app.command("doctor")(doctor_command)
+app.command("explain-task")(explain_task_command)
 app.command("diff")(diff_command)
 app.command("plan")(plan_command)
 app.command("init")(init_command)
