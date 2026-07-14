@@ -149,6 +149,9 @@ def _finding_payload(finding: DoctorFinding) -> dict[str, object]:
         "summary": finding.summary,
         "evidence": list(finding.evidence),
         "remediation": finding.remediation,
+        "classification": (
+            finding.classification.value if finding.classification is not None else None
+        ),
     }
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 
 from vibe.compiler.invalidation import InvalidationKind, InvalidationReason
 from vibe.materialize.changeset import ChangeKind, ChangeSet
@@ -10,6 +11,14 @@ from vibe.materialize.ownership import FileOwnership
 from vibe.models.repository import RepositoryFact, RepositorySnapshot
 
 _LOCKFILE = ".ai-project/capabilities.lock"
+
+
+class DriftClassification(StrEnum):
+    EXPECTED = "expected"
+    BENIGN = "benign"
+    ACTIONABLE = "actionable"
+    BLOCKING = "blocking"
+    SECURITY = "security"
 
 
 @dataclass(frozen=True)

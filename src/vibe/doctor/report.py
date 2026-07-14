@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from vibe.doctor.drift import DriftClassification
+
 
 class Severity(StrEnum):
     INFO = "info"
@@ -20,6 +22,7 @@ class DoctorFinding:
     summary: str
     evidence: tuple[str, ...]
     remediation: str
+    classification: DriftClassification | None = None
 
 
 @dataclass(frozen=True)

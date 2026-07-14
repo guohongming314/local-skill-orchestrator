@@ -13,6 +13,7 @@ from typing import Any, Protocol
 import yaml
 from pydantic import ValidationError
 
+from vibe.doctor.drift import DriftClassification
 from vibe.doctor.report import DoctorFinding, DoctorReport, Severity, aggregate_findings
 from vibe.inventory.service import InventoryResult
 from vibe.materialize.templates import (
@@ -104,6 +105,39 @@ class LockedProviderCheck:
         )
 
 
+class InstalledCapabilityDriftCheck:
+    def check(self, context: DoctorContext) -> tuple[DoctorFinding, ...]:
+        lock = _load(context.root, ".ai-project/capabilities.lock", CapabilityLock)
+        if lock is None:
+            return ()
+        available = {
+            item.manifest.capability_id: item.manifest for item in context.inventory.capabilities
+        }
+        findings: list[DoctorFinding] = []
+        for provider in lock.providers:
+            manifest = available.get(provider.provider_id)
+            if manifest is None or manifest.content_digest == provider.content_digest:
+                continue
+            findings.append(
+                DoctorFinding(
+                    code="capability.digest-drift",
+                    severity=Severity.ERROR,
+                    summary="An installed capability artifact no longer matches its locked digest.",
+                    evidence=(
+                        provider.provider_id,
+                        provider.content_digest,
+                        manifest.content_digest,
+                    ),
+                    remediation=(
+                        "Stop using the capability, inspect the artifact, and reinstall only "
+                        "from the approved pinned source."
+                    ),
+                    classification=DriftClassification.SECURITY,
+                )
+            )
+        return tuple(findings)
+
+
 class CommandAvailabilityCheck:
     def check(self, context: DoctorContext) -> tuple[DoctorFinding, ...]:
         lock = _load(context.root, ".ai-project/capabilities.lock", CapabilityLock)
@@ -156,8 +190,10 @@ class PermissionDeltaCheck:
                         summary="A provider now requests permissions beyond the approved policy.",
                         evidence=(manifest.capability_id, *expanded),
                         remediation=(
-                            "Reject the expansion or explicitly review and update project policy."
+                            "Reject the expansion or explicitly re-approve it before updating "
+                            "project policy."
                         ),
+                        classification=DriftClassification.BLOCKING,
                     )
                 )
         return tuple(findings)
@@ -327,6 +363,7 @@ class OutcomeInsightsCheck:
 DEFAULT_CHECKS: tuple[DoctorCheck, ...] = (
     ConfigurationSchemaCheck(),
     LockedProviderCheck(),
+    InstalledCapabilityDriftCheck(),
     CommandAvailabilityCheck(),
     PermissionDeltaCheck(),
     ConversationRecoveryCheck(),

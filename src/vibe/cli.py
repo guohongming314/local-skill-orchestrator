@@ -15,6 +15,7 @@ from vibe.commands.plan import plan_command
 from vibe.commands.run import run_command
 from vibe.commands.schema import schema_app
 from vibe.commands.spike_codex import checkpoint_resume, checkpoint_start, spike_codex
+from vibe.commands.uninstall import uninstall_command
 
 app = typer.Typer(
     name="vibe",
@@ -33,6 +34,7 @@ app.command("plan")(plan_command)
 app.command("run")(run_command)
 app.command("init")(init_command)
 app.command("install")(install_command)
+app.command("uninstall")(uninstall_command)
 app.command("checkpoint-start")(checkpoint_start)
 app.command("checkpoint-resume")(checkpoint_resume)
 
