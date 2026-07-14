@@ -24,6 +24,8 @@ class InterviewQuestion:
     category: str
     text: str
     requires_explicit_confirmation: bool = False
+    recommended_default: str | None = None
+    recommendation_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -62,12 +64,17 @@ def build_interview(inputs: InterviewInput) -> InterviewResult:
         text = template.text
         if explicit:
             text = f"Conflicting high-risk information was found. Please confirm: {text}"
+        recommended_default, recommendation_reason = _recommended_default(
+            inputs.repository, question_id
+        )
         questions.append(
             InterviewQuestion(
                 question_id=question_id,
                 category=template.category,
                 text=text,
                 requires_explicit_confirmation=explicit,
+                recommended_default=recommended_default,
+                recommendation_reason=recommendation_reason,
             )
         )
 
@@ -86,3 +93,20 @@ def _template(question_id: str, empty_project: bool) -> PromptTemplate:
 
 def _is_high_risk(question_id: str) -> bool:
     return question_id.startswith(("risk.", "permissions.", "constraints.compliance"))
+
+
+def _recommended_default(
+    repository: RepositorySnapshot, question_id: str
+) -> tuple[str | None, str | None]:
+    aliases = {question_id}
+    if question_id == "project.type":
+        aliases.add("project_type")
+    for fact in repository.facts:
+        if (
+            fact.key in aliases
+            and fact.confidence is FactConfidence.INFERRED
+            and isinstance(fact.value, str)
+        ):
+            evidence = ", ".join(fact.sources) or "repository inspection"
+            return fact.value, f"Repository evidence from {evidence} supports this default."
+    return None, None

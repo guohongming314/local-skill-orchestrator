@@ -18,21 +18,35 @@ class ValueSource(StrEnum):
     CONFIRMED = "confirmed"
 
 
+class FieldProvenance(StrEnum):
+    """How a confirmed field value entered the conversation result."""
+
+    USER_RESPONSE = "user-response"
+    RECOMMENDED_DEFAULT = "recommended-default"
+
+
 class StructuredProjectResult(VersionedModel):
     """A validated Blueprint plus review provenance and immutable decisions."""
 
     blueprint: Blueprint
     field_sources: dict[str, ValueSource]
+    field_provenance: dict[str, FieldProvenance] = Field(default_factory=dict)
     locked_decisions: frozenset[str] = Field(default_factory=frozenset)
 
     @model_validator(mode="after")
     def validate_decision_keys(self) -> StructuredProjectResult:
         fields = set(Blueprint.model_fields)
         unknown_sources = set(self.field_sources) - fields
+        unknown_provenance = set(self.field_provenance) - fields
         unknown_locks = set(self.locked_decisions) - fields
         if unknown_sources:
             raise ValueError(
                 f"field_sources contains unknown Blueprint fields: {sorted(unknown_sources)}"
+            )
+        if unknown_provenance:
+            raise ValueError(
+                "field_provenance contains unknown Blueprint fields: "
+                f"{sorted(unknown_provenance)}"
             )
         if unknown_locks:
             raise ValueError(
