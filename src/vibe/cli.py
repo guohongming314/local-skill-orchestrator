@@ -11,6 +11,7 @@ from vibe.commands.explain_task import explain_task_command
 from vibe.commands.init import init_command
 from vibe.commands.inspect import inspect_command
 from vibe.commands.plan import plan_command
+from vibe.commands.run import run_command
 from vibe.commands.schema import schema_app
 from vibe.commands.spike_codex import checkpoint_resume, checkpoint_start, spike_codex
 
@@ -28,6 +29,7 @@ app.command("doctor")(doctor_command)
 app.command("explain-task")(explain_task_command)
 app.command("diff")(diff_command)
 app.command("plan")(plan_command)
+app.command("run")(run_command)
 app.command("init")(init_command)
 app.command("checkpoint-start")(checkpoint_start)
 app.command("checkpoint-resume")(checkpoint_resume)
