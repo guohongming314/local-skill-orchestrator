@@ -1,0 +1,2652 @@
+{
+  "metrics": [
+    {
+      "denominator": 90.0,
+      "name": "intent_accuracy",
+      "numerator": 90.0,
+      "schema_version": "1",
+      "value": 1.0
+    },
+    {
+      "denominator": 90.0,
+      "name": "risk_accuracy",
+      "numerator": 90.0,
+      "schema_version": "1",
+      "value": 1.0
+    },
+    {
+      "denominator": 90.0,
+      "name": "capability_recall_at_k",
+      "numerator": 90.0,
+      "schema_version": "1",
+      "value": 1.0
+    },
+    {
+      "denominator": 30.0,
+      "name": "unrelated_capability_selection_rate",
+      "numerator": 0.0,
+      "schema_version": "1",
+      "value": 0.0
+    },
+    {
+      "denominator": 90.0,
+      "name": "context_capsule_mean_bytes",
+      "numerator": 74430.0,
+      "schema_version": "1",
+      "value": 827.0
+    },
+    {
+      "denominator": 20.0,
+      "name": "user_override_handling_rate",
+      "numerator": 20.0,
+      "schema_version": "1",
+      "value": 1.0
+    },
+    {
+      "denominator": 30.0,
+      "name": "erroneous_permission_request_rate",
+      "numerator": 0.0,
+      "schema_version": "1",
+      "value": 0.0
+    },
+    {
+      "denominator": 90.0,
+      "name": "end_to_end_configuration_success_rate",
+      "numerator": 90.0,
+      "schema_version": "1",
+      "value": 1.0
+    },
+    {
+      "denominator": 90.0,
+      "name": "doctor_drift_detection_rate",
+      "numerator": 90.0,
+      "schema_version": "1",
+      "value": 1.0
+    }
+  ],
+  "sample_count": 90,
+  "sample_set_digest": "82ebe6c4dcfed3f49bf81152af51ef516ef5e5dec4cf88668cb41c6de36b1123",
+  "samples": [
+    {
+      "actual_intent": "documentation",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 824,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "documentation",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-00",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "review",
+      "actual_permissions": [],
+      "actual_risk": "low",
+      "actual_selected": [],
+      "actual_workflow": "fast",
+      "capsule_bytes": 817,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:low->low",
+        "workflow:fast->fast",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "review",
+      "expected_permissions": [],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-01",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "testing",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "testing",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-02",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "documentation",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 824,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "documentation",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-03",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "review",
+      "actual_permissions": [],
+      "actual_risk": "low",
+      "actual_selected": [],
+      "actual_workflow": "fast",
+      "capsule_bytes": 817,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:low->low",
+        "workflow:fast->fast",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "review",
+      "expected_permissions": [],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-04",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "testing",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "testing",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-05",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "documentation",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 824,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "documentation",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-06",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "review",
+      "actual_permissions": [],
+      "actual_risk": "low",
+      "actual_selected": [],
+      "actual_workflow": "fast",
+      "capsule_bytes": 817,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:low->low",
+        "workflow:fast->fast",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "review",
+      "expected_permissions": [],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-07",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "testing",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "testing",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-08",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "documentation",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 824,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "documentation",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-09",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "review",
+      "actual_permissions": [],
+      "actual_risk": "low",
+      "actual_selected": [],
+      "actual_workflow": "fast",
+      "capsule_bytes": 817,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:low->low",
+        "workflow:fast->fast",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "review",
+      "expected_permissions": [],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-10",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "testing",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "testing",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-11",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "documentation",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 824,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "documentation",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-12",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "review",
+      "actual_permissions": [],
+      "actual_risk": "low",
+      "actual_selected": [],
+      "actual_workflow": "fast",
+      "capsule_bytes": 817,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:low->low",
+        "workflow:fast->fast",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "review",
+      "expected_permissions": [],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-13",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "testing",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "testing",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-14",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "documentation",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 824,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "documentation",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-15",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "review",
+      "actual_permissions": [],
+      "actual_risk": "low",
+      "actual_selected": [],
+      "actual_workflow": "fast",
+      "capsule_bytes": 817,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:low->low",
+        "workflow:fast->fast",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "review",
+      "expected_permissions": [],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-16",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "testing",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "testing",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-17",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "documentation",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 824,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "documentation",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-18",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "review",
+      "actual_permissions": [],
+      "actual_risk": "low",
+      "actual_selected": [],
+      "actual_workflow": "fast",
+      "capsule_bytes": 817,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:low->low",
+        "workflow:fast->fast",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "review",
+      "expected_permissions": [],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-19",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "testing",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "testing",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-20",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "documentation",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 824,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "documentation",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-21",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "review",
+      "actual_permissions": [],
+      "actual_risk": "low",
+      "actual_selected": [],
+      "actual_workflow": "fast",
+      "capsule_bytes": 817,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:low->low",
+        "workflow:fast->fast",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "review",
+      "expected_permissions": [],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-22",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "testing",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "testing",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-23",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "documentation",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 824,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "documentation",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-24",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "review",
+      "actual_permissions": [],
+      "actual_risk": "low",
+      "actual_selected": [],
+      "actual_workflow": "fast",
+      "capsule_bytes": 817,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:low->low",
+        "workflow:fast->fast",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "review",
+      "expected_permissions": [],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-25",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "testing",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "testing",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-26",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "documentation",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 824,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "documentation",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-27",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "review",
+      "actual_permissions": [],
+      "actual_risk": "low",
+      "actual_selected": [],
+      "actual_workflow": "fast",
+      "capsule_bytes": 817,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:low->low",
+        "workflow:fast->fast",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "review",
+      "expected_permissions": [],
+      "expected_risk": "low",
+      "expected_selected": [],
+      "expected_workflow": "fast",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-28",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "testing",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "testing",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "simple-29",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "bug",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 827,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "bug",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-00",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "feature",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "feature",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-01",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "refactor",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 832,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "refactor",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-02",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "bug",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 814,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "bug",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-03",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "feature",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 831,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "feature",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-04",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "refactor",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 819,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "refactor",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-05",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "bug",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 827,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "bug",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-06",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "feature",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "feature",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-07",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "refactor",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 832,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "refactor",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-08",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "bug",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 814,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "bug",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-09",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "feature",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 831,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "feature",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-10",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "refactor",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 819,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "refactor",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-11",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "bug",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 827,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "bug",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-12",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "feature",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "feature",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-13",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "refactor",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 832,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "refactor",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-14",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "bug",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 814,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "bug",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-15",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "feature",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 831,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "feature",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-16",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "refactor",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 819,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "refactor",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-17",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "bug",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 827,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "bug",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-18",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "feature",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "feature",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": true,
+      "override_handled": true,
+      "sample_id": "normal-19",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "refactor",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 832,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "refactor",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "normal-20",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "bug",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 814,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "bug",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "normal-21",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "feature",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 831,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "feature",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "normal-22",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "refactor",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 819,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "refactor",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "normal-23",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "bug",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 827,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "bug",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "normal-24",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "feature",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 818,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "feature",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "normal-25",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "refactor",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 832,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "refactor",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "normal-26",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "bug",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 814,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "bug",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "normal-27",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "feature",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "medium",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "standard",
+      "capsule_bytes": 831,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "feature",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "medium",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "normal-28",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "refactor",
+      "actual_permissions": [],
+      "actual_risk": "medium",
+      "actual_selected": [],
+      "actual_workflow": "standard",
+      "capsule_bytes": 819,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:medium->medium",
+        "workflow:standard->standard",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "refactor",
+      "expected_permissions": [],
+      "expected_risk": "medium",
+      "expected_selected": [],
+      "expected_workflow": "standard",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "normal-29",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "security",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 849,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "security",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-00",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "migration",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 837,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "migration",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-01",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "release",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 848,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "release",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-02",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "security",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 836,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "security",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-03",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "migration",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 850,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "migration",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-04",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "release",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 835,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "release",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-05",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "security",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 849,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "security",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-06",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "migration",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 837,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "migration",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-07",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "release",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 848,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "release",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-08",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "security",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 836,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "security",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-09",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "migration",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 850,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "migration",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-10",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "release",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 835,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "release",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-11",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "security",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 849,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "security",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-12",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "migration",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 837,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "migration",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-13",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "release",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 848,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "release",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-14",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "security",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 836,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "security",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-15",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "migration",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 850,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "migration",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-16",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "release",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 835,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "release",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-17",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "security",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 849,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "security",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-18",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "migration",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 837,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "migration",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-19",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "release",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 834,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "release",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-20",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "security",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 822,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "security",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-21",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "migration",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 836,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "migration",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-22",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "release",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 821,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "release",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-23",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "security",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 835,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "security",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-24",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "migration",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 823,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "migration",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-25",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "release",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 834,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "release",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-26",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "security",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 822,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "security",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-27",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "migration",
+      "actual_permissions": [
+        "read-project"
+      ],
+      "actual_risk": "high",
+      "actual_selected": [
+        "analysis.code-relationships"
+      ],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 836,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:analysis.code-relationships",
+        "permissions:read-project",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "migration",
+      "expected_permissions": [
+        "read-project"
+      ],
+      "expected_risk": "high",
+      "expected_selected": [
+        "analysis.code-relationships"
+      ],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-28",
+      "schema_version": "1"
+    },
+    {
+      "actual_intent": "release",
+      "actual_permissions": [],
+      "actual_risk": "high",
+      "actual_selected": [],
+      "actual_workflow": "rigorous",
+      "capsule_bytes": 821,
+      "configuration_succeeded": true,
+      "doctor_detected_drift": true,
+      "evidence": [
+        "risk:high->high",
+        "workflow:rigorous->rigorous",
+        "selected:none",
+        "permissions:none",
+        "doctor:repository-source-changed"
+      ],
+      "expected_intent": "release",
+      "expected_permissions": [],
+      "expected_risk": "high",
+      "expected_selected": [],
+      "expected_workflow": "rigorous",
+      "override_evaluated": false,
+      "override_handled": true,
+      "sample_id": "high-risk-29",
+      "schema_version": "1"
+    }
+  ],
+  "schema_version": "1"
+}
