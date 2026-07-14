@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
 
 from vibe.inventory.adapters.base import AdapterScanResult
 from vibe.inventory.service import InventoryResult
@@ -15,6 +16,19 @@ from vibe.models.resolution import (
     ResolutionStatus,
 )
 from vibe.practices.models import RequirementStrength
+from vibe.remote.models import (
+    CapabilityKind as RemoteCapabilityKind,
+)
+from vibe.remote.models import (
+    PermissionLevel,
+    RemoteCandidate,
+)
+from vibe.remote.scoring import (
+    CandidateEvidence,
+    RankedCandidate,
+    ScoringContext,
+    rank_candidates,
+)
 from vibe.resolver.policy import ResolverPolicy, hard_filter_reason
 from vibe.resolver.requirements import AbstractCapabilityRequirement
 from vibe.resolver.scoring import CandidateScore, score_candidate
@@ -27,6 +41,9 @@ def resolve_local_capabilities(
     repository: RepositorySnapshot,
     *,
     policy: ResolverPolicy | None = None,
+    remote_candidates: tuple[RemoteCandidate, ...] = (),
+    remote_evidence: Mapping[str, CandidateEvidence] | None = None,
+    rejected_remote_candidates: frozenset[str] = frozenset(),
 ) -> ResolutionPlan:
     """Resolve abstract requirements to the minimal deterministic local selection."""
     active_policy = policy or ResolverPolicy()
@@ -42,7 +59,14 @@ def resolve_local_capabilities(
         )
         resolutions.extend(
             _resolve_requirement(
-                requirement, matching, blueprint, repository, active_policy
+                requirement,
+                matching,
+                blueprint,
+                repository,
+                active_policy,
+                remote_candidates,
+                remote_evidence or {},
+                rejected_remote_candidates,
             )
         )
     return ResolutionPlan(
@@ -58,6 +82,9 @@ def _resolve_requirement(
     blueprint: Blueprint,
     repository: RepositorySnapshot,
     policy: ResolverPolicy,
+    remote_candidates: tuple[RemoteCandidate, ...],
+    remote_evidence: Mapping[str, CandidateEvidence],
+    rejected_remote_candidates: frozenset[str],
 ) -> list[CapabilityResolution]:
     rejected: list[CapabilityResolution] = []
     eligible: list[tuple[AdapterScanResult, CandidateScore]] = []
@@ -113,7 +140,13 @@ def _resolve_requirement(
             "no policy-compliant local provider; required by packs "
             + ", ".join(requirement.originating_packs)
         ),
-        recommendation=_gap_recommendation(requirement),
+        recommendation=_gap_recommendation(
+            requirement,
+            blueprint,
+            remote_candidates,
+            remote_evidence,
+            rejected_remote_candidates,
+        ),
     )
     return [*sorted(rejected, key=_resolution_key), gap]
 
@@ -176,32 +209,178 @@ def _blueprint_digest(blueprint: Blueprint) -> str:
 
 def _gap_recommendation(
     requirement: AbstractCapabilityRequirement,
+    blueprint: Blueprint,
+    remote_candidates: tuple[RemoteCandidate, ...],
+    remote_evidence: Mapping[str, CandidateEvidence],
+    rejected_remote_candidates: frozenset[str],
 ) -> CapabilityRecommendation | None:
     if requirement.capability != "browser.validation":
         return None
-    return CapabilityRecommendation(
-        why="; ".join(requirement.reasons),
-        candidates=(
-            RecommendationCandidate(
-                kind=CapabilityKind.CLI_TOOL,
-                provider="playwright",
-                permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
-                why=(
-                    "Prefer a low-permission local deterministic browser test tool "
-                    "for repeatable validation."
-                ),
-                strength=RequirementStrength.RECOMMENDED,
+    local_candidates: tuple[RecommendationCandidate, ...] = (
+        RecommendationCandidate(
+            kind=CapabilityKind.CLI_TOOL,
+            provider="playwright",
+            permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+            why=(
+                "Prefer a low-permission local deterministic browser test tool "
+                "for repeatable validation."
             ),
-            RecommendationCandidate(
-                kind=CapabilityKind.MCP,
-                provider="chrome-devtools",
-                permissions=(
-                    Permission.READ_PROJECT,
-                    Permission.EXECUTE_COMMAND,
-                    Permission.NETWORK,
-                ),
-                why="Use this browser MCP only for interactive browser control.",
-                strength=RequirementStrength.OPTIONAL,
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+        RecommendationCandidate(
+            kind=CapabilityKind.MCP,
+            provider="chrome-devtools",
+            permissions=(
+                Permission.READ_PROJECT,
+                Permission.EXECUTE_COMMAND,
+                Permission.NETWORK,
             ),
+            why="Use this browser MCP only for interactive browser control.",
+            strength=RequirementStrength.OPTIONAL,
         ),
     )
+    candidates: tuple[RecommendationCandidate, ...]
+    if not remote_candidates:
+        candidates = local_candidates
+    else:
+        rejected_names = {
+            candidate.name
+            for candidate in remote_candidates
+            if candidate.candidate_ref in rejected_remote_candidates
+        }
+        local_candidates = tuple(
+            item for item in local_candidates if item.provider not in rejected_names
+        )
+        eligible = tuple(
+            candidate
+            for candidate in remote_candidates
+            if candidate.candidate_ref not in rejected_remote_candidates
+        )
+        ranked = tuple(
+            sorted(
+                rank_candidates(
+                    eligible,
+                    ScoringContext(
+                        requirement=requirement.capability,
+                        target_platforms=blueprint.target_platforms,
+                        project_risk_level=blueprint.risk_level,
+                    ),
+                    evidence=remote_evidence,
+                ),
+                key=_remote_recommendation_order,
+            )
+        )
+        remote_by_name = {item.candidate.name: item for item in ranked}
+        merged = [
+            _remote_recommendation(
+                remote_by_name.pop(item.provider), remote_evidence
+            )
+            if item.provider in remote_by_name
+            else item
+            for item in local_candidates
+        ]
+        merged.extend(
+            _remote_recommendation(item, remote_evidence)
+            for item in ranked
+            if item.candidate.name in remote_by_name
+        )
+        candidates = tuple(merged)
+    if not candidates:
+        return None
+    return CapabilityRecommendation(
+        why="; ".join(requirement.reasons),
+        candidates=candidates,
+    )
+
+
+def _remote_recommendation(
+    ranked: RankedCandidate, evidence: Mapping[str, CandidateEvidence]
+) -> RecommendationCandidate:
+    candidate = ranked.candidate
+    provenance = candidate.provenance
+    permission_level = (
+        provenance.permission_level if provenance is not None else PermissionLevel.L4
+    )
+    return RecommendationCandidate(
+        kind=_remote_kind(candidate.kind),
+        provider=candidate.name,
+        permissions=_remote_permissions(candidate.permissions_as_declared),
+        why=(
+            f"Remote candidate; {ranked.fit.explanation}; "
+            f"{ranked.trust.explanation}; {ranked.risk.explanation}"
+        ),
+        strength=(
+            RequirementStrength.RECOMMENDED
+            if candidate.kind is RemoteCapabilityKind.CLI_TOOL
+            else RequirementStrength.OPTIONAL
+        ),
+        candidate_ref=candidate.candidate_ref,
+        permission_level=permission_level.value,
+        approval_required=_approval_required(permission_level),
+        fit_score=ranked.fit.score,
+        trust_score=ranked.trust.score,
+        risk_score=ranked.risk.score,
+        score_explanations=(
+            ranked.fit.explanation,
+            ranked.trust.explanation,
+            ranked.risk.explanation,
+        ),
+        risk_flags=evidence.get(candidate.candidate_ref, CandidateEvidence()).scan_flags,
+    )
+
+
+def _remote_kind(kind: RemoteCapabilityKind) -> CapabilityKind:
+    return {
+        RemoteCapabilityKind.MCP_SERVER: CapabilityKind.MCP,
+        RemoteCapabilityKind.AGENT_SKILL: CapabilityKind.SKILL,
+        RemoteCapabilityKind.PLUGIN: CapabilityKind.PLUGIN,
+        RemoteCapabilityKind.CLI_TOOL: CapabilityKind.CLI_TOOL,
+    }[kind]
+
+
+def _remote_permissions(values: tuple[str, ...]) -> tuple[Permission, ...]:
+    aliases = {
+        "read-project": Permission.READ_PROJECT,
+        "filesystem-read": Permission.READ_PROJECT,
+        "write-project": Permission.WRITE_PROJECT,
+        "filesystem-write": Permission.WRITE_PROJECT,
+        "execute-command": Permission.EXECUTE_COMMAND,
+        "command-execution": Permission.EXECUTE_COMMAND,
+        "network": Permission.NETWORK,
+        "network-read": Permission.NETWORK,
+        "network-write": Permission.NETWORK,
+    }
+    return tuple(
+        dict.fromkeys(
+            aliases[value.lower()] for value in values if value.lower() in aliases
+        )
+    )
+
+
+def _approval_required(level: PermissionLevel) -> str:
+    return {
+        PermissionLevel.L0: "automatic use",
+        PermissionLevel.L1: "approve once",
+        PermissionLevel.L2: "show details and approve",
+        PermissionLevel.L3: "approve individually",
+        PermissionLevel.L4: "blocked",
+    }[level]
+
+
+def _remote_recommendation_order(item: RankedCandidate) -> tuple[int, int, str]:
+    provenance = item.candidate.provenance
+    level = provenance.permission_level if provenance is not None else PermissionLevel.L4
+    permission_order = {
+        PermissionLevel.L0: 0,
+        PermissionLevel.L1: 1,
+        PermissionLevel.L2: 2,
+        PermissionLevel.L3: 3,
+        PermissionLevel.L4: 4,
+    }[level]
+    kind_order = {
+        RemoteCapabilityKind.CLI_TOOL: 0,
+        RemoteCapabilityKind.AGENT_SKILL: 1,
+        RemoteCapabilityKind.PLUGIN: 1,
+        RemoteCapabilityKind.MCP_SERVER: 2,
+    }[item.candidate.kind]
+    return kind_order, permission_order, item.candidate.candidate_ref

@@ -237,10 +237,19 @@ def _decisions(blueprint: Blueprint, resolution_plan: ResolutionPlan) -> str:
             lines.extend(["", f"### {resolution.requirement}: {recommendation.why}"])
             for index, candidate in enumerate(recommendation.candidates, start=1):
                 permissions = ", ".join(permission.value for permission in candidate.permissions)
+                remote_details = ""
+                if candidate.permission_level is not None:
+                    remote_details = (
+                        f"; level: {candidate.permission_level}; "
+                        f"approval: {candidate.approval_required}; "
+                        f"scores: fit={candidate.fit_score}, trust={candidate.trust_score}, "
+                        f"risk={candidate.risk_score}; "
+                        f"risk flags: {', '.join(candidate.risk_flags or ()) or 'none'}"
+                    )
                 lines.append(
                     f"{index}. {candidate.provider} ({candidate.kind.value}, "
-                    f"{candidate.strength.value}) — permissions: {permissions}; "
-                    f"why: {candidate.why}"
+                    f"{candidate.strength.value}) — permissions: {permissions}"
+                    f"{remote_details}; why: {candidate.why}"
                 )
     return "\n".join(lines) + "\n"
 

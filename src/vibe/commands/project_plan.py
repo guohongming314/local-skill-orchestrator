@@ -34,6 +34,8 @@ from vibe.models.resolution import CapabilityResolution, ResolutionPlan, Resolut
 from vibe.practices.evaluator import evaluate_practice_packs
 from vibe.practices.loader import load_practice_packs
 from vibe.practices.models import RequirementStrength
+from vibe.remote.models import RemoteCandidate
+from vibe.remote.scoring import CandidateEvidence
 from vibe.resolver.local import resolve_local_capabilities
 from vibe.resolver.requirements import AbstractCapabilityRequirement
 
@@ -135,12 +137,21 @@ def build_project_plan(
     repository: RepositorySnapshot,
     *,
     inventory: InventoryResult | None = None,
+    remote_candidates: tuple[RemoteCandidate, ...] = (),
+    remote_evidence: dict[str, CandidateEvidence] | None = None,
+    rejected_remote_candidates: frozenset[str] = frozenset(),
 ) -> ProjectPlan:
     profiled = _with_scale_facts(repository)
     inventory = inventory or _project_inventory(root)
     requirements = _requirements(inventory, blueprint, profiled)
     resolution = resolve_local_capabilities(
-        requirements, inventory, blueprint, profiled
+        requirements,
+        inventory,
+        blueprint,
+        profiled,
+        remote_candidates=remote_candidates,
+        remote_evidence=remote_evidence,
+        rejected_remote_candidates=rejected_remote_candidates,
     )
     rejections = _load_rejections(root)
     if rejections:
