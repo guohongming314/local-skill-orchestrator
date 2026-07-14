@@ -1,0 +1,16 @@
+{
+  "schema_version": "1",
+  "minimums": {
+    "intent_accuracy": 1.0,
+    "risk_accuracy": 1.0,
+    "capability_recall_at_k": 1.0,
+    "user_override_handling_rate": 1.0,
+    "end_to_end_configuration_success_rate": 1.0,
+    "doctor_drift_detection_rate": 1.0
+  },
+  "maximums": {
+    "unrelated_capability_selection_rate": 0.0,
+    "erroneous_permission_request_rate": 0.0,
+    "context_capsule_mean_bytes": 4096.0
+  }
+}
