@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
 
@@ -19,8 +19,15 @@ from vibe.models.capability import (
     CapabilityScope,
     Permission,
 )
-from vibe.models.resolution import CapabilityResolution, ResolutionPlan, ResolutionStatus
+from vibe.models.resolution import (
+    CapabilityRecommendation,
+    CapabilityResolution,
+    RecommendationCandidate,
+    ResolutionPlan,
+    ResolutionStatus,
+)
 from vibe.models.risk import RiskLevel
+from vibe.practices.models import RequirementStrength
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "generated" / "project.snapshot"
 
@@ -183,3 +190,63 @@ def test_template_sources_are_versioned_and_do_not_contain_project_values() -> N
 
     assert "template-version: 1" in skill_template
     assert "demo-project" not in skill_template
+
+
+def test_gap_recommendations_render_in_decisions() -> None:
+    blueprint, plan, inventory = inputs()
+    browser_gap = CapabilityResolution(
+        requirement="browser.validation",
+        status=ResolutionStatus.GAP,
+        reason="no local provider",
+        recommendation=CapabilityRecommendation(
+            why="Validate user-visible browser behavior",
+            candidates=(
+                RecommendationCandidate(
+                    kind=CapabilityKind.CLI_TOOL,
+                    provider="playwright",
+                    permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+                    why="Prefer deterministic browser validation",
+                    strength=RequirementStrength.RECOMMENDED,
+                ),
+                RecommendationCandidate(
+                    kind=CapabilityKind.MCP,
+                    provider="chrome-devtools",
+                    permissions=(
+                        Permission.READ_PROJECT,
+                        Permission.EXECUTE_COMMAND,
+                        Permission.NETWORK,
+                    ),
+                    why="Use browser MCP only for interactive browser control",
+                    strength=RequirementStrength.OPTIONAL,
+                ),
+            ),
+        ),
+    )
+    plan = plan.model_copy(update={"resolutions": (*plan.resolutions, browser_gap)})
+
+    decisions = render_project_configuration(blueprint, plan, inventory).as_dict()[
+        ".ai-project/decisions.md"
+    ]
+
+    assert "## Capability gap recommendations" in decisions
+    assert "browser.validation: Validate user-visible browser behavior" in decisions
+    assert decisions.index("playwright") < decisions.index("chrome-devtools")
+    assert "read-project, execute-command" in decisions
+    assert "only for interactive browser control" in decisions
+
+
+def test_zero_gap_plan_renders_no_recommendation_section() -> None:
+    blueprint, plan, inventory = inputs()
+    plan = plan.model_copy(
+        update={
+            "resolutions": tuple(
+                item for item in plan.resolutions if item.status is not ResolutionStatus.GAP
+            )
+        }
+    )
+
+    decisions = render_project_configuration(blueprint, plan, inventory).as_dict()[
+        ".ai-project/decisions.md"
+    ]
+
+    assert "Capability gap recommendations" not in decisions

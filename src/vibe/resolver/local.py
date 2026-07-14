@@ -1,12 +1,20 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import hashlib
 
 from vibe.inventory.adapters.base import AdapterScanResult
 from vibe.inventory.service import InventoryResult
 from vibe.models.blueprint import Blueprint, LifecycleStage
+from vibe.models.capability import CapabilityKind, Permission
 from vibe.models.repository import RepositorySnapshot
-from vibe.models.resolution import CapabilityResolution, ResolutionPlan, ResolutionStatus
+from vibe.models.resolution import (
+    CapabilityRecommendation,
+    CapabilityResolution,
+    RecommendationCandidate,
+    ResolutionPlan,
+    ResolutionStatus,
+)
+from vibe.practices.models import RequirementStrength
 from vibe.resolver.policy import ResolverPolicy, hard_filter_reason
 from vibe.resolver.requirements import AbstractCapabilityRequirement
 from vibe.resolver.scoring import CandidateScore, score_candidate
@@ -105,6 +113,7 @@ def _resolve_requirement(
             "no policy-compliant local provider; required by packs "
             + ", ".join(requirement.originating_packs)
         ),
+        recommendation=_gap_recommendation(requirement),
     )
     return [*sorted(rejected, key=_resolution_key), gap]
 
@@ -163,3 +172,36 @@ def _resolution_key(item: CapabilityResolution) -> tuple[str, str]:
 def _blueprint_digest(blueprint: Blueprint) -> str:
     payload = blueprint.model_dump_json(exclude_none=True)
     return hashlib.sha256(payload.encode()).hexdigest()
+
+
+def _gap_recommendation(
+    requirement: AbstractCapabilityRequirement,
+) -> CapabilityRecommendation | None:
+    if requirement.capability != "browser.validation":
+        return None
+    return CapabilityRecommendation(
+        why="; ".join(requirement.reasons),
+        candidates=(
+            RecommendationCandidate(
+                kind=CapabilityKind.CLI_TOOL,
+                provider="playwright",
+                permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+                why=(
+                    "Prefer a low-permission local deterministic browser test tool "
+                    "for repeatable validation."
+                ),
+                strength=RequirementStrength.RECOMMENDED,
+            ),
+            RecommendationCandidate(
+                kind=CapabilityKind.MCP,
+                provider="chrome-devtools",
+                permissions=(
+                    Permission.READ_PROJECT,
+                    Permission.EXECUTE_COMMAND,
+                    Permission.NETWORK,
+                ),
+                why="Use this browser MCP only for interactive browser control.",
+                strength=RequirementStrength.OPTIONAL,
+            ),
+        ),
+    )

@@ -227,3 +227,38 @@ def test_identical_inputs_produce_stable_reasons_and_order_and_empty_is_valid() 
 
     assert resolve_local_capabilities(*args) == resolve_local_capabilities(*args)
     assert resolve_local_capabilities((), items, blueprint(), args[3]).resolutions == ()
+
+
+def test_browser_validation_gap_yields_ranked_recommendations() -> None:
+    plan = resolve_local_capabilities(
+        (requirement("browser.validation"),),
+        inventory(),
+        blueprint(),
+        repository(monorepo=False, size="small"),
+    )
+
+    gap = plan.resolutions[0]
+    assert gap.status is ResolutionStatus.GAP
+    assert gap.recommendation is not None
+    assert gap.recommendation.why == "Fixture requirement"
+    assert [candidate.provider for candidate in gap.recommendation.candidates] == [
+        "playwright",
+        "chrome-devtools",
+    ]
+    assert [candidate.kind for candidate in gap.recommendation.candidates] == [
+        CapabilityKind.CLI_TOOL,
+        CapabilityKind.MCP,
+    ]
+    assert gap.recommendation.candidates[0].permissions == (
+        Permission.READ_PROJECT,
+        Permission.EXECUTE_COMMAND,
+    )
+    assert gap.recommendation.candidates[0].strength is RequirementStrength.RECOMMENDED
+    assert "deterministic" in gap.recommendation.candidates[0].why
+    assert gap.recommendation.candidates[1].permissions == (
+        Permission.READ_PROJECT,
+        Permission.EXECUTE_COMMAND,
+        Permission.NETWORK,
+    )
+    assert gap.recommendation.candidates[1].strength is RequirementStrength.OPTIONAL
+    assert "only for interactive browser control" in gap.recommendation.candidates[1].why
