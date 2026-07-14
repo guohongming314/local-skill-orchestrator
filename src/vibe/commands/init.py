@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from collections.abc import Mapping
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import Annotated, Any, cast
 import typer
 
 from vibe.commands.inspect import _complete_snapshot
+from vibe.commands.project_plan import build_project_plan, scan_project_inventory
 from vibe.conversation.interview import InterviewInput, build_interview
 from vibe.conversation.structured_result import StructuredProjectResult, ValueSource
 from vibe.inventory.service import InventoryResult
@@ -78,11 +78,16 @@ def init_command(
                 InitStage.INVENTORY,
                 confirmed={"repository": snapshot.model_dump(mode="json")},
             )
+        inventory = scan_project_inventory(root)
         if checkpoint.stage is InitStage.INVENTORY:
             checkpoint = workflow.advance(
                 run_id,
                 InitStage.INTERVIEW,
-                confirmed={"inventory_summary": []},
+                confirmed={
+                    "inventory_summary": [
+                        item.manifest.capability_id for item in inventory.capabilities
+                    ]
+                },
             )
 
         answer_payload = _load_answers(answers)
@@ -131,13 +136,20 @@ def init_command(
             checkpoint = workflow.advance(run_id, InitStage.REVIEW)
 
         assert structured is not None
+        project_plan = build_project_plan(
+            root, structured.blueprint, snapshot, inventory=inventory
+        )
         if checkpoint.stage is InitStage.REVIEW and answer_payload is not None:
             structured = _build_structured(snapshot, answer_payload)
             checkpoint = workflow.revise(
                 run_id,
                 confirmed={"structured_result": structured.model_dump(mode="json")},
             )
+            project_plan = build_project_plan(
+                root, structured.blueprint, snapshot, inventory=inventory
+            )
         review_payload = _review_payload(run_id, checkpoint, structured)
+        review_payload.update(_plan_payload(project_plan.inventory, project_plan.resolution))
         if checkpoint.stage is InitStage.REVIEW and not confirm:
             paused = workflow.pause(run_id)
             review_payload.update(status=paused.status.value, stage=paused.stage.value)
@@ -157,7 +169,12 @@ def init_command(
             applied_paths: tuple[str, ...] = ()
             completion_details = {"blueprint_output": str(output_path)}
         else:
-            changeset = _project_changeset(root, structured.blueprint)
+            changeset = _project_changeset(
+                root,
+                structured.blueprint,
+                inventory=project_plan.inventory,
+                resolution=project_plan.resolution,
+            )
             preview = render_dry_run(changeset)
             if dry_run:
                 applied_paths = ()
@@ -189,16 +206,17 @@ def init_command(
         raise typer.Exit(2) from exc
 
 
-def _project_changeset(root: Path, blueprint: Blueprint) -> ChangeSet:
-    inventory = InventoryResult(capabilities=(), diagnostics=(), inventory_digest="0" * 64)
-    blueprint_digest = hashlib.sha256(
-        blueprint.model_dump_json().encode("utf-8")
-    ).hexdigest()
-    resolution = ResolutionPlan(
-        blueprint_digest=blueprint_digest,
-        inventory_digest=inventory.inventory_digest,
-        resolutions=(),
-    )
+def _project_changeset(
+    root: Path,
+    blueprint: Blueprint,
+    *,
+    inventory: InventoryResult | None = None,
+    resolution: ResolutionPlan | None = None,
+) -> ChangeSet:
+    if inventory is None or resolution is None:
+        plan = build_project_plan(root, blueprint, _complete_snapshot(root))
+        inventory = plan.inventory
+        resolution = plan.resolution
     rendered = render_project_configuration(blueprint, resolution, inventory)
     proposals = [
         ChangeProposal(
@@ -311,6 +329,39 @@ def _review_payload(
             key: value.value for key, value in sorted(structured.field_sources.items())
         },
         "locked_decisions": sorted(structured.locked_decisions),
+    }
+
+
+def _plan_payload(
+    inventory: InventoryResult, resolution: ResolutionPlan
+) -> dict[str, object]:
+    return {
+        "inventory": {
+            "capability_ids": [
+                item.manifest.capability_id for item in inventory.capabilities
+            ],
+            "diagnostics": [
+                {
+                    "adapter_id": item.adapter_id,
+                    "code": item.code,
+                    "message": item.message,
+                    "capability_id": item.capability_id,
+                    "locator": item.locator,
+                    "adapter_ids": list(item.adapter_ids),
+                }
+                for item in inventory.diagnostics
+            ],
+            "digest": inventory.inventory_digest,
+        },
+        "decisions": [
+            item.model_dump(mode="json")
+            for item in sorted(
+                resolution.resolutions,
+                key=lambda value: (
+                    value.requirement, value.status.value, value.capability_id or ""
+                ),
+            )
+        ],
     }
 
 
