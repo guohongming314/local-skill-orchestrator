@@ -23,6 +23,7 @@ from vibe.materialize.agents_md import merge_agents_md
 from vibe.materialize.changeset import (
     ChangeProposal,
     ChangeSet,
+    CommandProposal,
     build_changeset,
     render_dry_run,
 )
@@ -57,6 +58,7 @@ def init_command(
     cancel: Annotated[bool, typer.Option("--cancel")] = False,
     json_output: Annotated[bool, typer.Option("--json")] = False,
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    git_init: Annotated[bool, typer.Option("--git-init")] = False,
 ) -> None:
     """Inspect, review, and optionally materialize project AI configuration."""
     if model_only and dry_run:
@@ -190,6 +192,7 @@ def init_command(
                 structured.blueprint,
                 inventory=project_plan.inventory,
                 resolution=project_plan.resolution,
+                git_init_decision=git_init if snapshot.is_empty else None,
             )
             preview = render_dry_run(changeset)
             if dry_run:
@@ -242,12 +245,19 @@ def _project_changeset(
     *,
     inventory: InventoryResult | None = None,
     resolution: ResolutionPlan | None = None,
+    git_init_decision: bool | None = None,
 ) -> ChangeSet:
     if inventory is None or resolution is None:
         plan = build_project_plan(root, blueprint, _complete_snapshot(root))
         inventory = plan.inventory
         resolution = plan.resolution
     rendered = render_project_configuration(blueprint, resolution, inventory)
+    rendered_files = rendered.as_dict()
+    if git_init_decision is not None:
+        decision = "approved" if git_init_decision else "declined"
+        rendered_files[".ai-project/decisions.md"] += (
+            f"\n## Blank-project bootstrap\n\n- Git initialization: {decision}\n"
+        )
     proposals = [
         ChangeProposal(
             path=path,
@@ -256,7 +266,7 @@ def _project_changeset(
             source="project-configuration-template-v1",
             reason="materialize approved project AI configuration",
         )
-        for path, content in rendered.as_dict().items()
+        for path, content in rendered_files.items()
     ]
     agents_path = root / "AGENTS.md"
     existing_agents = agents_path.read_bytes() if agents_path.is_file() else None
@@ -275,7 +285,16 @@ def _project_changeset(
             reason="route project work through generated local guidance",
         )
     )
-    return build_changeset(root, tuple(proposals))
+    commands: tuple[CommandProposal, ...] = ()
+    if git_init_decision and not (root / ".git").exists():
+        commands = (
+            CommandProposal(
+                argv=("git", "init"),
+                source="blank-project-bootstrap-v1",
+                reason="initialize version control with explicit user consent",
+            ),
+        )
+    return build_changeset(root, tuple(proposals), commands=commands)
 
 
 def _open_run(

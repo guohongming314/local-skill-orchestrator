@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import os
 import shutil
+import subprocess
 import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -41,6 +42,11 @@ def apply_changeset(changeset: ChangeSet, *, replace: Replace = os.replace) -> A
     if not root.is_dir():
         raise NotADirectoryError(root)
     _verify_before_digests(root, changeset.operations)
+    try:
+        for command in changeset.commands:
+            _run_command(command.argv, cwd=root, check=True)
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ApplyFailure(f"ChangeSet command failed before file writes: {error}") from error
     mutable = tuple(
         operation
         for operation in changeset.operations
@@ -150,3 +156,7 @@ def _rollback(
         with contextlib.suppress(OSError):
             directory.rmdir()
     return errors
+
+
+def _run_command(argv: tuple[str, ...], *, cwd: Path, check: bool) -> None:
+    subprocess.run(argv, cwd=cwd, check=check)
