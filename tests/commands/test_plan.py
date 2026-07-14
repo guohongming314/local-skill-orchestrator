@@ -102,3 +102,38 @@ def test_plan_writes_only_explicit_capsule_output(tmp_path: Path) -> None:
     assert project_files(tmp_path) == before
     capsule = ContextCapsule.model_validate_json(output.read_text(encoding="utf-8"))
     assert capsule.task_id == "task-48"
+
+
+def test_plan_record_outcome_persists_manual_soft_routed_execution(tmp_path: Path) -> None:
+    from alembic import command
+    from sqlalchemy.orm import Session, sessionmaker
+
+    from vibe.persistence.database import create_sqlite_engine, migration_config
+    from vibe.persistence.repositories import TaskOutcomeRepository
+
+    (tmp_path / "README.md").write_text("fixture\n", encoding="utf-8")
+    database = tmp_path / "state.sqlite3"
+
+    result = runner.invoke(
+        app,
+        [
+            *arguments(tmp_path),
+            "--record-outcome",
+            "--capability-used",
+            "analysis.code-relationships",
+            "--verification-passed",
+            "--user-rework",
+            "--database",
+            str(database),
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    command.upgrade(migration_config(database), "head")
+    factory = sessionmaker(create_sqlite_engine(database), class_=Session, expire_on_commit=False)
+    outcome = TaskOutcomeRepository(factory).get("task-48").outcome
+    assert outcome.task_type == "bug"
+    assert outcome.workflow == "standard"
+    assert outcome.capabilities_used == ("analysis.code-relationships",)
+    assert outcome.verification_passed is True
+    assert outcome.user_rework is True

@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from alembic import command
+from sqlalchemy.orm import Session, sessionmaker
 
 from vibe.codex.app_server import CodexAppServerClient, agent_message_text
 from vibe.codex.jsonrpc import JsonRpcSubprocessClient
@@ -19,6 +21,8 @@ from vibe.compiler.intent import TaskIntent
 from vibe.inspect.repository import inspect_repository
 from vibe.models.risk import RiskLevel
 from vibe.models.task import TaskPlan, WorkflowMode
+from vibe.persistence.database import create_sqlite_engine, default_database_path, migration_config
+from vibe.persistence.repositories import TaskOutcomeRepository
 from vibe.workflows.scenarios import ScenarioClassification, classify_scenario
 from vibe.workflows.task_graph import build_task_plan
 from vibe.workflows.task_runner import (
@@ -94,6 +98,7 @@ def run_command(
         str, typer.Option("--app-server-command", hidden=True)
     ] = "codex app-server",
     json_output: Annotated[bool, typer.Option("--json")] = False,
+    database: Annotated[Path | None, typer.Option("--database", hidden=True)] = None,
 ) -> None:
     """Run a plan sequentially; pause durably at gates or invalidation boundaries."""
     root = (path or Path.cwd()).resolve()
@@ -134,6 +139,7 @@ def run_command(
             approval_provider=(
                 lambda phase: approve or typer.confirm(f"Approve phase {phase.phase_id}?")
             ),
+            outcome_recorder=_outcome_repository(database).record,
         )
         result = runner.run(
             intent,
@@ -221,3 +227,13 @@ def _emit(result: TaskRunCheckpoint, plan: TaskPlan, *, json_output: bool) -> No
     if result.next_phase_id is not None:
         typer.echo(f"Next phase: {result.next_phase_id}")
     typer.echo(f"Checkpoint: {result.task_id}")
+
+
+def _outcome_repository(database: Path | None) -> TaskOutcomeRepository:
+    database_path = database or default_database_path()
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    command.upgrade(migration_config(database_path), "head")
+    factory = sessionmaker(
+        create_sqlite_engine(database_path), class_=Session, expire_on_commit=False
+    )
+    return TaskOutcomeRepository(factory)

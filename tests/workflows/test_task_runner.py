@@ -5,6 +5,7 @@ from pathlib import Path
 
 from vibe.compiler.context import CapabilityCandidate, ContextSource, SourceKind
 from vibe.compiler.intent import TaskIntent
+from vibe.models.outcome import TaskOutcome
 from vibe.models.risk import RiskLevel
 from vibe.models.task import TaskPhase, TaskPlan, WorkflowMode
 from vibe.workflows.scenarios import ScenarioId
@@ -248,3 +249,44 @@ def test_head_change_mid_run_invalidates_and_pauses_resumably(tmp_path: Path) ->
     assert resumed.status is TaskRunStatus.COMPLETED
     assert resumed.source_head == "head-2"
     assert app_server.resumed == ["thread-126"]
+
+
+def test_completed_run_persists_outcome_with_unused_plan_recommendations(
+    tmp_path: Path,
+) -> None:
+    recorded: list[tuple[str, TaskOutcome]] = []
+    app_server = ScriptedAppServer(
+        [
+            result("inspect").model_copy(update={"capabilities_used": ("cap.inspect",)}),
+            result("approval"),
+            result("implement").model_copy(update={"capabilities_used": ("cap.implement",)}),
+        ]
+    )
+    runner = TaskRunner(
+        root=tmp_path,
+        app_server=app_server,
+        checkpoint_path=tmp_path / "task-checkpoint.json",
+        head_provider=lambda: "head-1",
+        blueprint_digest_provider=lambda: "blueprint-1",
+        approval_provider=lambda _phase: True,
+        outcome_recorder=lambda task_id, outcome: recorded.append((task_id, outcome)),
+    )
+
+    checkpoint = runner.run(
+        task_intent(),
+        three_phase_plan(),
+        candidates=candidates(),
+        sources=sources(),
+        user_scope_digest="scope-1",
+    )
+
+    assert checkpoint.status is TaskRunStatus.COMPLETED
+    assert len(recorded) == 1
+    task_id, stored = recorded[0]
+    assert task_id == "task-126"
+    assert stored.task_type == "feature"
+    assert stored.workflow == "rigorous"
+    assert stored.capabilities_used == ("cap.implement", "cap.inspect")
+    assert stored.unused_recommendations == ("cap.approval",)
+    assert stored.verification_passed is True
+    assert stored.user_rework is False

@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from alembic import command
+from sqlalchemy.orm import Session, sessionmaker
 
 from vibe.compiler.context import (
     CapabilityCandidate,
@@ -19,6 +21,7 @@ from vibe.compiler.intent import TaskIntent
 from vibe.inspect.repository import inspect_repository
 from vibe.models.capability import Permission
 from vibe.models.capsule import ContextCapsule
+from vibe.models.outcome import TaskOutcome
 from vibe.models.risk import (
     DataSensitivity,
     Reversibility,
@@ -26,6 +29,8 @@ from vibe.models.risk import (
     TaskOperation,
 )
 from vibe.models.task import TaskPlan
+from vibe.persistence.database import create_sqlite_engine, default_database_path, migration_config
+from vibe.persistence.repositories import TaskOutcomeRepository
 from vibe.workflows.scenarios import ScenarioId, ScenarioRequest, classify_scenario
 from vibe.workflows.task_graph import build_task_plan
 
@@ -40,9 +45,7 @@ _ROUTE_CANDIDATES = (
         capability_id="automation.release",
         provides=("release-automation",),
         phases=("implement",),
-        permissions=frozenset(
-            {Permission.EXECUTE_COMMAND, Permission.NETWORK}
-        ),
+        permissions=frozenset({Permission.EXECUTE_COMMAND, Permission.NETWORK}),
     ),
 )
 
@@ -64,6 +67,13 @@ def plan_command(
         Path | None,
         typer.Option("--capsule-output", dir_okay=False, resolve_path=True),
     ] = None,
+    record_outcome: Annotated[bool, typer.Option("--record-outcome")] = False,
+    capability_used: Annotated[list[str] | None, typer.Option("--capability-used")] = None,
+    verification_passed: Annotated[
+        bool, typer.Option("--verification-passed/--verification-failed")
+    ] = True,
+    user_rework: Annotated[bool, typer.Option("--user-rework")] = False,
+    database: Annotated[Path | None, typer.Option("--database", hidden=True)] = None,
 ) -> None:
     """Compile a reviewable plan and capsule; never execute the requested task."""
     root = (path or Path.cwd()).resolve()
@@ -83,6 +93,24 @@ def plan_command(
             capsule_output.write_text(
                 capsule.model_dump_json(indent=2) + "\n",
                 encoding="utf-8",
+            )
+        if record_outcome:
+            used = tuple(sorted(set(capability_used or ())))
+            recommended = {
+                capability_id
+                for task_phase in task_plan.phases
+                for capability_id in task_phase.capability_ids
+            }
+            _outcome_repository(database).record(
+                task_id,
+                TaskOutcome(
+                    task_type=scenario.value,
+                    workflow=task_plan.workflow_mode.value,
+                    capabilities_used=used,
+                    verification_passed=verification_passed,
+                    user_rework=user_rework,
+                    unused_recommendations=tuple(sorted(recommended - set(used))),
+                ),
             )
     except (OSError, RuntimeError, ValueError) as error:
         typer.echo(f"planning failed: {type(error).__name__}: {error}", err=True)
@@ -225,3 +253,13 @@ def _emit_human(task_plan: TaskPlan, capsule: ContextCapsule) -> None:
     for condition in capsule.invalidation_conditions:
         typer.echo(f"  - {condition}")
     typer.echo("Execution: disabled (review only)")
+
+
+def _outcome_repository(database: Path | None) -> TaskOutcomeRepository:
+    database_path = database or default_database_path()
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    command.upgrade(migration_config(database_path), "head")
+    factory = sessionmaker(
+        create_sqlite_engine(database_path), class_=Session, expire_on_commit=False
+    )
+    return TaskOutcomeRepository(factory)

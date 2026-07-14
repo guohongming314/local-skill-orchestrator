@@ -28,6 +28,7 @@ def test_schema_export_contains_every_top_level_contract(tmp_path: Path) -> None
         "repository-snapshot",
         "resolution-plan",
         "risk",
+        "task-outcome",
         "task-plan",
     }
     assert {path.stem.removesuffix(".schema") for path in output.glob("*.json")} == set(
@@ -45,6 +46,6 @@ def test_repeated_schema_exports_are_byte_identical(tmp_path: Path) -> None:
     export_schemas(first)
     export_schemas(second)
 
-    assert {
-        path.name: path.read_bytes() for path in sorted(first.glob("*.json"))
-    } == {path.name: path.read_bytes() for path in sorted(second.glob("*.json"))}
+    assert {path.name: path.read_bytes() for path in sorted(first.glob("*.json"))} == {
+        path.name: path.read_bytes() for path in sorted(second.glob("*.json"))
+    }

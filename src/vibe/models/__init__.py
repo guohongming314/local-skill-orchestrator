@@ -3,6 +3,7 @@
 from vibe.models.blueprint import Blueprint
 from vibe.models.capability import CapabilityManifest
 from vibe.models.capsule import ContextCapsule
+from vibe.models.outcome import TaskOutcome
 from vibe.models.repository import RepositorySnapshot
 from vibe.models.resolution import ResolutionPlan
 from vibe.models.risk import Risk
@@ -15,6 +16,7 @@ __all__ = [
     "RepositorySnapshot",
     "ResolutionPlan",
     "Risk",
+    "TaskOutcome",
     "TaskPlan",
 ]
 

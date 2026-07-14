@@ -58,5 +58,5 @@ def test_schema_export(tmp_path: Path) -> None:
     result = runner.invoke(app, ["schema", "export", "--output", str(tmp_path)])
 
     assert result.exit_code == 0
-    assert len(list(tmp_path.glob("*.schema.json"))) == 7
+    assert len(list(tmp_path.glob("*.schema.json"))) == 8
     assert '"title": "Blueprint"' in (tmp_path / "blueprint.schema.json").read_text()
