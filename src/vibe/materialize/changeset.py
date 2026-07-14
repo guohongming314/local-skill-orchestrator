@@ -40,6 +40,24 @@ class ChangeProposal(VersionedModel):
         return self
 
 
+class CommandProposal(VersionedModel):
+    argv: tuple[str, ...] = Field(min_length=1)
+    source: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def arguments_are_non_empty(self) -> CommandProposal:
+        if any(not argument for argument in self.argv):
+            raise ValueError("command arguments must be non-empty")
+        return self
+
+
+class CommandOperation(VersionedModel):
+    argv: tuple[str, ...] = Field(min_length=1)
+    source: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+
+
 class ChangeOperation(VersionedModel):
     path: str = Field(min_length=1)
     kind: ChangeKind
@@ -69,6 +87,7 @@ class ChangeOperation(VersionedModel):
 class ChangeSet(VersionedModel):
     root: Path
     operations: tuple[ChangeOperation, ...]
+    commands: tuple[CommandOperation, ...] = ()
     digest: str = Field(pattern=r"^[0-9a-f]{64}$")
 
     @model_validator(mode="after")
@@ -78,12 +97,17 @@ class ChangeSet(VersionedModel):
             raise ValueError("ChangeSet operations must be sorted by path")
         if len(paths) != len(set(paths)):
             raise ValueError("ChangeSet operation paths must be unique")
-        if self.digest != _changeset_digest(self.operations):
+        if self.digest != _changeset_digest(self.operations, self.commands):
             raise ValueError("ChangeSet digest does not match operations")
         return self
 
 
-def build_changeset(root: Path, proposals: tuple[ChangeProposal, ...]) -> ChangeSet:
+def build_changeset(
+    root: Path,
+    proposals: tuple[ChangeProposal, ...],
+    *,
+    commands: tuple[CommandProposal, ...] = (),
+) -> ChangeSet:
     """Inspect project state and produce a deterministic, write-free ChangeSet."""
     resolved_root = root.resolve()
     by_path: dict[str, ChangeProposal] = {}
@@ -94,19 +118,28 @@ def build_changeset(root: Path, proposals: tuple[ChangeProposal, ...]) -> Change
     operations = tuple(
         _build_operation(resolved_root, by_path[path]) for path in sorted(by_path)
     )
+    command_operations = tuple(
+        CommandOperation(argv=proposal.argv, source=proposal.source, reason=proposal.reason)
+        for proposal in commands
+    )
     return ChangeSet(
         root=resolved_root,
         operations=operations,
-        digest=_changeset_digest(operations),
+        commands=command_operations,
+        digest=_changeset_digest(operations, command_operations),
     )
 
 
 def render_dry_run(changeset: ChangeSet) -> str:
     """Render a stable human-readable preview without exposing file contents."""
     lines = [f"ChangeSet {changeset.digest}", f"Root: {changeset.root}"]
-    if not changeset.operations:
+    if not changeset.operations and not changeset.commands:
         lines.append("No changes proposed.")
         return "\n".join(lines)
+    for command in changeset.commands:
+        lines.append(f"PENDING COMMAND {' '.join(command.argv)}")
+        lines.append(f"  source: {command.source}")
+        lines.append(f"  reason: {command.reason}")
     for operation in changeset.operations:
         lines.append(
             f"{operation.kind.value.upper()} {operation.path} "
@@ -161,8 +194,13 @@ def _content_digest(content: str | None) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
-def _changeset_digest(operations: tuple[ChangeOperation, ...]) -> str:
-    payload = [operation.model_dump(mode="json") for operation in operations]
+def _changeset_digest(
+    operations: tuple[ChangeOperation, ...], commands: tuple[CommandOperation, ...]
+) -> str:
+    payload = {
+        "operations": [operation.model_dump(mode="json") for operation in operations],
+        "commands": [command.model_dump(mode="json") for command in commands],
+    }
     normalized = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 

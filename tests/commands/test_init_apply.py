@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner, Result
 
 from vibe.cli import app
@@ -163,3 +164,87 @@ def test_init_json_exposes_schema_valid_gap_recommendations(tmp_path: Path) -> N
     assert payload["decisions"][0].get("recommendation") is not None or any(
         item.get("recommendation") is not None for item in payload["decisions"]
     )
+
+
+def test_blank_init_without_git_consent_keeps_repository_gitless_and_records_decision(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "blank-project"
+    root.mkdir()
+
+    result = invoke(root, answers(tmp_path), run_id="blank-decline")
+
+    assert result.exit_code == 0, result.output
+    assert not (root / ".git").exists()
+    decisions = (root / ".ai-project/decisions.md").read_text(encoding="utf-8")
+    assert "- Git initialization: declined" in decisions
+
+
+def test_blank_init_with_git_consent_initializes_git_before_file_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "blank-project"
+    root.mkdir()
+    command_observations: list[tuple[tuple[str, ...], Path]] = []
+
+    def run_command(argv: tuple[str, ...], *, cwd: Path, check: bool) -> None:
+        assert check is True
+        assert not (root / ".ai-project/blueprint.yaml").exists()
+        command_observations.append((argv, cwd))
+        (root / ".git").mkdir()
+
+    monkeypatch.setattr("vibe.materialize.writer._run_command", run_command)
+
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "--path",
+            str(root),
+            "--answers",
+            str(answers(tmp_path)),
+            "--run-id",
+            "blank-consent",
+            "--checkpoints",
+            str(tmp_path / "blank-consent.sqlite3"),
+            "--confirm",
+            "--git-init",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert command_observations == [(("git", "init"), root.resolve())]
+    assert (root / ".git").is_dir()
+    assert (root / ".ai-project/blueprint.yaml").is_file()
+    decisions = (root / ".ai-project/decisions.md").read_text(encoding="utf-8")
+    assert "- Git initialization: approved" in decisions
+
+
+def test_blank_init_dry_run_shows_git_init_as_pending_command(tmp_path: Path) -> None:
+    root = tmp_path / "blank-project"
+    root.mkdir()
+
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "--path",
+            str(root),
+            "--answers",
+            str(answers(tmp_path)),
+            "--run-id",
+            "blank-preview",
+            "--checkpoints",
+            str(tmp_path / "blank-preview.sqlite3"),
+            "--confirm",
+            "--git-init",
+            "--dry-run",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert "PENDING COMMAND git init" in payload["preview"]
+    assert not (root / ".git").exists()

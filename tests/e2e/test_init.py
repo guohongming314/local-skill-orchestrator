@@ -335,3 +335,65 @@ def test_blank_web_init_reports_ranked_browser_gap_without_provider(
         candidate["permissions"] and candidate["why"]
         for candidate in browser["recommendation"]["candidates"]
     )
+
+
+def test_blank_project_materialization_only_generates_configuration_and_approved_git(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "blank-project"
+    root.mkdir()
+    answer_path = tmp_path / "blank-answers.json"
+    answer_path.write_text(
+        json.dumps(
+            {
+                "goal": "Build a blank project safely",
+                "lifecycle_stage": "active-development",
+                "risk_level": "medium",
+                "project_type": "cli-tool",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "--path",
+            str(root),
+            "--answers",
+            str(answer_path),
+            "--run-id",
+            "blank-bootstrap",
+            "--checkpoints",
+            str(tmp_path / "blank-bootstrap.sqlite3"),
+            "--confirm",
+            "--git-init",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["status"] == "completed"
+    files = {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file() and ".git" not in path.relative_to(root).parts
+    }
+    expected = {
+        ".ai-project/blueprint.yaml",
+        ".ai-project/capabilities.yaml",
+        ".ai-project/capabilities.lock",
+        ".ai-project/policy.yaml",
+        ".ai-project/decisions.md",
+        ".ai-project/quality-gates.md",
+        ".ai-project/workflows.yaml",
+        ".ai-project/task-policies.yaml",
+        ".ai-project/capability-usage.yaml",
+        ".agents/skills/project-development/SKILL.md",
+        ".agents/skills/project-development/references/capability-routing.md",
+        ".agents/skills/project-development/references/quality-gates.md",
+        "AGENTS.md",
+    }
+    assert files == expected
+    assert (root / ".git").is_dir()
