@@ -34,6 +34,8 @@ from vibe.migrations.registry import (
 from vibe.models.base import VersionedModel
 from vibe.models.blueprint import Blueprint
 from vibe.persistence.database import default_database_path
+from vibe.policy.org import load_org_policy
+from vibe.practices.loader import load_practice_pack
 
 CommandResolver = Callable[[str], str | None]
 
@@ -416,6 +418,79 @@ class OutcomeInsightsCheck:
         )
 
 
+class OrganizationPolicyCheck:
+    """Report generated project configuration that violates current org guardrails."""
+
+    def check(self, context: DoctorContext) -> tuple[DoctorFinding, ...]:
+        try:
+            policy, path = load_org_policy(context.root)
+        except (OSError, UnicodeError, yaml.YAMLError, ValidationError, ValueError):
+            return (
+                DoctorFinding(
+                    code="organization.policy-invalid",
+                    severity=Severity.ERROR,
+                    summary="The organization policy cannot be loaded.",
+                    evidence=(str(context.root / "org-policy.yaml"),),
+                    remediation="Repair the organization policy before changing project config.",
+                    classification=DriftClassification.BLOCKING,
+                ),
+            )
+        if policy is None:
+            return ()
+        lock = _load(context.root, ".ai-project/capabilities.lock", CapabilityLock)
+        capabilities = _load(
+            context.root, ".ai-project/capabilities.yaml", RenderedCapabilities
+        )
+        if lock is None or capabilities is None:
+            return ()
+        violations: list[str] = []
+        for provider in lock.providers:
+            if provider.provider_id in policy.blocked_capability_ids or (
+                policy.approved_capability_ids
+                and provider.provider_id not in policy.approved_capability_ids
+            ):
+                violations.append(provider.provider_id)
+            if provider.publisher in policy.blocked_publishers or (
+                provider.publisher is not None
+                and policy.approved_publishers
+                and provider.publisher not in policy.approved_publishers
+            ):
+                violations.append(provider.publisher)
+        project_policy = _load(context.root, ".ai-project/policy.yaml", ProjectPolicy)
+        if project_policy is not None:
+            violations.extend(
+                permission
+                for permission in project_policy.permissions
+                if permission not in {item.value for item in policy.allowed_permissions}
+            )
+        resolved_requirements = {
+            str(item.get("requirement")) for item in capabilities.resolutions
+        }
+        packs_root = Path(__file__).resolve().parents[3] / "practice-packs"
+        for pack_id in sorted(policy.mandatory_practice_packs):
+            pack_path = packs_root / pack_id / "pack.yaml"
+            try:
+                pack = load_practice_pack(pack_path)
+            except (OSError, UnicodeError, yaml.YAMLError, ValidationError, ValueError):
+                violations.append(pack_id)
+                continue
+            required = {item.capability for item in pack.requirements}
+            if not required.issubset(resolved_requirements):
+                violations.append(pack_id)
+        if not violations:
+            return ()
+        return (
+            DoctorFinding(
+                code="organization.policy-violation",
+                severity=Severity.ERROR,
+                summary="Project configuration violates the current organization policy.",
+                evidence=tuple(dict.fromkeys((str(path), *violations))),
+                remediation="Regenerate project configuration under the current org policy.",
+                classification=DriftClassification.BLOCKING,
+            ),
+        )
+
+
 DEFAULT_CHECKS: tuple[DoctorCheck, ...] = (
     SchemaVersionCheck(),
     ConfigurationSchemaCheck(),
@@ -423,6 +498,7 @@ DEFAULT_CHECKS: tuple[DoctorCheck, ...] = (
     InstalledCapabilityDriftCheck(),
     CommandAvailabilityCheck(),
     PermissionDeltaCheck(),
+    OrganizationPolicyCheck(),
     ConversationRecoveryCheck(),
     OutcomeInsightsCheck(),
 )

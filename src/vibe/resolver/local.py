@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping
+from pathlib import Path
 
 from vibe.inventory.adapters.base import AdapterScanResult
 from vibe.inventory.service import InventoryResult
@@ -15,6 +16,8 @@ from vibe.models.resolution import (
     ResolutionPlan,
     ResolutionStatus,
 )
+from vibe.policy.org import load_org_policy
+from vibe.practices.loader import load_practice_pack
 from vibe.practices.models import RequirementStrength
 from vibe.remote.models import (
     CapabilityKind as RemoteCapabilityKind,
@@ -29,7 +32,11 @@ from vibe.remote.scoring import (
     ScoringContext,
     rank_candidates,
 )
-from vibe.resolver.policy import ResolverPolicy, hard_filter_reason
+from vibe.resolver.policy import (
+    ResolverPolicy,
+    hard_filter_reason,
+    remote_org_filter_reason,
+)
 from vibe.resolver.requirements import AbstractCapabilityRequirement
 from vibe.resolver.scoring import CandidateScore, score_candidate
 
@@ -41,14 +48,25 @@ def resolve_local_capabilities(
     repository: RepositorySnapshot,
     *,
     policy: ResolverPolicy | None = None,
+    org_policy_path: Path | None = None,
     remote_candidates: tuple[RemoteCandidate, ...] = (),
     remote_evidence: Mapping[str, CandidateEvidence] | None = None,
     rejected_remote_candidates: frozenset[str] = frozenset(),
 ) -> ResolutionPlan:
     """Resolve abstract requirements to the minimal deterministic local selection."""
     active_policy = policy or ResolverPolicy()
+    if active_policy.org_policy is None:
+        org_policy, loaded_path = load_org_policy(repository.root, org_policy_path)
+        active_policy = ResolverPolicy(
+            allowed_permissions=active_policy.allowed_permissions,
+            org_policy=org_policy,
+            org_policy_path=str(loaded_path),
+        )
+    effective_requirements = _with_mandatory_practice_packs(
+        requirements, active_policy
+    )
     resolutions: list[CapabilityResolution] = []
-    for requirement in sorted(requirements, key=lambda item: item.capability):
+    for requirement in sorted(effective_requirements, key=lambda item: item.capability):
         matching = sorted(
             (
                 item
@@ -74,6 +92,57 @@ def resolve_local_capabilities(
         inventory_digest=inventory.inventory_digest,
         resolutions=tuple(resolutions),
     )
+
+
+_STRENGTH_ORDER = {
+    RequirementStrength.OPTIONAL: 0,
+    RequirementStrength.RECOMMENDED: 1,
+    RequirementStrength.REQUIRED: 2,
+}
+
+
+def _with_mandatory_practice_packs(
+    requirements: tuple[AbstractCapabilityRequirement, ...],
+    policy: ResolverPolicy,
+) -> tuple[AbstractCapabilityRequirement, ...]:
+    org_policy = policy.org_policy
+    if org_policy is None or not org_policy.mandatory_practice_packs:
+        return requirements
+    by_capability = {item.capability: item for item in requirements}
+    packs_root = Path(__file__).resolve().parents[3] / "practice-packs"
+    for pack_id in sorted(org_policy.mandatory_practice_packs):
+        pack = load_practice_pack(packs_root / pack_id / "pack.yaml")
+        for item in pack.requirements:
+            existing = by_capability.get(item.capability)
+            if existing is None:
+                by_capability[item.capability] = AbstractCapabilityRequirement(
+                    capability=item.capability,
+                    strength=item.strength,
+                    originating_packs=(pack_id,),
+                    originating_requirements=(item.requirement_id,),
+                    reasons=(item.rationale,),
+                    verification=item.verification,
+                )
+                continue
+            strength = max(
+                (existing.strength, item.strength), key=_STRENGTH_ORDER.__getitem__
+            )
+            by_capability[item.capability] = existing.model_copy(
+                update={
+                    "strength": strength,
+                    "originating_packs": tuple(
+                        sorted({*existing.originating_packs, pack_id})
+                    ),
+                    "originating_requirements": tuple(
+                        sorted({*existing.originating_requirements, item.requirement_id})
+                    ),
+                    "reasons": tuple(dict.fromkeys((*existing.reasons, item.rationale))),
+                    "verification": tuple(
+                        dict.fromkeys((*existing.verification, *item.verification))
+                    ),
+                }
+            )
+    return tuple(by_capability.values())
 
 
 def _resolve_requirement(
@@ -146,6 +215,7 @@ def _resolve_requirement(
             remote_candidates,
             remote_evidence,
             rejected_remote_candidates,
+            policy,
         ),
     )
     return [*sorted(rejected, key=_resolution_key), gap]
@@ -213,6 +283,7 @@ def _gap_recommendation(
     remote_candidates: tuple[RemoteCandidate, ...],
     remote_evidence: Mapping[str, CandidateEvidence],
     rejected_remote_candidates: frozenset[str],
+    policy: ResolverPolicy,
 ) -> CapabilityRecommendation | None:
     if requirement.capability != "browser.validation":
         return None
@@ -255,6 +326,7 @@ def _gap_recommendation(
             candidate
             for candidate in remote_candidates
             if candidate.candidate_ref not in rejected_remote_candidates
+            and remote_org_filter_reason(candidate, policy) is None
         )
         ranked = tuple(
             sorted(
