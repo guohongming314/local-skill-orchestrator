@@ -1,4 +1,4 @@
-﻿"""Typed Doctor findings and deterministic report aggregation."""
+"""Typed Doctor findings and deterministic report aggregation."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from enum import StrEnum
 class Severity(StrEnum):
     INFO = "info"
     WARNING = "warning"
+    ACTIONABLE = "actionable"
     ERROR = "error"
 
 
@@ -27,7 +28,10 @@ class DoctorReport:
 
     @property
     def healthy(self) -> bool:
-        return not any(item.severity is Severity.ERROR for item in self.findings)
+        return not any(
+            item.severity in {Severity.ACTIONABLE, Severity.ERROR}
+            for item in self.findings
+        )
 
 
 def aggregate_findings(findings: tuple[DoctorFinding, ...]) -> DoctorReport:

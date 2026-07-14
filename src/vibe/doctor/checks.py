@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import sqlite3
 from collections.abc import Callable
@@ -24,6 +25,7 @@ from vibe.materialize.templates import (
 )
 from vibe.models.base import VersionedModel
 from vibe.models.blueprint import Blueprint
+from vibe.persistence.database import default_database_path
 
 CommandResolver = Callable[[str], str | None]
 
@@ -211,12 +213,124 @@ class ConversationRecoveryCheck:
         return tuple(findings)
 
 
+_UNUSED_OUTCOME_THRESHOLD = 3
+_OVERRIDE_THRESHOLD = 3
+_VERIFICATION_FAILURE_THRESHOLD = 3
+
+
+@dataclass(frozen=True)
+class _RecordedOutcome:
+    task_id: str
+    capabilities_used: tuple[str, ...]
+    verification_passed: bool
+    unused_recommendations: tuple[str, ...]
+
+
+class OutcomeInsightsCheck:
+    """Turn repeated low-sensitivity task outcomes into review-only suggestions."""
+
+    def __init__(self, database: Path | None = None) -> None:
+        self._database = (database or default_database_path()).resolve()
+
+    def check(self, context: DoctorContext) -> tuple[DoctorFinding, ...]:
+        outcomes = self._read_outcomes()
+        if not outcomes:
+            return ()
+
+        findings: list[DoctorFinding] = []
+        lock = _load(context.root, ".ai-project/capabilities.lock", CapabilityLock)
+        if len(outcomes) >= _UNUSED_OUTCOME_THRESHOLD and lock is not None:
+            used = {
+                capability
+                for record in outcomes
+                for capability in record.capabilities_used
+            }
+            evidence_tasks = tuple(record.task_id for record in outcomes)
+            findings.extend(
+                DoctorFinding(
+                    code="outcome.capability-unused",
+                    severity=Severity.ACTIONABLE,
+                    summary="An installed capability has not been used in recent outcomes.",
+                    evidence=(provider.provider_id, *evidence_tasks),
+                    remediation=(
+                        "Review whether the capability is still needed; remove it only after "
+                        "confirming the project policy no longer requires it."
+                    ),
+                )
+                for provider in lock.providers
+                if provider.provider_id not in used
+            )
+
+        overridden: dict[str, list[str]] = {}
+        failed: dict[str, list[str]] = {}
+        for record in outcomes:
+            for capability in record.unused_recommendations:
+                overridden.setdefault(capability, []).append(record.task_id)
+            if not record.verification_passed:
+                for capability in record.capabilities_used:
+                    failed.setdefault(capability, []).append(record.task_id)
+
+        findings.extend(
+            DoctorFinding(
+                code="outcome.recommendation-overridden",
+                severity=Severity.ACTIONABLE,
+                summary="The same capability recommendation is repeatedly not used.",
+                evidence=(capability, *task_ids),
+                remediation=(
+                    "Review the repeated overrides and consider encoding the preference as "
+                    "project policy; do not change policy automatically."
+                ),
+            )
+            for capability, task_ids in overridden.items()
+            if len(task_ids) >= _OVERRIDE_THRESHOLD
+        )
+        findings.extend(
+            DoctorFinding(
+                code="outcome.verification-failing",
+                severity=Severity.ACTIONABLE,
+                summary="A capability repeatedly appears in outcomes that fail verification.",
+                evidence=(capability, *task_ids),
+                remediation=(
+                    "Review the verification failures and select a fallback provider or "
+                    "document a deliberate downgrade."
+                ),
+            )
+            for capability, task_ids in failed.items()
+            if len(task_ids) >= _VERIFICATION_FAILURE_THRESHOLD
+        )
+        return tuple(findings)
+
+    def _read_outcomes(self) -> tuple[_RecordedOutcome, ...]:
+        if not self._database.is_file():
+            return ()
+        try:
+            with sqlite3.connect(self._database) as connection:
+                rows = connection.execute(
+                    """SELECT task_id, capabilities_used_json, verification_passed,
+                              unused_recommendations_json
+                       FROM task_outcomes
+                       ORDER BY created_at, task_id"""
+                ).fetchall()
+        except sqlite3.Error:
+            return ()
+        return tuple(
+            _RecordedOutcome(
+                task_id=str(task_id),
+                capabilities_used=tuple(json.loads(used_json)["items"]),
+                verification_passed=bool(verification_passed),
+                unused_recommendations=tuple(json.loads(unused_json)["items"]),
+            )
+            for task_id, used_json, verification_passed, unused_json in rows
+        )
+
+
 DEFAULT_CHECKS: tuple[DoctorCheck, ...] = (
     ConfigurationSchemaCheck(),
     LockedProviderCheck(),
     CommandAvailabilityCheck(),
     PermissionDeltaCheck(),
     ConversationRecoveryCheck(),
+    OutcomeInsightsCheck(),
 )
 
 
