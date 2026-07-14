@@ -17,6 +17,7 @@ from vibe.inventory.adapters.base import (
     AdapterScanResult,
     AdapterVerification,
 )
+from vibe.inventory.taxonomy import provider_capabilities
 from vibe.models.capability import (
     CapabilityKind,
     CapabilityManifest,
@@ -72,7 +73,7 @@ class CodexMcpAdapter:
         provides = (
             tuple(sorted(str(item) for item in capabilities))
             if isinstance(capabilities, list) and capabilities
-            else ("mcp-tools",)
+            else provider_capabilities(discovery.locator) or ("mcp-tools",)
         )
         safe = {
             "capabilities": provides,

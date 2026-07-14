@@ -100,3 +100,15 @@ def test_probe_exception_is_contained_as_unverifiable_tool() -> None:
 
     assert not result.verification.verified
     assert result.verification.details == ("probe_error:OSError:access denied",)
+
+
+def test_known_cli_provider_uses_taxonomy_when_capabilities_are_not_explicit() -> None:
+    adapter = CliToolAdapter(
+        specs=(CliToolSpec("playwright", "playwright", ("--version",), ()),),
+        executable_resolver=lambda executable: f"/tools/{executable}",
+        probe_runner=lambda argv: ProbeResult(0, "Version 1.54.1", ""),
+    )
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert result.manifest.provides == ("browser.validation",)

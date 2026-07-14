@@ -17,6 +17,7 @@ from vibe.inventory.adapters.base import (
     AdapterScanResult,
     AdapterVerification,
 )
+from vibe.inventory.taxonomy import provider_capabilities
 from vibe.models.capability import (
     CapabilityKind,
     CapabilityManifest,
@@ -102,10 +103,15 @@ class CliToolAdapter:
                         details = (f"version:{version}",)
                         verified = True
 
+        provides = (
+            tuple(sorted(spec.provides))
+            or provider_capabilities(spec.tool_id)
+            or ("cli-tools",)
+        )
         digest_payload = {
             "executable": spec.executable,
             "permissions": sorted(permission.value for permission in spec.permissions),
-            "provides": sorted(spec.provides),
+            "provides": provides,
             "scope": spec.scope.value,
             "tool_id": spec.tool_id,
             "version": version,
@@ -120,7 +126,7 @@ class CliToolAdapter:
             kind=CapabilityKind.CLI_TOOL,
             scope=spec.scope,
             source=source,
-            provides=tuple(sorted(spec.provides)),
+            provides=provides,
             permissions=spec.permissions,
             version=version,
             content_digest=digest,
