@@ -12,6 +12,36 @@ class RiskLevel(StrEnum):
     CRITICAL = "critical"
 
 
+class ScopeLevel(StrEnum):
+    LOCAL = "local"
+    MULTI_COMPONENT = "multi-component"
+    CROSS_SYSTEM = "cross-system"
+
+
+class DataSensitivity(StrEnum):
+    PUBLIC = "public"
+    INTERNAL = "internal"
+    SENSITIVE = "sensitive"
+    REGULATED = "regulated"
+
+
+class Reversibility(StrEnum):
+    REVERSIBLE = "reversible"
+    DIFFICULT = "difficult"
+    IRREVERSIBLE = "irreversible"
+
+
+class TaskOperation(StrEnum):
+    READ_PROJECT = "read-project"
+    WRITE_PROJECT = "write-project"
+    EXECUTE_COMMAND = "execute-command"
+    NETWORK = "network"
+    DEPLOY = "deploy"
+    MIGRATE_DATA = "migrate-data"
+    MODIFY_SECURITY = "modify-security"
+    HANDLE_PAYMENT = "handle-payment"
+
+
 class RiskDimension(StrEnum):
     SCOPE = "scope"
     DATA_SENSITIVITY = "data-sensitivity"
