@@ -229,3 +229,24 @@ def test_permission_expansion_is_blocking_until_reapproved(tmp_path: Path) -> No
     )
     assert getattr(finding, "classification", None) == "blocking"
     assert "re-approv" in finding.remediation.lower()
+
+
+def test_project_configuration_violating_org_policy_is_blocking(tmp_path: Path) -> None:
+    current = inventory()
+    write_configuration(tmp_path, current)
+    (tmp_path / "org-policy.yaml").write_text(
+        """schema_version: '1'
+blocked_capability_ids: [cli.pytest]
+mandatory_practice_packs: [base-engineering]
+""",
+        encoding="utf-8",
+    )
+
+    report = run_health_checks(tmp_path, current, lambda command: command)
+
+    finding = next(item for item in report.findings if item.code == "organization.policy-violation")
+    assert finding.severity is Severity.ERROR
+    assert finding.classification is not None
+    assert finding.classification.value == "blocking"
+    assert "cli.pytest" in finding.evidence
+    assert "base-engineering" in finding.evidence
