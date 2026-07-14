@@ -1,18 +1,40 @@
 {
   "codegraph": {
-    "capability_ids": ["product.codegraph"],
-    "statuses": ["gap", "rejected"]
+    "capability_ids": [
+      "product.codegraph"
+    ],
+    "statuses": [
+      "gap",
+      "rejected",
+      "gap",
+      "gap"
+    ]
   },
   "large-monorepo": {
-    "capability_ids": ["product.codegraph"],
-    "statuses": ["selected"]
+    "capability_ids": [
+      "product.codegraph"
+    ],
+    "statuses": [
+      "selected",
+      "gap",
+      "gap"
+    ]
   },
   "memory-provider": {
-    "capability_ids": ["memory.local-leads"],
-    "statuses": ["deferred"]
+    "capability_ids": [
+      "memory.local-leads"
+    ],
+    "statuses": [
+      "deferred",
+      "gap",
+      "gap"
+    ]
   },
   "no-skill": {
     "capability_ids": [],
-    "statuses": []
+    "statuses": [
+      "gap",
+      "gap"
+    ]
   }
 }

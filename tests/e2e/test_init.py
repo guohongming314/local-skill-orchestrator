@@ -85,7 +85,11 @@ def test_blank_dry_run_reports_decisions_without_writing_project(tmp_path: Path)
     assert payload["status"] == "dry-run"
     assert payload["applied_paths"] == []
     assert payload["inventory"]["capability_ids"] == []
-    assert payload["decisions"] == []
+    assert [item["requirement"] for item in payload["decisions"]] == [
+        "quality.gates",
+        "repository.exploration",
+    ]
+    assert all(item["status"] == "gap" for item in payload["decisions"])
     assert _tree(root) == before
 
 
@@ -213,12 +217,16 @@ def test_conflicts_and_user_rejection_are_explicit_and_safe(tmp_path: Path) -> N
     rejection = _invoke(rejection_root, tmp_path, run_id="rejection")
     assert rejection.exit_code == 0, rejection.output
     decisions = json.loads(rejection.stdout)["decisions"]
-    assert decisions == [
-        {
-            "capability_id": None,
-            "reason": "explicitly rejected by project policy",
-            "requirement": "automation.release",
-            "schema_version": "1",
-            "status": "rejected",
-        }
+    assert [item["requirement"] for item in decisions] == [
+        "automation.release",
+        "quality.gates",
+        "repository.exploration",
     ]
+    assert decisions[0] == {
+        "capability_id": None,
+        "reason": "explicitly rejected by project policy",
+        "requirement": "automation.release",
+        "schema_version": "1",
+        "status": "rejected",
+    }
+    assert all(item["status"] == "gap" for item in decisions[1:])

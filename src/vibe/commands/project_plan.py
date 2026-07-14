@@ -24,6 +24,8 @@ from vibe.models.capability import (
 )
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
 from vibe.models.resolution import CapabilityResolution, ResolutionPlan, ResolutionStatus
+from vibe.practices.evaluator import evaluate_practice_packs
+from vibe.practices.loader import load_practice_packs
 from vibe.practices.models import RequirementStrength
 from vibe.resolver.local import resolve_local_capabilities
 from vibe.resolver.requirements import AbstractCapabilityRequirement
@@ -32,6 +34,7 @@ from vibe.resolver.requirements import AbstractCapabilityRequirement
 @dataclass(frozen=True)
 class ProjectPlan:
     inventory: InventoryResult
+    requirements: tuple[AbstractCapabilityRequirement, ...]
     resolution: ResolutionPlan
     repository: RepositorySnapshot
 
@@ -128,7 +131,7 @@ def build_project_plan(
 ) -> ProjectPlan:
     profiled = _with_scale_facts(repository)
     inventory = inventory or _project_inventory(root)
-    requirements = _requirements(inventory)
+    requirements = _requirements(inventory, blueprint, profiled)
     resolution = resolve_local_capabilities(
         requirements, inventory, blueprint, profiled
     )
@@ -149,7 +152,7 @@ def build_project_plan(
                 )
             }
         )
-    return ProjectPlan(inventory, resolution, profiled)
+    return ProjectPlan(inventory, requirements, resolution, profiled)
 
 
 def _project_inventory(root: Path) -> InventoryResult:
@@ -163,6 +166,24 @@ def _project_inventory(root: Path) -> InventoryResult:
 
 
 def _requirements(
+    inventory: InventoryResult,
+    blueprint: Blueprint,
+    repository: RepositorySnapshot,
+) -> tuple[AbstractCapabilityRequirement, ...]:
+    packs_root = Path(__file__).resolve().parents[3] / "practice-packs"
+    pack_requirements = evaluate_practice_packs(
+        load_practice_packs(packs_root), blueprint, repository
+    )
+    marker_requirements = _marker_requirements(inventory)
+    return tuple(
+        sorted(
+            (*pack_requirements, *marker_requirements),
+            key=lambda item: item.capability,
+        )
+    )
+
+
+def _marker_requirements(
     inventory: InventoryResult,
 ) -> tuple[AbstractCapabilityRequirement, ...]:
     capabilities = sorted(

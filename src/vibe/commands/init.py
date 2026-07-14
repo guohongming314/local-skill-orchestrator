@@ -27,6 +27,7 @@ from vibe.materialize.writer import ApplyFailure, ConcurrentChangeError, apply_c
 from vibe.models.blueprint import Blueprint
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
 from vibe.models.resolution import ResolutionPlan
+from vibe.resolver.requirements import AbstractCapabilityRequirement
 from vibe.workflows.checkpoints import CheckpointConflict, SqliteCheckpointStore
 from vibe.workflows.init_graph import InitializationGraph, InvalidTransition
 from vibe.workflows.state import InitCheckpoint, InitStage, InitStatus
@@ -156,7 +157,11 @@ def init_command(
                 root, structured.blueprint, snapshot, inventory=inventory
             )
         review_payload = _review_payload(run_id, checkpoint, structured)
-        review_payload.update(_plan_payload(project_plan.inventory, project_plan.resolution))
+        review_payload.update(
+            _plan_payload(
+                project_plan.inventory, project_plan.requirements, project_plan.resolution
+            )
+        )
         if checkpoint.stage is InitStage.REVIEW and not confirm:
             paused = workflow.pause(run_id)
             review_payload.update(status=paused.status.value, stage=paused.stage.value)
@@ -356,7 +361,9 @@ def _review_payload(
 
 
 def _plan_payload(
-    inventory: InventoryResult, resolution: ResolutionPlan
+    inventory: InventoryResult,
+    requirements: tuple[AbstractCapabilityRequirement, ...],
+    resolution: ResolutionPlan,
 ) -> dict[str, object]:
     return {
         "inventory": {
@@ -376,6 +383,10 @@ def _plan_payload(
             ],
             "digest": inventory.inventory_digest,
         },
+        "requirements": [
+            item.model_dump(mode="json")
+            for item in sorted(requirements, key=lambda value: value.capability)
+        ],
         "decisions": [
             item.model_dump(mode="json")
             for item in sorted(
