@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import sqlite3
@@ -116,7 +117,10 @@ class InstalledCapabilityDriftCheck:
         findings: list[DoctorFinding] = []
         for provider in lock.providers:
             manifest = available.get(provider.provider_id)
-            if manifest is None or manifest.content_digest == provider.content_digest:
+            if manifest is None or provider.content_digest in {
+                manifest.content_digest,
+                _installed_digest(context.root, manifest.source),
+            }:
                 continue
             findings.append(
                 DoctorFinding(
@@ -136,6 +140,15 @@ class InstalledCapabilityDriftCheck:
                 )
             )
         return tuple(findings)
+
+
+def _installed_digest(root: Path, source: str) -> str | None:
+    target = Path(source)
+    if not target.is_absolute():
+        target = root / target
+    if target.is_file():
+        return f"sha256:{hashlib.sha256(target.read_bytes()).hexdigest()}"
+    return None
 
 
 class CommandAvailabilityCheck:

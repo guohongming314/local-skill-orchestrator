@@ -1,0 +1,41 @@
+{
+  "candidate": {
+    "candidate_ref": "registry:agent-skill/browser-testing@1.2.3",
+    "digest": "sha256:a96c0b830df36ef376413f24502c3fa1bc852fe46c96921a357d32d869eec94f",
+    "kind": "agent-skill",
+    "name": "browser-testing",
+    "permissions_as_declared": [
+      "read-project"
+    ],
+    "provenance": {
+      "digest": "sha256:a96c0b830df36ef376413f24502c3fa1bc852fe46c96921a357d32d869eec94f",
+      "digest_verified": true,
+      "permission_level": "L1",
+      "publisher": "fixture-org",
+      "publisher_verification": "allowlist",
+      "publisher_verified": true,
+      "reason": "verified offline fixture registry",
+      "schema_version": "1",
+      "source": "registry:agent-skill/browser-testing@1.2.3",
+      "source_verified": true
+    },
+    "provides": [
+      "browser.validation"
+    ],
+    "publisher": "fixture-org",
+    "schema_version": "1",
+    "source_tier": 8,
+    "version": "1.2.3"
+  },
+  "package": {
+    "commands": [],
+    "files": [
+      {
+        "content": "---\nname: browser-testing\ndescription: browser.validation\nversion: 1.2.3\n---\n\nUse deterministic browser validation for user-visible flows.\n",
+        "path": ".agents/skills/browser-testing/SKILL.md",
+        "schema_version": "1"
+      }
+    ],
+    "schema_version": "1"
+  }
+}
