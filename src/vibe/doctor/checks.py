@@ -25,6 +25,12 @@ from vibe.materialize.templates import (
     ProjectWorkflows,
     RenderedCapabilities,
 )
+from vibe.migrations.registry import (
+    MissingMigrationError,
+    UnknownSchemaVersionError,
+    default_registry,
+    discover_artifacts,
+)
 from vibe.models.base import VersionedModel
 from vibe.models.blueprint import Blueprint
 from vibe.persistence.database import default_database_path
@@ -80,6 +86,43 @@ class ConfigurationSchemaCheck:
                         summary="Generated configuration does not match its versioned schema.",
                         evidence=(relative, type(error).__name__),
                         remediation="Review the file and regenerate it with `vibe init --dry-run`.",
+                    )
+                )
+        return tuple(findings)
+
+
+class SchemaVersionCheck:
+    def check(self, context: DoctorContext) -> tuple[DoctorFinding, ...]:
+        findings: list[DoctorFinding] = []
+        for artifact in discover_artifacts(context.root):
+            latest = default_registry.latest_version(artifact.kind)
+            if latest is None:
+                continue
+            current = artifact.payload.get("schema_version")
+            try:
+                result = default_registry.migrate(artifact.kind, artifact.payload)
+            except (UnknownSchemaVersionError, MissingMigrationError, ValueError) as error:
+                findings.append(
+                    DoctorFinding(
+                        code="configuration.schema-unsupported",
+                        severity=Severity.ERROR,
+                        summary="Artifact schema version cannot be migrated by this release.",
+                        evidence=(artifact.relative_path, str(error)),
+                        remediation=(
+                            "Upgrade vibe or restore an artifact with a supported "
+                            "schema version."
+                        ),
+                    )
+                )
+                continue
+            if result.provenance:
+                findings.append(
+                    DoctorFinding(
+                        code="configuration.schema-outdated",
+                        severity=Severity.WARNING,
+                        summary="Artifact uses an older supported schema version.",
+                        evidence=(artifact.relative_path, f"{current} -> {latest}"),
+                        remediation="Review `vibe migrate --dry-run`, then run `vibe migrate`.",
                     )
                 )
         return tuple(findings)
@@ -374,6 +417,7 @@ class OutcomeInsightsCheck:
 
 
 DEFAULT_CHECKS: tuple[DoctorCheck, ...] = (
+    SchemaVersionCheck(),
     ConfigurationSchemaCheck(),
     LockedProviderCheck(),
     InstalledCapabilityDriftCheck(),
