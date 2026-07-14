@@ -64,6 +64,8 @@ def _source_digest(root: Path, files: tuple[Path, ...]) -> str:
     for path in files:
         relative = path.relative_to(root).as_posix().encode("utf-8")
         content = _source_content(root, path)
+        if relative == b"AGENTS.md" and not content.strip():
+            continue
         digest.update(len(relative).to_bytes(8, "big"))
         digest.update(relative)
         digest.update(len(content).to_bytes(8, "big"))
