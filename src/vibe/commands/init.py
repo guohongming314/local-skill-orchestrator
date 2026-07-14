@@ -4,14 +4,19 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
+from functools import partial
 from pathlib import Path
 from typing import Annotated, Any, cast
 
+import anyio
 import typer
 
+from vibe.codex.exec_fallback import StructuredResultError as CodexStructuredResultError
 from vibe.commands.inspect import _complete_snapshot
 from vibe.commands.project_plan import build_project_plan, scan_project_inventory
-from vibe.conversation.interview import InterviewInput, build_interview
+from vibe.conversation.interview import InterviewInput, InterviewQuestion, build_interview
+from vibe.conversation.prompts import QUESTION_ORDER
+from vibe.conversation.runner import ConversationRunner
 from vibe.conversation.structured_result import StructuredProjectResult, ValueSource
 from vibe.inventory.service import InventoryResult
 from vibe.materialize.agents_md import merge_agents_md
@@ -31,6 +36,8 @@ from vibe.resolver.requirements import AbstractCapabilityRequirement
 from vibe.workflows.checkpoints import CheckpointConflict, SqliteCheckpointStore
 from vibe.workflows.init_graph import InitializationGraph, InvalidTransition
 from vibe.workflows.state import InitCheckpoint, InitStage, InitStatus
+
+APP_SERVER_COMMAND: tuple[str, ...] = ("codex", "app-server")
 
 
 def init_command(
@@ -92,42 +99,39 @@ def init_command(
             )
 
         answer_payload = _load_answers(answers)
+        conversation_result: StructuredProjectResult | None = None
         if checkpoint.stage is InitStage.INTERVIEW and answer_payload is None:
             interview = build_interview(
                 InterviewInput(
                     repository=snapshot,
-                    unknowns=("project.goal", "project.lifecycle", "risk.tolerance"),
+                    unknowns=_interview_unknowns(snapshot),
+                    inventory_summary=tuple(
+                        item.manifest.capability_id for item in inventory.capabilities
+                    ),
                 )
             )
-            paused = workflow.pause(run_id)
-            _emit(
-                {
-                    "run_id": run_id,
-                    "status": paused.status.value,
-                    "stage": paused.stage.value,
-                    "questions": [
-                        {
-                            "id": question.question_id,
-                            "text": question.text,
-                            "requires_explicit_confirmation": (
-                                question.requires_explicit_confirmation
-                            ),
-                        }
-                        for question in interview.questions
-                    ],
-                },
-                json_output,
+            conversation_result = anyio.run(
+                partial(
+                    ConversationRunner(app_server_command=APP_SERVER_COMMAND).run,
+                    repository=snapshot,
+                    interview=interview,
+                    ask_user=_ask_interview_question,
+                )
             )
-            return
 
         structured = _structured_from_checkpoint(checkpoint)
         if checkpoint.stage is InitStage.INTERVIEW:
-            assert answer_payload is not None
-            structured = _build_structured(snapshot, answer_payload)
+            if answer_payload is not None:
+                structured = _build_structured(snapshot, answer_payload)
+                confirmed = {"answers": answer_payload}
+            else:
+                assert conversation_result is not None
+                structured = conversation_result
+                confirmed = {}
             checkpoint = workflow.advance(
                 run_id,
                 InitStage.MODEL,
-                confirmed={"answers": answer_payload},
+                confirmed=confirmed,
             )
             checkpoint = workflow.advance(
                 run_id,
@@ -207,6 +211,7 @@ def init_command(
         _emit(review_payload, json_output)
     except (
         OSError,
+        CodexStructuredResultError,
         UnicodeError,
         ValueError,
         ApplyFailure,
@@ -216,6 +221,19 @@ def init_command(
     ) as exc:
         typer.echo(f"initialization failed: {exc}", err=True)
         raise typer.Exit(2) from exc
+
+
+def _interview_unknowns(snapshot: RepositorySnapshot) -> tuple[str, ...]:
+    confirmed = {
+        "project.type" if fact.key == "project_type" else fact.key
+        for fact in snapshot.facts
+        if fact.confidence is FactConfidence.CONFIRMED
+    }
+    return tuple(question_id for question_id in QUESTION_ORDER if question_id not in confirmed)
+
+
+def _ask_interview_question(question: InterviewQuestion) -> str:
+    return cast(str, typer.prompt(question.text))
 
 
 def _project_changeset(
