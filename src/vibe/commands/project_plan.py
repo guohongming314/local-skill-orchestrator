@@ -4,16 +4,23 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, replace
 from pathlib import Path
 
+from vibe.commands.capabilities import _default_cli_specs
 from vibe.inventory.adapters.agent_skill import AgentSkillAdapter, SkillRoot
 from vibe.inventory.adapters.base import (
     AdapterDiscovery,
     AdapterProvenance,
     AdapterScanResult,
     AdapterVerification,
+    CapabilityAdapter,
 )
+from vibe.inventory.adapters.cli_tool import CliToolAdapter
+from vibe.inventory.adapters.codex_hook import CodexHookAdapter
+from vibe.inventory.adapters.codex_mcp import CodexMcpAdapter
+from vibe.inventory.adapters.codex_plugin import CodexPluginAdapter
 from vibe.inventory.service import InventoryResult, InventoryService
 from vibe.models.blueprint import Blueprint
 from vibe.models.capability import (
@@ -156,13 +163,38 @@ def build_project_plan(
 
 
 def _project_inventory(root: Path) -> InventoryResult:
+    codex_home = _user_codex_home()
     skills = _SourceSkillAdapter(
         roots=(
             SkillRoot(root / ".agents" / "skills", CapabilityScope.PROJECT),
             SkillRoot(root / ".codex" / "skills", CapabilityScope.PROJECT),
+            SkillRoot(Path.home() / ".agents" / "skills", CapabilityScope.USER),
+            SkillRoot(codex_home / "skills", CapabilityScope.USER),
         )
     )
-    return InventoryService().scan((skills, _ProjectMarkerAdapter(root)))
+    plugins_root = codex_home / "plugins"
+    adapters: list[CapabilityAdapter] = [
+        skills,
+        _ProjectMarkerAdapter(root),
+        CodexPluginAdapter(roots=(plugins_root,)),
+        CodexHookAdapter(roots=(plugins_root,)),
+    ]
+    config = codex_home / "config.toml"
+    if config.is_file():
+        cli_specs = tuple(
+            replace(spec, scope=CapabilityScope.USER) for spec in _default_cli_specs()
+        )
+        adapters.extend(
+            (CliToolAdapter(specs=cli_specs), CodexMcpAdapter(config=config))
+        )
+    return InventoryService().scan(adapters)
+
+
+def _user_codex_home() -> Path:
+    """Resolve user Codex state from CODEX_HOME, falling back to ~/.codex."""
+    configured = os.environ.get("CODEX_HOME")
+    path = Path(configured).expanduser() if configured else Path.home() / ".codex"
+    return path.resolve()
 
 
 def _requirements(
