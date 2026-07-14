@@ -1,0 +1,8 @@
+{
+  "capabilities": [
+    "cli.node",
+    "cli.npm"
+  ],
+  "conflicts": [],
+  "description": "A small npm-managed Node project."
+}

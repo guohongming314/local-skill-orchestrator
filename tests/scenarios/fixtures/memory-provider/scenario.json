@@ -1,0 +1,7 @@
+{
+  "capabilities": [
+    "memory.local-leads"
+  ],
+  "conflicts": [],
+  "description": "A repository with a local memory lead provider capability."
+}

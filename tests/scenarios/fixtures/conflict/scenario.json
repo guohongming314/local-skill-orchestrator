@@ -1,0 +1,11 @@
+{
+  "capabilities": [
+    "skill.shared",
+    "skill.shared"
+  ],
+  "conflicts": [
+    "multiple-node-lockfiles",
+    "duplicate-capability-id"
+  ],
+  "description": "A project with competing Node lockfiles and duplicate capability IDs."
+}

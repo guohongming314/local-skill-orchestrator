@@ -1,0 +1,9 @@
+{
+  "capabilities": [
+    "cli.python"
+  ],
+  "conflicts": [
+    "user-rejected:automation.release"
+  ],
+  "description": "A project recording explicit rejection of an optional capability."
+}

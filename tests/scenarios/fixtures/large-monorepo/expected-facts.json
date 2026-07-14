@@ -1,0 +1,15 @@
+{
+  "capabilities": [
+    "cli.node",
+    "cli.python",
+    "analysis.code-relationships"
+  ],
+  "conflicts": [],
+  "repository.empty": false,
+  "scenario.name": "large-monorepo",
+  "stack": [
+    "node",
+    "python",
+    "monorepo"
+  ]
+}

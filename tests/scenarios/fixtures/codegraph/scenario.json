@@ -1,0 +1,7 @@
+{
+  "capabilities": [
+    "analysis.code-relationships"
+  ],
+  "conflicts": [],
+  "description": "A repository with an available CodeGraph index marker."
+}

@@ -1,0 +1,9 @@
+{
+  "capabilities": [
+    "memory.local-leads"
+  ],
+  "conflicts": [],
+  "memory.provider": "local-leads",
+  "repository.empty": false,
+  "scenario.name": "memory-provider"
+}

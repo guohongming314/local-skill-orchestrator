@@ -1,0 +1,13 @@
+{
+  "capabilities": [
+    "cli.python"
+  ],
+  "conflicts": [
+    "user-rejected:automation.release"
+  ],
+  "repository.empty": false,
+  "scenario.name": "user-rejection",
+  "user.rejections": [
+    "automation.release"
+  ]
+}
