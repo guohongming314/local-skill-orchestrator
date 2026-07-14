@@ -33,9 +33,19 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked --all-groups
 
+      # Local equivalent: uv run pytest tests/skills/test_skills.py tests/e2e
+      - name: Validate Skills and end-to-end scenarios
+        run: uv run pytest tests/skills/test_skills.py tests/e2e
+
       # Local equivalent: uv run pytest
       - name: Run tests
         run: uv run pytest
+
+      - name: Enforce task-routing evaluation thresholds
+        run: uv run python -m vibe.evaluation.task_routing --samples tests/scenarios/tasks --output tests/results/task-routing.json --thresholds tests/evaluation/task-routing/thresholds.json
+
+      - name: Check evaluation result freshness
+        run: git diff --exit-code -- tests/results/task-routing.json
 
       # Local equivalent: uv run ruff check .
       - name: Run Ruff
