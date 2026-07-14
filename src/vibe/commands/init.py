@@ -6,7 +6,7 @@ import json
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
-from typing import Annotated, Any, cast
+from typing import Annotated, Any, Literal, cast
 
 import anyio
 import typer
@@ -33,6 +33,8 @@ from vibe.materialize.writer import ApplyFailure, ConcurrentChangeError, apply_c
 from vibe.models.blueprint import Blueprint
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
 from vibe.models.resolution import ResolutionPlan
+from vibe.remote.models import RemoteCandidate
+from vibe.remote.scoring import CandidateEvidence
 from vibe.resolver.requirements import AbstractCapabilityRequirement
 from vibe.workflows.checkpoints import CheckpointConflict, SqliteCheckpointStore
 from vibe.workflows.init_graph import InitializationGraph, InvalidTransition
@@ -57,6 +59,12 @@ def init_command(
     json_output: Annotated[bool, typer.Option("--json")] = False,
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
     git_init: Annotated[bool, typer.Option("--git-init")] = False,
+    remote_discovery: Annotated[
+        bool, typer.Option("--remote-discovery")
+    ] = False,
+    remote_decision: Annotated[
+        list[str] | None, typer.Option("--remote-decision")
+    ] = None,
 ) -> None:
     """Inspect, review, and optionally materialize project AI configuration."""
     if model_only and dry_run:
@@ -168,7 +176,28 @@ def init_command(
             else {}
         )
         snapshot = _repository_with_project_type(snapshot, fact_answers)
-        project_plan = build_project_plan(root, structured.blueprint, snapshot, inventory=inventory)
+        requested_remote_decisions = _parse_remote_decisions(remote_decision or [])
+        stored_remote_decisions = _load_remote_decisions(root)
+        effective_remote_decisions = {
+            **stored_remote_decisions,
+            **requested_remote_decisions,
+        }
+        discovery_enabled = remote_discovery or bool(
+            structured.blueprint.preferences.get("remote_discovery", False)
+        )
+        remote_candidates, remote_evidence = (
+            _load_remote_snapshot(root) if discovery_enabled else ((), {})
+        )
+        suppressed_remote_candidates = frozenset(effective_remote_decisions)
+        project_plan = build_project_plan(
+            root,
+            structured.blueprint,
+            snapshot,
+            inventory=inventory,
+            remote_candidates=remote_candidates,
+            remote_evidence=remote_evidence,
+            rejected_remote_candidates=suppressed_remote_candidates,
+        )
         if checkpoint.stage is InitStage.REVIEW and answer_payload is not None:
             structured = _build_structured(snapshot, answer_payload)
             checkpoint = workflow.revise(
@@ -176,7 +205,13 @@ def init_command(
                 confirmed={"structured_result": structured.model_dump(mode="json")},
             )
             project_plan = build_project_plan(
-                root, structured.blueprint, snapshot, inventory=inventory
+                root,
+                structured.blueprint,
+                snapshot,
+                inventory=inventory,
+                remote_candidates=remote_candidates,
+                remote_evidence=remote_evidence,
+                rejected_remote_candidates=suppressed_remote_candidates,
             )
         review_payload = _review_payload(run_id, checkpoint, structured)
         review_payload.update(
@@ -207,6 +242,7 @@ def init_command(
                 inventory=project_plan.inventory,
                 resolution=project_plan.resolution,
                 git_init_decision=git_init if snapshot.is_empty else None,
+                remote_decisions=effective_remote_decisions,
             )
             preview = render_dry_run(changeset)
             if dry_run:
@@ -268,6 +304,7 @@ def _project_changeset(
     inventory: InventoryResult | None = None,
     resolution: ResolutionPlan | None = None,
     git_init_decision: bool | None = None,
+    remote_decisions: Mapping[str, str] | None = None,
 ) -> ChangeSet:
     if inventory is None or resolution is None:
         plan = build_project_plan(root, blueprint, _complete_snapshot(root))
@@ -280,6 +317,32 @@ def _project_changeset(
         rendered_files[".ai-project/decisions.md"] += (
             f"\n## Blank-project bootstrap\n\n- Git initialization: {decision}\n"
         )
+    if remote_decisions:
+        rendered_files[".ai-project/decisions.md"] += (
+            "\n## Remote candidate decisions\n\n"
+            + "".join(
+                f"- {candidate_ref}: {_decision_past_tense(decision)}\n"
+                for candidate_ref, decision in sorted(remote_decisions.items())
+            )
+        )
+        rejection_path = root / ".ai-project" / "rejections.json"
+        rejection_payload: dict[str, object] = {}
+        if rejection_path.is_file():
+            existing_payload = json.loads(
+                rejection_path.read_text(encoding="utf-8-sig")
+            )
+            if isinstance(existing_payload, dict):
+                rejection_payload.update(existing_payload)
+        rejection_payload.update(
+            remote_candidates=sorted(remote_decisions),
+            remote_decisions=dict(sorted(remote_decisions.items())),
+        )
+        rejection_payload.setdefault("capabilities", [])
+        rendered_files[".ai-project/rejections.json"] = json.dumps(
+            rejection_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        ) + "\n"
     proposals = [
         ChangeProposal(
             path=path,
@@ -336,6 +399,62 @@ def _open_run(
             raise InvalidTransition("repository digest changed; direct resume rejected")
         return checkpoint
     raise InvalidTransition(f"run {run_id!r} is {checkpoint.status.value}, not paused")
+
+
+RemoteDecision = Literal["accept", "reject", "defer"]
+
+
+def _parse_remote_decisions(values: list[str]) -> dict[str, RemoteDecision]:
+    decisions: dict[str, RemoteDecision] = {}
+    for value in values:
+        candidate_ref, separator, decision = value.rpartition("=")
+        if not separator or not candidate_ref or decision not in {"accept", "reject", "defer"}:
+            raise ValueError(
+                "--remote-decision must use CANDIDATE_REF=accept|reject|defer"
+            )
+        decisions[candidate_ref] = cast(RemoteDecision, decision)
+    return decisions
+
+
+def _load_remote_decisions(root: Path) -> dict[str, RemoteDecision]:
+    path = root / ".ai-project" / "rejections.json"
+    if not path.is_file():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    values = payload.get("remote_decisions", {})
+    if not isinstance(values, dict):
+        raise ValueError(".ai-project/rejections.json remote_decisions must be an object")
+    return _parse_remote_decisions([f"{key}={value}" for key, value in values.items()])
+
+
+def _load_remote_snapshot(
+    root: Path,
+) -> tuple[tuple[RemoteCandidate, ...], dict[str, CandidateEvidence]]:
+    path = root / ".ai-project" / "remote-candidates.json"
+    if not path.is_file():
+        return (), {}
+    payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    candidates_raw = payload.get("candidates", [])
+    evidence_raw = payload.get("evidence", {})
+    if not isinstance(candidates_raw, list) or not isinstance(evidence_raw, dict):
+        raise ValueError("remote candidate snapshot must contain candidates and evidence")
+    candidates = tuple(RemoteCandidate.model_validate(item) for item in candidates_raw)
+    evidence = {
+        candidate_ref: CandidateEvidence(
+            platforms=tuple(item.get("platforms", ())),
+            project_fact_matches=tuple(item.get("project_fact_matches", ())),
+            maintenance=int(item.get("maintenance", 0)),
+            adoption=int(item.get("adoption", 0)),
+            scan_flags=tuple(item.get("scan_flags", ())),
+        )
+        for candidate_ref, item in evidence_raw.items()
+        if isinstance(candidate_ref, str) and isinstance(item, dict)
+    }
+    return candidates, evidence
+
+
+def _decision_past_tense(decision: str) -> str:
+    return {"accept": "accepted", "reject": "rejected", "defer": "deferred"}[decision]
 
 
 def _load_answers(path: Path | None) -> dict[str, Any] | None:

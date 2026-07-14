@@ -1,5 +1,6 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 from vibe.inventory.adapters.base import (
@@ -19,6 +20,17 @@ from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySna
 from vibe.models.resolution import ResolutionStatus
 from vibe.models.risk import RiskLevel
 from vibe.practices.models import RequirementStrength
+from vibe.remote.models import (
+    CapabilityKind as RemoteCapabilityKind,
+)
+from vibe.remote.models import (
+    PermissionLevel,
+    Provenance,
+    PublisherVerification,
+    RemoteCandidate,
+    SourceTier,
+)
+from vibe.remote.scoring import CandidateEvidence
 from vibe.resolver.local import resolve_local_capabilities
 from vibe.resolver.policy import ResolverPolicy
 from vibe.resolver.requirements import AbstractCapabilityRequirement
@@ -262,3 +274,94 @@ def test_browser_validation_gap_yields_ranked_recommendations() -> None:
     )
     assert gap.recommendation.candidates[1].strength is RequirementStrength.OPTIONAL
     assert "only for interactive browser control" in gap.recommendation.candidates[1].why
+
+
+def remote_candidate(
+    name: str,
+    *,
+    kind: RemoteCapabilityKind,
+    permission_level: PermissionLevel,
+    permissions: tuple[str, ...],
+) -> RemoteCandidate:
+    digest = "sha256:" + hashlib.sha256(name.encode()).hexdigest()
+    return RemoteCandidate(
+        candidate_ref=f"registry:{name}@1.0.0",
+        name=name,
+        kind=kind,
+        provides=("browser.validation",),
+        version="1.0.0",
+        digest=digest,
+        publisher=f"{name} publisher",
+        permissions_as_declared=permissions,
+        source_tier=SourceTier.OFFICIAL,
+        provenance=Provenance(
+            source="fixture-registry",
+            publisher=f"{name} publisher",
+            digest=digest,
+            source_verified=True,
+            publisher_verified=True,
+            publisher_verification=PublisherVerification.ALLOWLIST,
+            digest_verified=True,
+            permission_level=permission_level,
+            reason="fixture provenance",
+        ),
+    )
+
+
+def test_browser_validation_gap_with_discovery_lists_scored_remote_cli_before_mcp() -> None:
+    playwright = remote_candidate(
+        "playwright",
+        kind=RemoteCapabilityKind.CLI_TOOL,
+        permission_level=PermissionLevel.L2,
+        permissions=("read-project", "execute-command"),
+    )
+    browser_mcp = remote_candidate(
+        "chrome-devtools",
+        kind=RemoteCapabilityKind.MCP_SERVER,
+        permission_level=PermissionLevel.L3,
+        permissions=("read-project", "execute-command", "network-write"),
+    )
+
+    plan = resolve_local_capabilities(
+        (requirement("browser.validation"),),
+        inventory(),
+        blueprint().model_copy(update={"risk_level": RiskLevel.HIGH}),
+        repository(monorepo=False, size="small"),
+        remote_candidates=(browser_mcp, playwright),
+        remote_evidence={
+            playwright.candidate_ref: CandidateEvidence(
+                platforms=("codex",), maintenance=80, scan_flags=()
+            ),
+            browser_mcp.candidate_ref: CandidateEvidence(
+                platforms=("codex",), maintenance=80, scan_flags=("network-write",)
+            ),
+        },
+    )
+
+    gap = plan.resolutions[0]
+    assert gap.recommendation is not None
+    candidates = gap.recommendation.candidates
+    assert [candidate.provider for candidate in candidates] == [
+        "playwright",
+        "chrome-devtools",
+    ]
+    assert [candidate.permission_level for candidate in candidates] == ["L2", "L3"]
+    assert candidates[0].approval_required == "show details and approve"
+    assert candidates[1].approval_required == "approve individually"
+    assert candidates[0].fit_score is not None
+    assert candidates[0].trust_score is not None
+    assert candidates[0].risk_score is not None
+    assert candidates[1].risk_flags == ("network-write",)
+
+
+def test_remote_discovery_disabled_preserves_existing_gap_payload() -> None:
+    args = (
+        (requirement("browser.validation"),),
+        inventory(),
+        blueprint(),
+        repository(monorepo=False, size="small"),
+    )
+
+    assert resolve_local_capabilities(*args).model_dump(mode="json") == (
+        resolve_local_capabilities(*args, remote_candidates=()).model_dump(mode="json")
+    )

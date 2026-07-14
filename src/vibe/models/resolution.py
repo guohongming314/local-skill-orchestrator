@@ -20,6 +20,24 @@ class RecommendationCandidate(VersionedModel):
     permissions: tuple[Permission, ...]
     why: str = Field(min_length=1)
     strength: RequirementStrength
+    candidate_ref: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    permission_level: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    approval_required: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    fit_score: int | None = Field(default=None, exclude_if=lambda value: value is None)
+    trust_score: int | None = Field(default=None, exclude_if=lambda value: value is None)
+    risk_score: int | None = Field(default=None, exclude_if=lambda value: value is None)
+    score_explanations: tuple[str, ...] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    risk_flags: tuple[str, ...] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class CapabilityRecommendation(VersionedModel):
