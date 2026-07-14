@@ -18,6 +18,13 @@ def test_ci_workflow_matches_the_complete_local_quality_gate() -> None:
     commands = (
         "uv sync --locked --all-groups",
         "uv run pytest",
+        "uv run pytest tests/skills/test_skills.py tests/e2e",
+        (
+            "uv run python -m vibe.evaluation.task_routing "
+            "--samples tests/scenarios/tasks "
+            "--output tests/results/task-routing.json "
+            "--thresholds tests/evaluation/task-routing/thresholds.json"
+        ),
         "uv run ruff check .",
         "uv run mypy src tests",
         "uv build",
