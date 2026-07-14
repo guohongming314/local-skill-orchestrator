@@ -41,6 +41,9 @@ jobs:
       - name: Run tests
         run: uv run pytest
 
+      - name: Enforce latest validation round release gate
+        run: uv run python scripts/validation/check_release_gate.py --rounds docs/evaluation/validation-rounds
+
       - name: Enforce task-routing evaluation thresholds
         run: uv run python -m vibe.evaluation.task_routing --samples tests/scenarios/tasks --output tests/results/task-routing.json --thresholds tests/evaluation/task-routing/thresholds.json
 

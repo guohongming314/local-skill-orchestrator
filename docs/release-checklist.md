@@ -7,6 +7,7 @@ Use this checklist for every release candidate. Do not publish from this reposit
 - [ ] Install locked dependencies: `uv sync --locked --all-groups`.
 - [ ] Run Bootstrap Skill and project Skill validation: `uv run pytest tests/skills/test_skills.py tests/e2e`.
 - [ ] Run the full suite: `uv run pytest`.
+- [ ] Verify the latest E17 validation round is all-PASS with zero open remediation Epics: `uv run python scripts/validation/check_release_gate.py --rounds docs/evaluation/validation-rounds`.
 - [ ] Enforce reviewed task-routing evaluation thresholds with the versioned offline runner.
 - [ ] Confirm `tests/results/task-routing.json` is unchanged after evaluation.
 - [ ] Run `uv run ruff check .`.
