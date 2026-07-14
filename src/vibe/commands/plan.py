@@ -17,6 +17,7 @@ from vibe.compiler.context import (
 )
 from vibe.compiler.intent import TaskIntent
 from vibe.inspect.repository import inspect_repository
+from vibe.models.capability import Permission
 from vibe.models.capsule import ContextCapsule
 from vibe.models.risk import (
     DataSensitivity,
@@ -33,11 +34,15 @@ _ROUTE_CANDIDATES = (
         capability_id="analysis.code-relationships",
         provides=("code-relationship-analysis",),
         phases=("inspect",),
+        permissions=frozenset({Permission.READ_PROJECT}),
     ),
     CapabilityCandidate(
         capability_id="automation.release",
         provides=("release-automation",),
         phases=("implement",),
+        permissions=frozenset(
+            {Permission.EXECUTE_COMMAND, Permission.NETWORK}
+        ),
     ),
 )
 
@@ -145,13 +150,7 @@ def _compile_review(
         task_plan,
         phase=phase,
         candidates=_ROUTE_CANDIDATES,
-        sources=(
-            ContextSource(
-                source_id="repository",
-                digest=snapshot.source_digest,
-                kind=SourceKind.REPOSITORY,
-            ),
-        ),
+        sources=_context_sources(root, snapshot.source_digest),
         head=head,
         user_scope_digest=user_scope_digest,
     )
@@ -159,9 +158,41 @@ def _compile_review(
 
 
 def _operations_for(scenario: ScenarioId) -> frozenset[TaskOperation]:
+    specialized = {
+        ScenarioId.SECURITY: TaskOperation.MODIFY_SECURITY,
+        ScenarioId.MIGRATION: TaskOperation.MIGRATE_DATA,
+        ScenarioId.RELEASE: TaskOperation.DEPLOY,
+    }
     if scenario in {ScenarioId.REVIEW, ScenarioId.EXPLORATION}:
         return frozenset({TaskOperation.READ_PROJECT})
-    return frozenset({TaskOperation.WRITE_PROJECT})
+    return frozenset({specialized.get(scenario, TaskOperation.WRITE_PROJECT)})
+
+
+def _context_sources(root: Path, repository_digest: str) -> tuple[ContextSource, ...]:
+    sources = [
+        ContextSource(
+            source_id="repository",
+            digest=repository_digest,
+            kind=SourceKind.REPOSITORY,
+        )
+    ]
+    marker = root / ".memory-provider.json"
+    if marker.is_file():
+        payload = json.loads(marker.read_text(encoding="utf-8-sig"))
+        provider = payload.get("provider")
+        mode = payload.get("mode")
+        if not isinstance(provider, str) or not provider.strip():
+            raise ValueError("memory provider marker requires a non-empty provider")
+        if mode != "lead-only":
+            raise ValueError("memory provider must use lead-only mode")
+        sources.append(
+            ContextSource(
+                source_id=f"memory:{provider.strip()}",
+                digest=sha256(marker.read_bytes()).hexdigest(),
+                kind=SourceKind.MEMORY,
+            )
+        )
+    return tuple(sorted(sources, key=lambda item: item.source_id))
 
 
 def _emit_human(task_plan: TaskPlan, capsule: ContextCapsule) -> None:
@@ -177,6 +208,12 @@ def _emit_human(task_plan: TaskPlan, capsule: ContextCapsule) -> None:
             typer.echo(f"  - {capability_id}: required by the current phase and task scope")
     else:
         typer.echo("  - none: no extra capability is required for the current phase")
+    typer.echo("Requested permissions:")
+    if capsule.requested_permissions:
+        for permission in capsule.requested_permissions:
+            typer.echo(f"  - {permission.value}")
+    else:
+        typer.echo("  - none")
     typer.echo("Excluded capabilities:")
     if capsule.rejected_capability_ids:
         for capability_id in capsule.rejected_capability_ids:

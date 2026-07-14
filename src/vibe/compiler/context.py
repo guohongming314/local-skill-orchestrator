@@ -7,6 +7,7 @@ from enum import StrEnum
 from hashlib import sha256
 
 from vibe.compiler.intent import TaskIntent
+from vibe.models.capability import Permission
 from vibe.models.capsule import ContextCapsule, SourceReference
 from vibe.models.task import TaskPlan
 
@@ -22,6 +23,7 @@ class CapabilityCandidate:
     capability_id: str
     provides: tuple[str, ...]
     phases: tuple[str, ...]
+    permissions: frozenset[Permission] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,12 @@ def compile_context_capsule(
 
     candidate_ids = {candidate.capability_id for candidate in candidates}
     rejected = candidate_ids - selected
+    permissions = frozenset(
+        permission
+        for candidate in candidates
+        if candidate.capability_id in selected
+        for permission in candidate.permissions
+    )
     constraints = tuple(
         f"Treat {source.source_id} as a lead; verify it against repository sources."
         for source in sorted(sources, key=lambda item: item.source_id)
@@ -81,6 +89,7 @@ def compile_context_capsule(
         acceptance_criteria=intent.acceptance_criteria,
         current_phase=phase,
         selected_capability_ids=tuple(sorted(selected)),
+        requested_permissions=tuple(sorted(permissions, key=lambda item: item.value)),
         rejected_capability_ids=tuple(sorted(rejected)),
         sources=tuple(
             SourceReference(source_id=source.source_id, digest=source.digest)

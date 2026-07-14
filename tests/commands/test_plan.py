@@ -69,6 +69,7 @@ def test_plan_human_output_explains_review_decisions(tmp_path: Path) -> None:
         "Risk:",
         "Workflow:",
         "Selected capabilities:",
+        "Requested permissions:",
         "Excluded capabilities:",
         "Token budget:",
         "Invalidation:",
