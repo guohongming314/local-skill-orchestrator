@@ -15,12 +15,10 @@ EXPECTED_TABLES = {
     "codex_threads",
     "inventory_cache",
     "runs",
+    "task_outcomes",
     "user_trust_decisions",
 }
 FORBIDDEN_COLUMN_TERMS = {"password", "secret", "token", "credential", "api_key"}
-
-
-
 
 
 def test_sqlite_engine_creates_parent_and_enables_safety_pragmas(tmp_path: Path) -> None:

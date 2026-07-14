@@ -17,6 +17,7 @@ from vibe.compiler.context import (
     compile_context_capsule,
 )
 from vibe.compiler.intent import TaskIntent
+from vibe.models.outcome import TaskOutcome
 from vibe.models.task import TaskPhase, TaskPlan
 
 
@@ -38,6 +39,7 @@ class PhaseExecutionResult(BaseModel):
     completion_evidence: tuple[str, ...] = ()
     completion_conditions_met: tuple[str, ...] = ()
     confirmed_facts: tuple[str, ...] = ()
+    capabilities_used: tuple[str, ...] = ()
 
 
 class TaskRunCheckpoint(BaseModel):
@@ -81,6 +83,7 @@ class TaskRunner:
         head_provider: Callable[[], str],
         blueprint_digest_provider: Callable[[], str],
         approval_provider: Callable[[TaskPhase], bool],
+        outcome_recorder: Callable[[str, TaskOutcome], object] | None = None,
     ) -> None:
         self.root = root.resolve()
         self.app_server = app_server
@@ -88,6 +91,7 @@ class TaskRunner:
         self.head_provider = head_provider
         self.blueprint_digest_provider = blueprint_digest_provider
         self.approval_provider = approval_provider
+        self.outcome_recorder = outcome_recorder
 
     def run(
         self,
@@ -220,7 +224,31 @@ class TaskRunner:
 
         checkpoint = checkpoint.model_copy(update={"status": TaskRunStatus.COMPLETED})
         self._save(checkpoint)
+        self._record_outcome(intent, plan, checkpoint)
         return checkpoint
+
+    def _record_outcome(
+        self, intent: TaskIntent, plan: TaskPlan, checkpoint: TaskRunCheckpoint
+    ) -> None:
+        if self.outcome_recorder is None:
+            return
+        recommended = {
+            capability_id for phase in plan.phases for capability_id in phase.capability_ids
+        }
+        used = {
+            capability_id
+            for result in checkpoint.phase_results
+            for capability_id in result.capabilities_used
+        }
+        outcome = TaskOutcome(
+            task_type=intent.scenario.value,
+            workflow=plan.workflow_mode.value,
+            capabilities_used=tuple(sorted(used)),
+            verification_passed=True,
+            user_rework=False,
+            unused_recommendations=tuple(sorted(recommended - used)),
+        )
+        self.outcome_recorder(intent.task_id, outcome)
 
     @staticmethod
     def _phase_prompt(

@@ -88,3 +88,55 @@ def test_run_uses_natural_language_classification_and_deterministic_risk_floor(
     assert payload["status"] == "completed"
     assert payload["risk_level"] == "medium"
     assert payload["workflow_mode"] == "standard"
+
+
+def test_completed_run_records_outcome_in_local_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from alembic import command
+    from sqlalchemy.orm import Session, sessionmaker
+
+    from vibe.persistence.database import create_sqlite_engine, migration_config
+    from vibe.persistence.repositories import TaskOutcomeRepository
+
+    (tmp_path / "README.md").write_text("fixture\n", encoding="utf-8")
+    database = tmp_path / "state.sqlite3"
+    monkeypatch.setattr(
+        "vibe.commands.explain_task._classify_with_codex",
+        lambda _task, _root: CodexScenarioClassification(
+            scenario=ScenarioId.FEATURE,
+            scope=ScopeLevel.LOCAL,
+            data_sensitivity=DataSensitivity.PUBLIC,
+            reversibility=Reversibility.REVERSIBLE,
+            operations=frozenset({TaskOperation.WRITE_PROJECT}),
+            risk_level=RiskLevel.MEDIUM,
+            workflow_mode=WorkflowMode.STANDARD,
+        ),
+    )
+    monkeypatch.setattr(
+        run_command_module, "_build_app_server", lambda _command: CompletingAppServer()
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "Add a small feature",
+            "--path",
+            str(tmp_path),
+            "--checkpoint",
+            str(tmp_path / "run.json"),
+            "--database",
+            str(database),
+            "--yes",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    command.upgrade(migration_config(database), "head")
+    factory = sessionmaker(create_sqlite_engine(database), class_=Session, expire_on_commit=False)
+    task_id = "run-" + __import__("hashlib").sha256(b"Add a small feature").hexdigest()[:12]
+    outcome = TaskOutcomeRepository(factory).get(task_id).outcome
+    assert outcome.task_type == "feature"
+    assert outcome.workflow == "standard"
+    assert outcome.verification_passed is True

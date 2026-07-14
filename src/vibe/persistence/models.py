@@ -110,3 +110,22 @@ class AuditEvent(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.current_timestamp(), nullable=False
     )
+
+
+class TaskOutcomeRow(Base):
+    __tablename__ = "task_outcomes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    task_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    task_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    workflow: Mapped[str] = mapped_column(String(32), nullable=False)
+    capabilities_used_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    verification_passed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    user_rework: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    unused_recommendations_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    audit_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("audit_events.id", ondelete="SET NULL"), unique=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.current_timestamp(), nullable=False
+    )

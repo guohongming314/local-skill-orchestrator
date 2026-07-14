@@ -10,12 +10,14 @@ from typing import cast
 from sqlalchemy import select
 from sqlalchemy.orm import InstrumentedAttribute, Session, sessionmaker
 
+from vibe.models.outcome import TaskOutcome
 from vibe.persistence.models import (
     AuditEvent,
     CapabilityVerification,
     CodexThread,
     InventoryCache,
     Run,
+    TaskOutcomeRow,
     UserTrustDecision,
 )
 
@@ -498,12 +500,21 @@ class AuditEventRepository:
         with self._session_factory() as session:
             model = session.get(AuditEvent, event_id)
             return None if model is None else self._record(model)
+
     def list_for_run(self, run_id: str) -> tuple[AuditEventRecord, ...]:
         """Return a run's audit trail in stable creation order."""
         with self._session_factory() as session:
             models = session.scalars(
+                select(AuditEvent).where(AuditEvent.run_id == run_id).order_by(AuditEvent.id)
+            )
+            return tuple(self._record(model) for model in models)
+
+    def list_for_task(self, task_id: str) -> tuple[AuditEventRecord, ...]:
+        with self._session_factory() as session:
+            models = session.scalars(
                 select(AuditEvent)
-                .where(AuditEvent.run_id == run_id)
+                .join(TaskOutcomeRow, TaskOutcomeRow.audit_event_id == AuditEvent.id)
+                .where(TaskOutcomeRow.task_id == task_id)
                 .order_by(AuditEvent.id)
             )
             return tuple(self._record(model) for model in models)
@@ -519,4 +530,80 @@ class AuditEventRepository:
             details=cast(dict[str, JsonValue], envelope["details"]),
             redacted=model.redacted,
             created_at=model.created_at,
+        )
+
+
+@dataclass(frozen=True)
+class TaskOutcomeRecord:
+    task_id: str
+    outcome: TaskOutcome
+    created_at: datetime
+
+
+class TaskOutcomeRepository:
+    """Persist one idempotent low-sensitivity outcome and its audit event per task."""
+
+    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+        self._session_factory = session_factory
+
+    def record(self, task_id: str, outcome: TaskOutcome) -> TaskOutcomeRecord:
+        payload = outcome.model_dump(mode="json")
+        with self._session_factory.begin() as session:
+            existing = session.scalar(
+                select(TaskOutcomeRow).where(TaskOutcomeRow.task_id == task_id)
+            )
+            if existing is not None:
+                return self._record(existing)
+            row = TaskOutcomeRow(
+                task_id=task_id,
+                task_type=outcome.task_type,
+                workflow=outcome.workflow,
+                capabilities_used_json=_encode({"items": list(outcome.capabilities_used)}),
+                verification_passed=outcome.verification_passed,
+                user_rework=outcome.user_rework,
+                unused_recommendations_json=_encode(
+                    {"items": list(outcome.unused_recommendations)}
+                ),
+            )
+            session.add(row)
+            session.flush()
+            event = AuditEvent(
+                event_type="task.outcome.recorded",
+                event_json=_encode(
+                    {
+                        "summary": "Recorded a low-sensitivity task outcome.",
+                        "details": cast(dict[str, JsonValue], payload),
+                    }
+                ),
+                redacted=True,
+            )
+            session.add(event)
+            session.flush()
+            row.audit_event_id = event.id
+            session.flush()
+            session.refresh(row)
+            return self._record(row)
+
+    def get(self, task_id: str) -> TaskOutcomeRecord:
+        with self._session_factory() as session:
+            row = session.scalar(select(TaskOutcomeRow).where(TaskOutcomeRow.task_id == task_id))
+            if row is None:
+                raise LookupError(f"task outcome {task_id!r} does not exist")
+            return self._record(row)
+
+    @staticmethod
+    def _record(row: TaskOutcomeRow) -> TaskOutcomeRecord:
+        used = cast(list[str], _decode(row.capabilities_used_json)["items"])
+        unused = cast(list[str], _decode(row.unused_recommendations_json)["items"])
+        return TaskOutcomeRecord(
+            task_id=row.task_id,
+            outcome=TaskOutcome(
+                task_type=row.task_type,
+                workflow=row.workflow,
+                capabilities_used=tuple(used),
+                verification_passed=row.verification_passed,
+                user_rework=row.user_rework,
+                unused_recommendations=tuple(unused),
+            ),
+            created_at=row.created_at,
         )
