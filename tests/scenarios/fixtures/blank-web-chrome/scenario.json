@@ -1,0 +1,7 @@
+{
+  "capabilities": [
+    "mcp.chrome-devtools"
+  ],
+  "conflicts": [],
+  "description": "A blank web project with a user-configured Chrome DevTools MCP provider."
+}

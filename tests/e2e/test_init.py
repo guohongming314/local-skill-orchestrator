@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 from pathlib import Path
 from typing import Any, cast
 
@@ -230,3 +232,106 @@ def test_conflicts_and_user_rejection_are_explicit_and_safe(tmp_path: Path) -> N
         "status": "rejected",
     }
     assert all(item["status"] == "gap" for item in decisions[1:])
+
+def _web_answers(tmp_path: Path, *, name: str) -> Path:
+    path = tmp_path / f"{name}-answers.json"
+    path.write_text(
+        json.dumps(
+            {
+                "goal": "Build a blank web application",
+                "lifecycle_stage": "active-development",
+                "risk_level": "medium",
+                "project_type": "web-application",
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _install_fixture_codex_config(fixture_source: Path, monkeypatch: Any) -> None:
+    user_codex = fixture_source / "user-codex"
+    codex_home = Path(os.environ["CODEX_HOME"])
+    shutil.copytree(user_codex, codex_home, dirs_exist_ok=True)
+    executable = codex_home / "bin/chrome-devtools-mcp"
+    executable.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{executable.parent}{os.pathsep}{os.environ.get('PATH', '')}")
+
+
+def test_blank_web_init_selects_configured_chrome_devtools_mcp(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    built = build_scenario("blank-web-chrome", tmp_path / "web-chrome")
+    _install_fixture_codex_config(built.fixture.source, monkeypatch)
+
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "--path",
+            str(built.root),
+            "--run-id",
+            "blank-web-chrome",
+            "--checkpoints",
+            str(tmp_path / "blank-web-chrome.sqlite3"),
+            "--answers",
+            str(_web_answers(tmp_path, name="blank-web-chrome")),
+            "--confirm",
+            "--dry-run",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    browser = next(
+        item
+        for item in payload["resolution"]["resolutions"]
+        if item["requirement"] == "browser.validation"
+    )
+    assert browser["status"] == "selected"
+    assert browser["capability_id"] == "mcp.chrome-devtools"
+    assert "mcp.chrome-devtools" in payload["inventory"]["capability_ids"]
+
+
+def test_blank_web_init_reports_ranked_browser_gap_without_provider(
+    tmp_path: Path,
+) -> None:
+    built = build_scenario("blank-web-no-browser", tmp_path / "web-no-browser")
+
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "--path",
+            str(built.root),
+            "--run-id",
+            "blank-web-no-browser",
+            "--checkpoints",
+            str(tmp_path / "blank-web-no-browser.sqlite3"),
+            "--answers",
+            str(_web_answers(tmp_path, name="blank-web-no-browser")),
+            "--confirm",
+            "--dry-run",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    browser = next(
+        item
+        for item in payload["resolution"]["resolutions"]
+        if item["requirement"] == "browser.validation"
+    )
+    assert browser["status"] == "gap"
+    assert browser["capability_id"] is None
+    assert [candidate["provider"] for candidate in browser["recommendation"]["candidates"]] == [
+        "playwright",
+        "chrome-devtools",
+    ]
+    assert all(
+        candidate["permissions"] and candidate["why"]
+        for candidate in browser["recommendation"]["candidates"]
+    )

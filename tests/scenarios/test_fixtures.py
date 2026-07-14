@@ -7,6 +7,8 @@ from tests.scenarios.builders import SCENARIO_NAMES, build_scenario, load_scenar
 
 EXPECTED_SCENARIOS = {
     "blank",
+    "blank-web-chrome",
+    "blank-web-no-browser",
     "codegraph",
     "conflict",
     "large-monorepo",
