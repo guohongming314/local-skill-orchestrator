@@ -7,6 +7,7 @@ Use this checklist for every release candidate. Do not publish from this reposit
 - [ ] Install locked dependencies: `uv sync --locked --all-groups`.
 - [ ] Run Bootstrap Skill and project Skill validation: `uv run pytest tests/skills/test_skills.py tests/e2e`.
 - [ ] Verify conversational init acceptance for blank and existing repositories, including revision, locked decisions, recommended defaults, structured-output fallback, cancellation, resume, review, dry-run, and apply: `uv run pytest tests/e2e/test_conversational_init.py`.
+- [ ] Verify the task execution loop covers plan → phase-gated run → persisted outcome → Doctor insight, plus resumable invalidation and declined-gate safety: `uv run pytest tests/e2e/test_task_execution_loop.py`.
 - [ ] Verify blank web-project browser capability routing: configured Chrome DevTools MCP is selected; without a browser provider, Playwright and Chrome DevTools recommendations are ranked and explained (`uv run pytest tests/e2e/test_init.py -k blank_web`).
 - [ ] Run the full suite: `uv run pytest`.
 - [ ] Verify the latest E17 validation round is all-PASS with zero open remediation Epics: `uv run python scripts/validation/check_release_gate.py --rounds docs/evaluation/validation-rounds`.
