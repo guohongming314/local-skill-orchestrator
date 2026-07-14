@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "providers": {
+    "chrome-devtools": [
+      "browser.automation",
+      "browser.validation"
+    ],
+    "github": [
+      "github.collaboration"
+    ],
+    "playwright": [
+      "browser.validation"
+    ]
+  }
+}
