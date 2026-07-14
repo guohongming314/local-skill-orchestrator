@@ -129,7 +129,8 @@ def test_cancel_then_resume_completes_from_checkpoint(tmp_path: Path) -> None:
         app,
         [
             "init", "--path", str(root), "--run-id", "resume",
-            "--checkpoints", str(checkpoint), "--json",
+            "--checkpoints", str(checkpoint), "--answers", str(_answers(tmp_path)),
+            "--json",
         ],
     )
     assert paused.exit_code == 0, paused.output
@@ -139,8 +140,7 @@ def test_cancel_then_resume_completes_from_checkpoint(tmp_path: Path) -> None:
         app,
         [
             "init", "--path", str(root), "--run-id", "resume",
-            "--checkpoints", str(checkpoint), "--answers", str(_answers(tmp_path)),
-            "--confirm", "--resume", "--json",
+            "--checkpoints", str(checkpoint), "--confirm", "--resume", "--json",
         ],
     )
     assert resumed.exit_code == 0, resumed.output

@@ -107,26 +107,19 @@ def test_cancellation_writes_no_blueprint(tmp_path: Path) -> None:
     assert not (tmp_path / "cancel-run-blueprint.json").exists()
 
 
-def test_resume_continues_from_saved_interview_checkpoint(tmp_path: Path) -> None:
+def test_resume_continues_from_saved_review_checkpoint(tmp_path: Path) -> None:
     root = tmp_path / "resumed"
     root.mkdir()
+    answers = write_answers(tmp_path, goal="Resume safely", lifecycle="exploration")
 
-    paused = invoke(root, run_id="resume-run")
+    paused = invoke(root, run_id="resume-run", answers=answers)
     assert paused.exit_code == 0, paused.output
     paused_payload = json.loads(paused.stdout)
     assert paused_payload["status"] == "paused"
-    assert paused_payload["stage"] == "interview"
-    assert paused_payload["questions"]
+    assert paused_payload["stage"] == "review"
     assert not (tmp_path / "resume-run-blueprint.json").exists()
 
-    answers = write_answers(tmp_path, goal="Resume safely", lifecycle="exploration")
-    resumed = invoke(
-        root,
-        run_id="resume-run",
-        answers=answers,
-        confirm=True,
-        resume=True,
-    )
+    resumed = invoke(root, run_id="resume-run", confirm=True, resume=True)
     assert resumed.exit_code == 0, resumed.output
     payload = json.loads(resumed.stdout)
     assert payload["status"] == "completed"
@@ -203,3 +196,87 @@ def test_windows_utf8_bom_answers_are_accepted(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout)["status"] == "completed"
+
+
+def test_unknown_compliance_is_asked_but_confirmed_compliance_is_not(tmp_path: Path) -> None:
+    from vibe.commands.init import _interview_unknowns
+    from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
+
+    unknown = RepositorySnapshot(
+        root=tmp_path,
+        source_digest="0123456789abcdef",
+        is_empty=False,
+    )
+    confirmed = unknown.model_copy(
+        update={
+            "facts": (
+                RepositoryFact(
+                    key="constraints.compliance",
+                    value="SOC 2",
+                    confidence=FactConfidence.CONFIRMED,
+                    sources=("SECURITY.md",),
+                ),
+            )
+        }
+    )
+
+    assert "constraints.compliance" in _interview_unknowns(unknown)
+    assert "constraints.compliance" not in _interview_unknowns(confirmed)
+
+
+def test_init_without_answers_reaches_review_through_fake_conversation(
+    tmp_path: Path, monkeypatch: object
+) -> None:
+    import sys
+
+    from vibe.commands import init as init_module
+
+    root = tmp_path / "conversation"
+    root.mkdir()
+    state = tmp_path / "conversation-server.json"
+    fake_server = Path(__file__).parents[1] / "fakes" / "fake_interview_app_server.py"
+    monkeypatch.setattr(  # type: ignore[attr-defined]
+        init_module,
+        "APP_SERVER_COMMAND",
+        (sys.executable, str(fake_server), "valid", str(state)),
+    )
+    answers = "\n".join(
+        (
+            "Ship a safe service",
+            "web application",
+            "active-development",
+            "medium",
+            "No deadline",
+            "SOC 2",
+            "yes",
+            "yes",
+            "no",
+            "standard",
+            "test-first",
+        )
+    ) + "\n"
+
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "--model-only",
+            "--path",
+            str(root),
+            "--run-id",
+            "conversation-run",
+            "--checkpoints",
+            str(tmp_path / "conversation.sqlite3"),
+            "--output",
+            str(tmp_path / "conversation-blueprint.json"),
+            "--json",
+        ],
+        input=answers,
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout.splitlines()[-1])
+    assert payload["status"] == "paused"
+    assert payload["stage"] == "review"
+    assert payload["field_sources"]["goal"] == "confirmed"
+    assert "Are there compliance or data-handling constraints?" in result.stdout
