@@ -1,8 +1,9 @@
-﻿"""Reusable configuration and local-capability health checks."""
+"""Reusable configuration and local-capability health checks."""
 
 from __future__ import annotations
 
 import shutil
+import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -160,11 +161,62 @@ class PermissionDeltaCheck:
         return tuple(findings)
 
 
+class ConversationRecoveryCheck:
+    """Report interview checkpoints that cannot be cleanly resumed or retired."""
+
+    def check(self, context: DoctorContext) -> tuple[DoctorFinding, ...]:
+        path = context.root / ".vibe-init-checkpoints.sqlite3"
+        if not path.is_file():
+            return ()
+        try:
+            with sqlite3.connect(path) as connection:
+                columns = {
+                    row[1] for row in connection.execute("PRAGMA table_info(vibe_init_checkpoints)")
+                }
+                if "codex_thread_id" not in columns:
+                    return ()
+                rows = connection.execute(
+                    """SELECT run_id, stage, status, codex_thread_id
+                       FROM vibe_init_checkpoints"""
+                ).fetchall()
+        except sqlite3.Error:
+            return ()
+        findings: list[DoctorFinding] = []
+        for run_id, stage, status, thread_id in rows:
+            if stage == "interview" and status == "running" and thread_id is None:
+                findings.append(
+                    DoctorFinding(
+                        code="conversation.checkpoint-stale",
+                        severity=Severity.WARNING,
+                        summary="An interrupted interview checkpoint has no attached Codex thread.",
+                        evidence=(str(run_id),),
+                        remediation=(
+                            "Resume the run to recreate the thread and replay confirmed answers."
+                        ),
+                    )
+                )
+            if thread_id is not None and status in {"completed", "cancelled", "failed"}:
+                findings.append(
+                    DoctorFinding(
+                        code="conversation.thread-orphaned",
+                        severity=Severity.WARNING,
+                        summary="A terminal initialization run still references a Codex thread.",
+                        evidence=(str(run_id), str(thread_id)),
+                        remediation=(
+                            "Remove the stale checkpoint after confirming the run is "
+                            "no longer needed."
+                        ),
+                    )
+                )
+        return tuple(findings)
+
+
 DEFAULT_CHECKS: tuple[DoctorCheck, ...] = (
     ConfigurationSchemaCheck(),
     LockedProviderCheck(),
     CommandAvailabilityCheck(),
     PermissionDeltaCheck(),
+    ConversationRecoveryCheck(),
 )
 
 
@@ -180,9 +232,7 @@ def run_health_checks(
     return aggregate_findings(findings)
 
 
-def _load(
-    root: Path, relative: str, model: type[VersionedModel]
-) -> Any | None:
+def _load(root: Path, relative: str, model: type[VersionedModel]) -> Any | None:
     target = root / relative
     if not target.is_file():
         return None

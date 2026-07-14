@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from itertools import pairwise
 from pathlib import Path
@@ -28,13 +28,9 @@ def test_normal_path_preserves_confirmed_state(tmp_path: Path) -> None:
             confirmed={current.value: f"confirmed-{current.value}"},
         )
 
-    completed = workflow.complete(
-        "run-1", confirmed={InitStage.VERIFY.value: "confirmed-verify"}
-    )
+    completed = workflow.complete("run-1", confirmed={InitStage.VERIFY.value: "confirmed-verify"})
     assert completed.status is InitStatus.COMPLETED
-    assert completed.confirmed == {
-        stage.value: f"confirmed-{stage.value}" for stage in InitStage
-    }
+    assert completed.confirmed == {stage.value: f"confirmed-{stage.value}" for stage in InitStage}
 
 
 def test_invalid_transition_fails_before_side_effect(tmp_path: Path) -> None:
@@ -59,9 +55,7 @@ def test_invalid_transition_fails_before_side_effect(tmp_path: Path) -> None:
 def test_cancel_and_retry_preserve_valid_state(tmp_path: Path) -> None:
     workflow = graph(tmp_path / "init.sqlite3")
     workflow.start("run-3", repository_digest="repo-v1")
-    inventory = workflow.advance(
-        "run-3", InitStage.INVENTORY, confirmed={"inspect": "facts"}
-    )
+    inventory = workflow.advance("run-3", InitStage.INVENTORY, confirmed={"inspect": "facts"})
     failed = workflow.fail("run-3", "inventory unavailable")
     assert failed.status is InitStatus.FAILED
     assert failed.stage is InitStage.INVENTORY
@@ -83,9 +77,7 @@ def test_checkpoint_resumes_in_a_new_process_owner(tmp_path: Path) -> None:
     path = tmp_path / "init.sqlite3"
     first_process = graph(path)
     first_process.start("run-4", repository_digest="repo-v1")
-    first_process.advance(
-        "run-4", InitStage.INVENTORY, confirmed={"inspect": {"root": "project"}}
-    )
+    first_process.advance("run-4", InitStage.INVENTORY, confirmed={"inspect": {"root": "project"}})
     first_process.pause("run-4")
 
     second_process = graph(path)
@@ -107,8 +99,6 @@ def test_resume_rejects_stale_repository_before_mutation(tmp_path: Path) -> None
     assert graph(path).load("run-5") == paused
 
 
-
-
 def test_paused_checkpoint_is_readable_by_a_fresh_python_process(tmp_path: Path) -> None:
     import json
     import subprocess
@@ -117,9 +107,7 @@ def test_paused_checkpoint_is_readable_by_a_fresh_python_process(tmp_path: Path)
     path = tmp_path / "cross-process.sqlite3"
     workflow = graph(path)
     workflow.start("run-process", repository_digest="repo-v1")
-    workflow.advance(
-        "run-process", InitStage.INVENTORY, confirmed={"inspect": "durable"}
-    )
+    workflow.advance("run-process", InitStage.INVENTORY, confirmed={"inspect": "durable"})
     workflow.pause("run-process")
 
     script = """
@@ -150,3 +138,24 @@ print(json.dumps({
     assert payload["status"] == "running"
     assert payload["confirmed"] == {"inspect": "durable"}
     assert payload["checkpoint_id"].startswith("init:run-process:")
+
+
+def test_interview_progress_persists_thread_and_confirmed_answers(tmp_path: Path) -> None:
+    store = SqliteCheckpointStore(tmp_path / "init.sqlite3")
+    workflow = InitializationGraph(store)
+    workflow.start("run-progress", repository_digest="repo-v1")
+    workflow.advance("run-progress", InitStage.INVENTORY)
+    workflow.advance("run-progress", InitStage.INTERVIEW)
+
+    store.save_interview_progress(
+        "run-progress",
+        thread_id="thread-1",
+        answers={"project.goal": "Ship safely"},
+        provenance={"project.goal": "user-response"},
+        locked_questions=frozenset(),
+    )
+
+    progress = store.load_interview_progress("run-progress")
+    assert progress.thread_id == "thread-1"
+    assert progress.answers == {"project.goal": "Ship safely"}
+    assert progress.provenance == {"project.goal": "user-response"}

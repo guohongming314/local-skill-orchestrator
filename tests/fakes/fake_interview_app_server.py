@@ -48,6 +48,19 @@ def main() -> None:
         except EOFError:
             break
         method = request.get("method")
+        if method == "thread/resume":
+            if mode == "lost-thread":
+                emit(
+                    {"id": request["id"], "error": {"code": -32001, "message": "thread not found"}}
+                )
+            else:
+                emit(
+                    {
+                        "id": request["id"],
+                        "result": {"thread": {"id": request["params"]["threadId"]}},
+                    }
+                )
+            continue
         if method == "thread/start":
             emit({"id": request["id"], "result": {"thread": {"id": "interview-1"}}})
             continue
@@ -99,9 +112,7 @@ def main() -> None:
                             "goal": "Ship a safe service",
                             "lifecycle_stage": "active-development",
                             "risk_level": "medium",
-                            "constraints": [
-                                {"name": "compliance", "value": "SOC 2"}
-                            ],
+                            "constraints": [{"name": "compliance", "value": "SOC 2"}],
                             "preferences": {"testing": "test-first"},
                             "repository_digest": repository["source_digest"],
                         },

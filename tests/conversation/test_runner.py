@@ -7,7 +7,12 @@ from pathlib import Path
 import pytest
 
 from vibe.codex.exec_fallback import CodexExecFallback, StructuredResultError
-from vibe.conversation.interview import InterviewInput, InterviewQuestion, build_interview
+from vibe.conversation.interview import (
+    InterviewInput,
+    InterviewQuestion,
+    InterviewResult,
+    build_interview,
+)
 from vibe.conversation.runner import ConversationRunner
 from vibe.models.repository import (
     FactConfidence,
@@ -168,9 +173,7 @@ async def test_accepting_recommended_default_records_confirmed_provenance(
             ),
         ),
     )
-    interview = build_interview(
-        InterviewInput(repository=repository, unknowns=("project.goal",))
-    )
+    interview = build_interview(InterviewInput(repository=repository, unknowns=("project.goal",)))
     question = interview.questions[0]
     runner = ConversationRunner(
         app_server_command=app_command("valid", tmp_path / "server.json"),
@@ -189,3 +192,88 @@ async def test_accepting_recommended_default_records_confirmed_provenance(
     assert result.blueprint.goal == "Ship the repository-backed default"
     assert result.field_sources["goal"].value == "confirmed"
     assert result.field_provenance["goal"].value == "recommended-default"
+
+
+@pytest.mark.anyio
+async def test_interrupted_interview_replays_two_answers_without_reasking(
+    tmp_path: Path,
+) -> None:
+    from vibe.workflows.checkpoints import SqliteCheckpointStore
+    from vibe.workflows.init_graph import InitializationGraph
+    from vibe.workflows.state import InitStage
+
+    repository = snapshot(tmp_path)
+    interview = InterviewResult(
+        questions=tuple(
+            InterviewQuestion(question_id=question_id, category="fixture", text=question_id)
+            for question_id in (
+                "project.goal",
+                "project.lifecycle",
+                "risk.tolerance",
+                "constraints.compliance",
+            )
+        ),
+        confirmed_fact_keys=(),
+        unresolved_keys=(
+            "project.goal",
+            "project.lifecycle",
+            "risk.tolerance",
+            "constraints.compliance",
+        ),
+    )
+    store = SqliteCheckpointStore(tmp_path / "checkpoints.sqlite3")
+    workflow = InitializationGraph(store)
+    workflow.start("run-1", repository_digest=repository.source_digest)
+    workflow.advance("run-1", InitStage.INVENTORY)
+    workflow.advance("run-1", InitStage.INTERVIEW)
+    first_answers = iter(("Ship safely", "active-development"))
+
+    def interrupt_after_two(_question: InterviewQuestion) -> str:
+        try:
+            return next(first_answers)
+        except StopIteration as exc:
+            raise RuntimeError("simulated process interruption") from exc
+
+    first = ConversationRunner(
+        app_server_command=app_command("valid", tmp_path / "first.json"),
+        exec_fallback=fallback("fail-if-called", tmp_path / "exec.json"),
+    )
+    with pytest.raises(BaseExceptionGroup, match="unhandled errors") as interrupted:
+        await first.run(
+            repository=repository,
+            interview=interview,
+            ask_user=interrupt_after_two,
+            checkpoint_store=store,
+            run_id="run-1",
+        )
+    assert "simulated process interruption" in repr(interrupted.value)
+
+    asked_after_resume: list[str] = []
+    remaining = iter(("high", "SOC 2"))
+    second = ConversationRunner(
+        app_server_command=app_command("lost-thread", tmp_path / "second.json"),
+        exec_fallback=fallback("fail-if-called", tmp_path / "exec.json"),
+    )
+
+    def ask_remaining(question: InterviewQuestion) -> str:
+        asked_after_resume.append(question.question_id)
+        return next(remaining)
+
+    result = await second.run(
+        repository=repository,
+        interview=interview,
+        ask_user=ask_remaining,
+        checkpoint_store=store,
+        run_id="run-1",
+    )
+
+    assert asked_after_resume == ["risk.tolerance", "constraints.compliance"]
+    assert result.blueprint.goal == "Ship safely"
+    assert result.blueprint.lifecycle_stage.value == "active-development"
+    assert result.blueprint.risk_level.value == "high"
+    prompts = json.loads((tmp_path / "second.json").read_text())["prompts"]
+    replayed = [json.loads(prompt) for prompt in prompts[1:3]]
+    assert [item["question_id"] for item in replayed] == [
+        "project.goal",
+        "project.lifecycle",
+    ]
