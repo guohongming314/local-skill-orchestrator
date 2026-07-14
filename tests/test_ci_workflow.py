@@ -18,6 +18,10 @@ def test_ci_workflow_matches_the_complete_local_quality_gate() -> None:
     commands = (
         "uv sync --locked --all-groups",
         "uv run pytest",
+        (
+            "uv run python scripts/validation/check_release_gate.py "
+            "--rounds docs/evaluation/validation-rounds"
+        ),
         "uv run pytest tests/skills/test_skills.py tests/e2e",
         (
             "uv run python -m vibe.evaluation.task_routing "
