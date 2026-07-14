@@ -42,12 +42,16 @@ def build_interview(inputs: InterviewInput) -> InterviewResult:
     }
     confirmed.update((inputs.preferences or {}).keys())
     conflicts = set(inputs.conflicts)
+    if "project_type" in conflicts:
+        conflicts.add("project.type")
     conflicts.update(
-        fact.key
+        "project.type" if fact.key == "project_type" else fact.key
         for fact in inputs.repository.facts
         if fact.confidence is FactConfidence.CONFLICT
     )
     unresolved = (set(inputs.unknowns) | conflicts) - confirmed
+    if inputs.repository.is_empty:
+        unresolved.add("project.type")
 
     questions: list[InterviewQuestion] = []
     for question_id in QUESTION_ORDER:
