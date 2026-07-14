@@ -190,3 +190,42 @@ def test_orphaned_threads_and_stale_interview_checkpoints_are_reported(
         "conversation.checkpoint-stale",
         "conversation.thread-orphaned",
     }
+
+
+def test_tampered_installed_artifact_is_security_class_drift(tmp_path: Path) -> None:
+    locked = inventory()
+    write_configuration(tmp_path, locked)
+    tampered = inventory()
+    capability = tampered.capabilities[0]
+    tampered_manifest = capability.manifest.model_copy(update={"content_digest": "tampered-digest"})
+    current = InventoryResult(
+        capabilities=(
+            AdapterScanResult(
+                manifest=tampered_manifest,
+                provenance=capability.provenance,
+                verification=capability.verification,
+            ),
+        ),
+        diagnostics=tampered.diagnostics,
+        inventory_digest=tampered.inventory_digest,
+    )
+
+    report = run_health_checks(tmp_path, current, lambda command: command)
+
+    finding = next(item for item in report.findings if item.code == "capability.digest-drift")
+    assert getattr(finding, "classification", None) == "security"
+    assert finding.severity is Severity.ERROR
+
+
+def test_permission_expansion_is_blocking_until_reapproved(tmp_path: Path) -> None:
+    locked = inventory(permissions=frozenset({Permission.EXECUTE_COMMAND}))
+    write_configuration(tmp_path, locked)
+    expanded = inventory(permissions=frozenset({Permission.EXECUTE_COMMAND, Permission.NETWORK}))
+
+    report = run_health_checks(tmp_path, expanded, lambda command: command)
+
+    finding = next(
+        item for item in report.findings if item.code == "capability.permission-expanded"
+    )
+    assert getattr(finding, "classification", None) == "blocking"
+    assert "re-approv" in finding.remediation.lower()

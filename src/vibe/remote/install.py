@@ -27,6 +27,7 @@ from vibe.remote.models import PermissionLevel, RemoteCandidate
 
 _LOCK_PATH = ".ai-project/capabilities.lock"
 _AUDIT_PATH = ".ai-project/audit.log"
+_TRANSACTION_ROOT = ".ai-project/install-transactions"
 
 
 class ApprovalRequiredError(RuntimeError):
@@ -88,17 +89,26 @@ def build_install_plan(
         inventory_digest=provenance.digest.removeprefix("sha256:"),
     )
     audit_content = _append_audit(root, candidate, status="planned")
+    artifact_proposals = tuple(
+        ChangeProposal(
+            path=item.path,
+            desired_content=item.content,
+            ownership=FileOwnership.OWNED,
+            source=candidate.candidate_ref,
+            reason=f"install approved remote capability {candidate.name}",
+        )
+        for item in package.files
+    )
+    transaction_path = _transaction_path(_provider_id(candidate))
+    if (root / transaction_path).exists():
+        raise ValueError(f"install transaction already exists for {candidate.name}")
+    transaction_content = _render_transaction(
+        root,
+        candidate,
+        (*tuple(item.path for item in package.files), _LOCK_PATH, _AUDIT_PATH, transaction_path),
+    )
     proposals = (
-        *(
-            ChangeProposal(
-                path=item.path,
-                desired_content=item.content,
-                ownership=FileOwnership.OWNED,
-                source=candidate.candidate_ref,
-                reason=f"install approved remote capability {candidate.name}",
-            )
-            for item in package.files
-        ),
+        *artifact_proposals,
         ChangeProposal(
             path=_LOCK_PATH,
             desired_content=lock_content,
@@ -112,6 +122,13 @@ def build_install_plan(
             ownership=FileOwnership.OWNED,
             source=candidate.candidate_ref,
             reason="record capability install transaction",
+        ),
+        ChangeProposal(
+            path=transaction_path,
+            desired_content=transaction_content,
+            ownership=FileOwnership.OWNED,
+            source=candidate.candidate_ref,
+            reason="record reversible install transaction",
         ),
     )
     commands = tuple(
@@ -283,3 +300,24 @@ def _append_audit(root: Path, candidate: RemoteCandidate, *, status: str) -> str
         "version": candidate.version,
     }
     return existing + json.dumps(event, sort_keys=True, separators=(",", ":")) + "\n"
+
+
+def _transaction_path(provider_id: str) -> str:
+    return f"{_TRANSACTION_ROOT}/{provider_id}.json"
+
+
+def _render_transaction(
+    root: Path, candidate: RemoteCandidate, paths: tuple[str, ...]
+) -> str:
+    before: dict[str, str | None] = {}
+    for relative in sorted(set(paths)):
+        target = root / relative
+        before[relative] = target.read_text(encoding="utf-8") if target.is_file() else None
+    payload = {
+        "schema_version": "1",
+        "capability": candidate.name,
+        "provider_id": _provider_id(candidate),
+        "candidate_ref": candidate.candidate_ref,
+        "before": before,
+    }
+    return json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n"
