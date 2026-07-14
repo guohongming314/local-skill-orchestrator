@@ -1,0 +1,9 @@
+{
+  "capabilities": [
+    "cli.node",
+    "cli.python",
+    "analysis.code-relationships"
+  ],
+  "conflicts": [],
+  "description": "A multi-package monorepo spanning Node and Python components."
+}

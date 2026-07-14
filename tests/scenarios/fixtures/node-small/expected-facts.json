@@ -1,0 +1,13 @@
+{
+  "capabilities": [
+    "cli.node",
+    "cli.npm"
+  ],
+  "conflicts": [],
+  "repository.empty": false,
+  "scenario.name": "node-small",
+  "stack": [
+    "node",
+    "npm"
+  ]
+}

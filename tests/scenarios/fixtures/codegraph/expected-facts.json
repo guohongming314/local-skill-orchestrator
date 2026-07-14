@@ -1,0 +1,9 @@
+{
+  "capabilities": [
+    "analysis.code-relationships"
+  ],
+  "codegraph.available": true,
+  "conflicts": [],
+  "repository.empty": false,
+  "scenario.name": "codegraph"
+}

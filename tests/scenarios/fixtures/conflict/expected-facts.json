@@ -1,0 +1,13 @@
+{
+  "capabilities": [
+    "skill.shared",
+    "skill.shared"
+  ],
+  "conflicts": [
+    "multiple-node-lockfiles",
+    "duplicate-capability-id"
+  ],
+  "repository.empty": false,
+  "scenario.name": "conflict",
+  "stack.conflict": true
+}

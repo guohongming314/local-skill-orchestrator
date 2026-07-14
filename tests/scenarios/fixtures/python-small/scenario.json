@@ -1,0 +1,9 @@
+{
+  "capabilities": [
+    "cli.python",
+    "cli.uv",
+    "cli.pytest"
+  ],
+  "conflicts": [],
+  "description": "A small uv-managed Python project."
+}

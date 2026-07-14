@@ -1,0 +1,14 @@
+{
+  "capabilities": [
+    "cli.python",
+    "cli.uv",
+    "cli.pytest"
+  ],
+  "conflicts": [],
+  "repository.empty": false,
+  "scenario.name": "python-small",
+  "stack": [
+    "python",
+    "uv"
+  ]
+}
