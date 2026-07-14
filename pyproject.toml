@@ -12,6 +12,7 @@ dependencies = [
   "anyio>=4.8,<5",
   "langgraph>=1.0,<2",
   "langgraph-checkpoint-sqlite>=3,<4",
+  "mcp>=1.13,<2",
   "platformdirs>=4.3,<5",
   "pyyaml>=6.0,<7",
   "pydantic>=2.10,<3",
