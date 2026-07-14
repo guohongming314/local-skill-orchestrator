@@ -37,6 +37,10 @@ jobs:
       - name: Validate Skills and end-to-end scenarios
         run: uv run pytest tests/skills/test_skills.py tests/e2e
 
+      # Local equivalent: uv run pytest tests/e2e/test_remote_install_loop.py
+      - name: Validate approved remote install and rollback scenarios
+        run: uv run pytest tests/e2e/test_remote_install_loop.py
+
       # Local equivalent: uv run pytest
       - name: Run tests
         run: uv run pytest

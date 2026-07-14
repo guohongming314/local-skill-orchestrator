@@ -9,6 +9,7 @@ Use this checklist for every release candidate. Do not publish from this reposit
 - [ ] Verify conversational init acceptance for blank and existing repositories, including revision, locked decisions, recommended defaults, structured-output fallback, cancellation, resume, review, dry-run, and apply: `uv run pytest tests/e2e/test_conversational_init.py`.
 - [ ] Verify the task execution loop covers plan → phase-gated run → persisted outcome → Doctor insight, plus resumable invalidation and declined-gate safety: `uv run pytest tests/e2e/test_task_execution_loop.py`.
 - [ ] Verify blank web-project browser capability routing: configured Chrome DevTools MCP is selected; without a browser provider, Playwright and Chrome DevTools recommendations are ranked and explained (`uv run pytest tests/e2e/test_init.py -k blank_web`).
+- [ ] Verify the offline remote-capability loop: explained browser gap → fixture-registry candidate → explicit approval → digest-pinned install → init binding → healthy Doctor → uninstall/reconcile baseline, including unapproved, digest-tampered, offline, and discovery-disabled cases (`uv run pytest tests/e2e/test_remote_install_loop.py`).
 - [ ] Run the full suite: `uv run pytest`.
 - [ ] Verify the latest E17 validation round is all-PASS with zero open remediation Epics: `uv run python scripts/validation/check_release_gate.py --rounds docs/evaluation/validation-rounds`.
 - [ ] Enforce reviewed task-routing evaluation thresholds with the versioned offline runner.

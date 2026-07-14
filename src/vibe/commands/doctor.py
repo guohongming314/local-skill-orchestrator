@@ -12,6 +12,7 @@ from pydantic import ValidationError
 
 from vibe.commands.capabilities import _default_cli_specs
 from vibe.commands.init import _project_changeset
+from vibe.commands.project_plan import build_project_plan, scan_project_inventory
 from vibe.compiler.invalidation import InvalidationReason
 from vibe.doctor.checks import run_health_checks
 from vibe.doctor.drift import detect_drift
@@ -86,7 +87,16 @@ def _project_report(root: Path) -> DoctorReport:
     baseline = current.model_copy(
         update={"source_digest": blueprint.repository_digest}
     )
-    changeset = _project_changeset(root, blueprint)
+    project_inventory = scan_project_inventory(root)
+    project_plan = build_project_plan(
+        root, blueprint, current, inventory=project_inventory
+    )
+    changeset = _project_changeset(
+        root,
+        blueprint,
+        inventory=project_plan.inventory,
+        resolution=project_plan.resolution,
+    )
     drift = detect_drift(baseline, current, changeset)
     drift_findings = tuple(_drift_finding(reason) for reason in drift.reasons)
     return aggregate_findings((*health.findings, *drift_findings))

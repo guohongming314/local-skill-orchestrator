@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import tempfile
@@ -24,6 +25,7 @@ from vibe.materialize.ownership import FileOwnership
 from vibe.materialize.writer import apply_changeset
 from vibe.models.base import VersionedModel
 from vibe.remote.models import PermissionLevel, RemoteCandidate
+from vibe.remote.provenance import DigestMismatchError
 
 _LOCK_PATH = ".ai-project/capabilities.lock"
 _AUDIT_PATH = ".ai-project/audit.log"
@@ -81,6 +83,7 @@ def build_install_plan(
         raise ValueError("install candidates require a pinned version and verified digest")
     if provenance.permission_level is PermissionLevel.L4:
         raise ValueError("L4 candidates are blocked and cannot be installed")
+    _verify_package_digest(candidate, package)
 
     provider = _provider_entry(candidate)
     lock_content = _render_lock(
@@ -187,6 +190,24 @@ def execute_install(
         commit = _build_tree_commit(root, staged_root, plan.candidate.candidate_ref)
         applied = apply_changeset(commit)
     return InstallResult(inventory=inventory, applied_paths=applied.applied_paths)
+
+
+def _verify_package_digest(candidate: RemoteCandidate, package: InstallPackage) -> None:
+    provenance = candidate.provenance
+    assert provenance is not None
+    if len(package.files) == 1:
+        content = package.files[0].content.encode("utf-8")
+    else:
+        content = b"".join(
+            item.path.encode("utf-8") + b"\0" + item.content.encode("utf-8") + b"\0"
+            for item in sorted(package.files, key=lambda file: file.path)
+        )
+    actual = f"sha256:{hashlib.sha256(content).hexdigest()}"
+    if actual != provenance.digest:
+        raise DigestMismatchError(
+            f"content digest mismatch for {candidate.candidate_ref!r}: "
+            f"expected {provenance.digest}, got {actual}"
+        )
 
 
 def _retarget_changeset(changeset: ChangeSet, root: Path) -> ChangeSet:

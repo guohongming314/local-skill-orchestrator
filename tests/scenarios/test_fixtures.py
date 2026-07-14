@@ -9,6 +9,7 @@ EXPECTED_SCENARIOS = {
     "blank",
     "blank-web-chrome",
     "blank-web-no-browser",
+    "blank-web-remote",
     "codegraph",
     "conflict",
     "large-monorepo",
