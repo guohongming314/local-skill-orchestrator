@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+import pytest
 from alembic import command
 from sqlalchemy import update
 from sqlalchemy.orm import Session, sessionmaker
@@ -13,6 +14,8 @@ from vibe.cli import app
 from vibe.persistence.database import create_sqlite_engine, migration_config
 from vibe.persistence.models import AuditEvent
 from vibe.persistence.repositories import AuditEventRepository
+
+pytestmark = pytest.mark.validation
 
 runner = CliRunner()
 

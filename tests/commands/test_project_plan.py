@@ -11,6 +11,7 @@ from vibe.models.resolution import ResolutionStatus
 from vibe.models.risk import RiskLevel
 from vibe.practices.models import RequirementStrength
 
+pytestmark = pytest.mark.validation
 
 def _blueprint(root: Path) -> Blueprint:
     return Blueprint(

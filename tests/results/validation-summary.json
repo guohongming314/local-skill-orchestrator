@@ -1,0 +1,161 @@
+{
+  "expectations": [
+    {
+      "expectation": "Blank web init binds a configured browser provider or reports an explained ranked gap.",
+      "id": "E11-EXIT",
+      "tests": [
+        "tests/e2e/test_init.py::test_blank_web_init_selects_configured_chrome_devtools_mcp",
+        "tests/e2e/test_init.py::test_blank_web_init_reports_ranked_browser_gap_without_provider"
+      ]
+    },
+    {
+      "expectation": "A remote capability is explicitly approved, digest-pinned, verified, reversible, and locally degradable.",
+      "id": "E12-EXIT",
+      "tests": [
+        "tests/e2e/test_remote_install_loop.py::test_gap_to_approved_remote_install_doctor_and_uninstall_round_trip",
+        "tests/e2e/test_remote_install_loop.py::test_digest_tampered_remote_candidate_is_blocked"
+      ]
+    },
+    {
+      "expectation": "Conversational init supports revision, locking, fallback, pause, resume, review, and materialization.",
+      "id": "E13-EXIT",
+      "tests": [
+        "tests/e2e/test_conversational_init.py::test_existing_repo_conversation_supports_revision_lock_default_and_apply",
+        "tests/e2e/test_conversational_init.py::test_user_cancels_mid_conversation_leaving_resumable_paused_checkpoint"
+      ]
+    },
+    {
+      "expectation": "Natural-language planning runs through approval-gated phases, persists outcomes, and surfaces Doctor insight.",
+      "id": "E14-EXIT",
+      "tests": [
+        "tests/e2e/test_task_execution_loop.py::test_bug_fix_plan_run_records_outcome_and_surfaces_unused_capability",
+        "tests/commands/test_run.py::test_run_uses_natural_language_classification_and_deterministic_risk_floor"
+      ]
+    },
+    {
+      "expectation": "Hard routing exposes phase-selected tools, audits denials, isolates sessions, and degrades to soft routing.",
+      "id": "E15-EXIT",
+      "tests": [
+        "tests/e2e/test_hard_routing_tool_visibility.py::test_bug_fix_gateway_exposes_only_each_phase_tools_and_audits_blocked_calls",
+        "tests/e2e/test_hard_routing_tool_visibility.py::test_disabling_gateway_preserves_soft_routing_tool_visibility",
+        "tests/e2e/test_hard_routing_tool_visibility.py::test_concurrent_gateway_sessions_have_disjoint_tool_inventories"
+      ]
+    },
+    {
+      "expectation": "Governed upgrades re-approve permission expansion, audit decisions, and propose outcome-backed policy changes.",
+      "id": "E16-EXIT",
+      "tests": [
+        "tests/commands/test_update.py::test_widened_permission_upgrade_blocks_until_reapproved",
+        "tests/commands/test_audit.py::test_seeded_events_produce_filtered_ordered_json_output",
+        "tests/practices/test_calibration.py::test_confirmed_calibration_becomes_project_override_with_provenance"
+      ]
+    },
+    {
+      "expectation": "The same Blueprint resolves to a reproducible capability set.",
+      "id": "DESIGN-01",
+      "tests": [
+        "tests/commands/test_project_plan.py::test_repeat_plan_is_deterministic"
+      ]
+    },
+    {
+      "expectation": "Suitable trusted local capabilities are preferred.",
+      "id": "DESIGN-02",
+      "tests": [
+        "tests/resolver/test_local.py::test_large_monorepo_selects_available_codegraph"
+      ]
+    },
+    {
+      "expectation": "External discovery occurs only after an explicit local capability gap.",
+      "id": "DESIGN-03",
+      "tests": [
+        "tests/e2e/test_remote_install_loop.py::test_disabling_discovery_reproduces_e11_recommendations"
+      ]
+    },
+    {
+      "expectation": "Generated project instructions stay concise and project-specific.",
+      "id": "DESIGN-04",
+      "tests": [
+        "tests/skills/test_skills.py::test_generated_project_skill_still_passes_structural_validation"
+      ]
+    },
+    {
+      "expectation": "Users can inspect, replace, reject, defer, and lock recommendations.",
+      "id": "DESIGN-05",
+      "tests": [
+        "tests/e2e/test_conversational_init.py::test_existing_repo_conversation_supports_revision_lock_default_and_apply"
+      ]
+    },
+    {
+      "expectation": "High-risk capabilities cannot be enabled without approval.",
+      "id": "DESIGN-06",
+      "tests": [
+        "tests/e2e/test_remote_install_loop.py::test_unapproved_remote_install_is_refused_without_changes"
+      ]
+    },
+    {
+      "expectation": "Tools and capabilities are verified before being marked available.",
+      "id": "DESIGN-07",
+      "tests": [
+        "tests/doctor/test_checks.py::test_tampered_installed_artifact_is_security_class_drift"
+      ]
+    },
+    {
+      "expectation": "Meaningful project and capability drift is detected.",
+      "id": "DESIGN-08",
+      "tests": [
+        "tests/commands/test_reconcile.py::test_stack_drift_offers_both_resolutions_and_applies_accept_reality"
+      ]
+    },
+    {
+      "expectation": "Different task scenarios produce risk-matched workflows.",
+      "id": "DESIGN-09",
+      "tests": [
+        "tests/e2e/test_plan.py::test_security_migration_and_review_receive_correct_rigorous_gates"
+      ]
+    },
+    {
+      "expectation": "Capabilities are phase-scoped and have a degradation path.",
+      "id": "DESIGN-10",
+      "tests": [
+        "tests/e2e/test_hard_routing_tool_visibility.py::test_disabling_gateway_preserves_soft_routing_tool_visibility"
+      ]
+    },
+    {
+      "expectation": "Core bug, feature, refactor, security, migration, and release scenarios have verifiable completion criteria.",
+      "id": "DESIGN-11",
+      "tests": [
+        "tests/e2e/test_plan.py::test_versioned_task_sample_set_has_required_evaluation_coverage"
+      ]
+    },
+    {
+      "expectation": "Evaluation measures task outcomes and rework rather than installation count.",
+      "id": "DESIGN-12",
+      "tests": [
+        "tests/practices/test_calibration.py::test_n_unused_outcomes_propose_explainable_demotion"
+      ]
+    },
+    {
+      "expectation": "A freshly initialized project can proceed through plan and phase-gated run.",
+      "id": "CROSS-01",
+      "tests": [
+        "tests/validation/test_matrix.py::test_fresh_init_can_plan_and_run"
+      ]
+    },
+    {
+      "expectation": "A remote-installed capability can be bound into a phase-gated run.",
+      "id": "CROSS-02",
+      "tests": [
+        "tests/validation/test_matrix.py::test_remote_installed_capability_is_used_by_phase_gated_run"
+      ]
+    },
+    {
+      "expectation": "Organization policy constrains remote recommendations without bypassing user consent.",
+      "id": "CROSS-03",
+      "tests": [
+        "tests/resolver/test_org_policy.py::test_org_remote_approvals_filter_publishers_without_bypassing_l_consent"
+      ]
+    }
+  ],
+  "matrix": "docs/evaluation/acceptance-matrix.md",
+  "schema_version": "1"
+}

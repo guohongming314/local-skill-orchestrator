@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
 from typer.testing import CliRunner
 
 from tests.scenarios.builders import build_scenario
@@ -13,6 +14,8 @@ from vibe.codex.exec_fallback import CodexExecFallback
 from vibe.conversation.runner import ConversationRunner
 from vibe.workflows.checkpoints import SqliteCheckpointStore
 from vibe.workflows.state import InitStage, InitStatus
+
+pytestmark = pytest.mark.validation
 
 runner = CliRunner()
 FAKE_SERVER = Path(__file__).parents[1] / "fakes" / "fake_interview_app_server.py"

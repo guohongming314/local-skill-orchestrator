@@ -20,6 +20,8 @@ from vibe.models.task import WorkflowMode
 from vibe.workflows.scenarios import ScenarioId
 from vibe.workflows.task_runner import PhaseExecutionResult
 
+pytestmark = pytest.mark.validation
+
 runner = CliRunner()
 
 

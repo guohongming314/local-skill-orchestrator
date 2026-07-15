@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+import pytest
+
 from vibe.inventory.adapters.base import (
     AdapterProvenance,
     AdapterScanResult,
@@ -111,6 +113,8 @@ def repository(*, monorepo: bool, size: str) -> RepositorySnapshot:
         source_digest="repository-digest",
     )
 
+
+pytestmark = pytest.mark.validation
 
 def test_small_projects_reject_unnecessary_codegraph() -> None:
     codegraph = candidate("product.codegraph", provides=("code-navigation",))

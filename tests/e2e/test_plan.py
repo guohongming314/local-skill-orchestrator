@@ -5,12 +5,15 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 from typer.testing import CliRunner
 
 from vibe.cli import app
 from vibe.evaluation.samples import TaskSampleSet
 from vibe.models.capsule import ContextCapsule
 from vibe.models.task import TaskPlan
+
+pytestmark = pytest.mark.validation
 
 runner = CliRunner()
 

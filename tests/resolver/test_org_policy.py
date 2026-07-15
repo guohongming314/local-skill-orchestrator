@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from vibe.inventory.adapters.base import (
     AdapterProvenance,
     AdapterScanResult,
@@ -17,6 +19,7 @@ from vibe.practices.models import RequirementStrength
 from vibe.resolver.local import resolve_local_capabilities
 from vibe.resolver.requirements import AbstractCapabilityRequirement
 
+pytestmark = pytest.mark.validation
 
 def _candidate(capability_id: str, *, verified: bool = True) -> AdapterScanResult:
     return AdapterScanResult(

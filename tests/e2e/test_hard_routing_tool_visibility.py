@@ -7,6 +7,7 @@ import pytest
 
 from tests.e2e.hard_routing_fixture import HardRoutingTaskFixture
 
+pytestmark = pytest.mark.validation
 
 def test_bug_fix_gateway_exposes_only_each_phase_tools_and_audits_blocked_calls(
     tmp_path: Path,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 from tests.materialize.test_templates import inputs
@@ -12,6 +13,8 @@ from vibe.models.capability import CapabilityScope
 
 ROOT = Path(__file__).parents[2]
 
+
+pytestmark = pytest.mark.validation
 
 def _scan(skill_root: Path, scope: CapabilityScope = CapabilityScope.USER) -> AdapterScanResult:
     adapter = AgentSkillAdapter(roots=(SkillRoot(skill_root.parent, scope),))

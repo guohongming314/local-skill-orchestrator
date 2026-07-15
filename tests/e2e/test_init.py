@@ -6,12 +6,15 @@ import shutil
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
 from tests.scenarios.builders import build_scenario
 from vibe.cli import app
 from vibe.materialize.writer import apply_changeset as real_apply_changeset
+
+pytestmark = pytest.mark.validation
 
 runner = CliRunner()
 
