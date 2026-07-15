@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+import yaml
 
 from vibe.inventory.adapters.agent_skill import AgentSkillAdapter, SkillRoot
 from vibe.inventory.adapters.base import AdapterScanError
@@ -136,6 +137,41 @@ def test_invalid_openai_metadata_is_unverified_without_aborting_inventory(tmp_pa
     assert inventory.diagnostics == ()
 
 
+def test_recursive_openai_yaml_is_unverified_without_aborting_scan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    roots = tmp_path / "skills"
+    skill = write_skill(roots, "recursive", "name: recursive\ndescription: Recursive YAML")
+    write_openai_metadata(skill, "policy: {}\n")
+
+    def recursive_yaml(_content: bytes) -> object:
+        raise RecursionError("maximum recursion depth exceeded")
+
+    monkeypatch.setattr(yaml, "safe_load", recursive_yaml)
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.PROJECT),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert result.manifest.codex_skill is not None
+    assert result.manifest.codex_skill.allow_implicit_invocation is True
+    assert not result.verification.verified
+    assert "invalid_openai_metadata:RecursionError" in result.verification.details
+
+
+def test_unknown_openai_policy_key_is_unverified(tmp_path: Path) -> None:
+    roots = tmp_path / "skills"
+    skill = write_skill(roots, "typo", "name: typo\ndescription: Misspelled policy")
+    write_openai_metadata(skill, "policy: {allow_implicit_invocaton: false}\n")
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.PROJECT),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert result.manifest.codex_skill is not None
+    assert result.manifest.codex_skill.allow_implicit_invocation is True
+    assert not result.verification.verified
+    assert "invalid_openai_metadata:ValueError" in result.verification.details
+
+
 def test_openai_metadata_content_changes_manifest_digest(tmp_path: Path) -> None:
     roots = tmp_path / "skills"
     skill = write_skill(roots, "mutable", "name: mutable\ndescription: Mutable metadata")
@@ -199,6 +235,35 @@ dependencies:
 
     assert outside.resolve() not in opened
     assert result.verification.verified
+
+
+def test_openai_metadata_symlink_outside_skill_directory_is_not_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    roots = tmp_path / "skills"
+    skill = write_skill(roots, "contained-link", "name: contained-link\ndescription: Safe")
+    outside = tmp_path / "outside-agents"
+    outside.mkdir()
+    outside_metadata = outside / "openai.yaml"
+    outside_metadata.write_text("policy: {}\n", encoding="utf-8")
+    (skill / "agents").symlink_to(outside, target_is_directory=True)
+    original = Path.read_bytes
+    opened: list[Path] = []
+
+    def recording_read(path: Path) -> bytes:
+        opened.append(path.resolve())
+        if path.resolve() == outside_metadata.resolve():
+            raise AssertionError("external metadata symlink was read")
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", recording_read)
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.PROJECT),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert outside_metadata.resolve() not in opened
+    assert not result.verification.verified
+    assert "invalid_openai_metadata:ValueError" in result.verification.details
 
 
 def test_malformed_frontmatter_is_reported_without_hiding_valid_skill(tmp_path: Path) -> None:

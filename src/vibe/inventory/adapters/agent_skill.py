@@ -185,7 +185,7 @@ def _openai_metadata(skill_directory: Path) -> tuple[CodexSkillMetadata, list[st
     if not resolved_path.is_relative_to(skill_directory.resolve()):
         return (
             CodexSkillMetadata(),
-            ["invalid_openai_metadata:UnsafeMetadataPath"],
+            ["invalid_openai_metadata:ValueError"],
             b"",
         )
     if not resolved_path.is_file():
@@ -196,8 +196,25 @@ def _openai_metadata(skill_directory: Path) -> tuple[CodexSkillMetadata, list[st
         content = resolved_path.read_bytes()
         document = yaml.safe_load(content)
         top_level = _metadata_mapping(document, "top-level")
+        _reject_unknown_keys(
+            top_level,
+            allowed=frozenset({"interface", "policy", "dependencies"}),
+            label="top-level",
+        )
+        if "interface" in top_level:
+            _metadata_mapping(top_level["interface"], "interface")
         policy = _metadata_mapping(top_level.get("policy"), "policy")
+        _reject_unknown_keys(
+            policy,
+            allowed=frozenset({"allow_implicit_invocation"}),
+            label="policy",
+        )
         dependencies = _metadata_mapping(top_level.get("dependencies"), "dependencies")
+        _reject_unknown_keys(
+            dependencies,
+            allowed=frozenset({"tools"}),
+            label="dependencies",
+        )
         tools = dependencies.get("tools", [])
         if not isinstance(tools, list):
             raise TypeError("dependencies.tools must be a list")
@@ -216,7 +233,14 @@ def _openai_metadata(skill_directory: Path) -> tuple[CodexSkillMetadata, list[st
                 "tool_dependencies": tuple(normalized_tools),
             }
         )
-    except (OSError, UnicodeError, yaml.YAMLError, TypeError, ValueError) as error:
+    except (
+        OSError,
+        UnicodeError,
+        yaml.YAMLError,
+        RecursionError,
+        TypeError,
+        ValueError,
+    ) as error:
         return (
             CodexSkillMetadata(),
             [f"invalid_openai_metadata:{type(error).__name__}"],
@@ -232,6 +256,15 @@ def _metadata_mapping(value: Any, label: str) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):
         raise TypeError(f"{label} metadata must be a mapping")
     return value
+
+
+def _reject_unknown_keys(
+    mapping: Mapping[str, Any], *, allowed: frozenset[str], label: str
+) -> None:
+    unknown = set(mapping) - allowed
+    if unknown:
+        rendered = ", ".join(repr(key) for key in sorted(unknown, key=str))
+        raise ValueError(f"unsupported {label} metadata keys: {rendered}")
 
 
 def _required(metadata: dict[str, str], key: str) -> str:
