@@ -294,6 +294,7 @@ def test_non_skill_capability_manifest_may_omit_codex_skill_metadata() -> None:
     )
 
     assert manifest.codex_skill is None
+    assert "codex_skill" not in manifest.model_dump(mode="json")
 
 
 @pytest.mark.parametrize(

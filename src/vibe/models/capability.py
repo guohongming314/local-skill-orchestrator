@@ -39,4 +39,7 @@ class CapabilityManifest(VersionedModel):
     version: str | None = None
     content_digest: str = Field(min_length=8)
     verified: bool = False
-    codex_skill: CodexSkillMetadata | None = None
+    codex_skill: CodexSkillMetadata | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
