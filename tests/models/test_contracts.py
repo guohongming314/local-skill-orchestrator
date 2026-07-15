@@ -19,6 +19,7 @@ from vibe.models.base import VersionedModel
 from vibe.models.blueprint import LifecycleStage, ProjectConstraint
 from vibe.models.capability import CapabilityKind, CapabilityScope, Permission
 from vibe.models.capsule import SourceReference
+from vibe.models.codex_skill import CodexSkillMetadata, SkillToolDependency
 from vibe.models.repository import FactConfidence, RepositoryFact
 from vibe.models.resolution import CapabilityResolution, ResolutionStatus
 from vibe.models.risk import RiskDimension, RiskFactor, RiskLevel
@@ -250,6 +251,49 @@ def test_invalid_capability_permission_is_rejected() -> None:
 
     with pytest.raises(ValidationError, match="permissions"):
         CapabilityManifest.model_validate(data)
+
+
+def test_capability_manifest_schema_exposes_codex_skill_metadata() -> None:
+    schema = CapabilityManifest.model_json_schema()
+
+    codex_skill_schema = schema["$defs"]["CodexSkillMetadata"]
+    assert "codex_skill" in schema["properties"]
+    assert "allow_implicit_invocation" in codex_skill_schema["properties"]
+    assert "tool_dependencies" in codex_skill_schema["properties"]
+
+
+def test_capability_manifest_accepts_codex_skill_metadata() -> None:
+    manifest = CapabilityManifest(
+        capability_id="local.repo-reader",
+        name="Repository reader",
+        kind=CapabilityKind.SKILL,
+        scope=CapabilityScope.PROJECT,
+        source="skills/repo-reader/SKILL.md",
+        provides=("repository-search",),
+        content_digest="01234567",
+        codex_skill=CodexSkillMetadata(
+            tool_dependencies=(
+                SkillToolDependency(dependency_type="mcp", value="filesystem"),
+            ),
+        ),
+    )
+
+    assert manifest.codex_skill is not None
+    assert manifest.codex_skill.tool_dependencies[0].value == "filesystem"
+
+
+def test_non_skill_capability_manifest_may_omit_codex_skill_metadata() -> None:
+    manifest = CapabilityManifest(
+        capability_id="local.repo-reader",
+        name="Repository reader",
+        kind=CapabilityKind.CLI_TOOL,
+        scope=CapabilityScope.PROJECT,
+        source="rg",
+        provides=("repository-search",),
+        content_digest="01234567",
+    )
+
+    assert manifest.codex_skill is None
 
 
 @pytest.mark.parametrize(

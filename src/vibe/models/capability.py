@@ -3,6 +3,7 @@ from enum import StrEnum
 from pydantic import Field
 
 from vibe.models.base import VersionedModel
+from vibe.models.codex_skill import CodexSkillMetadata
 
 
 class CapabilityKind(StrEnum):
@@ -38,4 +39,4 @@ class CapabilityManifest(VersionedModel):
     version: str | None = None
     content_digest: str = Field(min_length=8)
     verified: bool = False
-
+    codex_skill: CodexSkillMetadata | None = None
