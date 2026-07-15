@@ -5,8 +5,12 @@ from __future__ import annotations
 import hashlib
 import re
 import shutil
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+import yaml
 
 from vibe.inventory.adapters.base import (
     AdapterDiscovery,
@@ -21,6 +25,7 @@ from vibe.models.capability import (
     CapabilityScope,
     Permission,
 )
+from vibe.models.codex_skill import CodexSkillMetadata, SkillToolDependency
 
 _FRONTMATTER = re.compile(r"\A---\s*\r?\n(?P<header>.*?)\r?\n---\s*(?:\r?\n|\Z)", re.DOTALL)
 _MARKDOWN_LINK = re.compile(r"\[[^]]*]\((?P<target>[^)]+)\)")
@@ -75,6 +80,9 @@ class AgentSkillAdapter:
         if skill_directory.name != name:
             details.append(f"directory_name_mismatch:{skill_directory.name}!={name}")
 
+        codex_skill, metadata_details, metadata_content = _openai_metadata(skill_directory)
+        details.extend(metadata_details)
+
         required_tools = _words(metadata.get("required-tools", ""))
         for tool in required_tools:
             if shutil.which(tool) is None:
@@ -83,6 +91,9 @@ class AgentSkillAdapter:
         digest = hashlib.sha256()
         digest.update(b"SKILL.md\0")
         digest.update(text.encode())
+        if metadata_details or metadata_content:
+            digest.update(b"agents/openai.yaml\0")
+            digest.update(metadata_content)
         for dependency in _local_dependencies(body):
             normalized = dependency.as_posix()
             candidate = (skill_directory / dependency).resolve()
@@ -122,6 +133,7 @@ class AgentSkillAdapter:
             version=metadata.get("version"),
             content_digest=digest.hexdigest(),
             verified=verified,
+            codex_skill=codex_skill,
         )
         return AdapterScanResult(
             manifest=manifest,
@@ -157,6 +169,69 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
             raise AdapterScanError(f"empty frontmatter key on line {line_number}")
         metadata[key] = _unquote(value.strip())
     return metadata, text[match.end() :]
+
+
+def _openai_metadata(skill_directory: Path) -> tuple[CodexSkillMetadata, list[str], bytes]:
+    relative_path = Path("agents/openai.yaml")
+    metadata_path = skill_directory / relative_path
+    try:
+        resolved_path = metadata_path.resolve()
+    except OSError as error:
+        return (
+            CodexSkillMetadata(),
+            [f"invalid_openai_metadata:{type(error).__name__}"],
+            b"",
+        )
+    if not resolved_path.is_relative_to(skill_directory.resolve()):
+        return (
+            CodexSkillMetadata(),
+            ["invalid_openai_metadata:UnsafeMetadataPath"],
+            b"",
+        )
+    if not resolved_path.is_file():
+        return CodexSkillMetadata(), [], b""
+
+    content = b""
+    try:
+        content = resolved_path.read_bytes()
+        document = yaml.safe_load(content)
+        top_level = _metadata_mapping(document, "top-level")
+        policy = _metadata_mapping(top_level.get("policy"), "policy")
+        dependencies = _metadata_mapping(top_level.get("dependencies"), "dependencies")
+        tools = dependencies.get("tools", [])
+        if not isinstance(tools, list):
+            raise TypeError("dependencies.tools must be a list")
+
+        normalized_tools: list[SkillToolDependency] = []
+        for index, item in enumerate(tools):
+            tool = _metadata_mapping(item, f"dependencies.tools[{index}]")
+            normalized = dict(tool)
+            if "type" in normalized:
+                normalized["dependency_type"] = normalized.pop("type")
+            normalized_tools.append(SkillToolDependency.model_validate(normalized))
+
+        metadata = CodexSkillMetadata.model_validate(
+            {
+                "allow_implicit_invocation": policy.get("allow_implicit_invocation", True),
+                "tool_dependencies": tuple(normalized_tools),
+            }
+        )
+    except (OSError, UnicodeError, yaml.YAMLError, TypeError, ValueError) as error:
+        return (
+            CodexSkillMetadata(),
+            [f"invalid_openai_metadata:{type(error).__name__}"],
+            content,
+        )
+
+    return metadata, [f"dependency:{relative_path.as_posix()}"], content
+
+
+def _metadata_mapping(value: Any, label: str) -> Mapping[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise TypeError(f"{label} metadata must be a mapping")
+    return value
 
 
 def _required(metadata: dict[str, str], key: str) -> str:
@@ -207,4 +282,3 @@ def _secret_like(path: Path) -> bool:
         or Path(part).suffix.lower() in _SECRET_SUFFIXES
         for part in path.parts
     )
-

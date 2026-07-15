@@ -17,6 +17,14 @@ def write_skill(root: Path, directory: str, frontmatter: str, body: str = "Instr
     return skill
 
 
+def write_openai_metadata(skill: Path, content: str) -> Path:
+    agents = skill / "agents"
+    agents.mkdir()
+    metadata = agents / "openai.yaml"
+    metadata.write_text(content, encoding="utf-8")
+    return metadata
+
+
 def test_discovers_project_and_user_skills_with_distinct_scope(tmp_path: Path) -> None:
     project = tmp_path / "project-skills"
     user = tmp_path / "user-skills"
@@ -71,6 +79,126 @@ def test_parses_metadata_local_dependencies_and_content_digest(tmp_path: Path) -
     assert first.manifest.content_digest != second.manifest.content_digest
     assert first.verification.verified
     assert "dependency:references/guide.md" in first.verification.details
+
+
+def test_normalizes_codex_invocation_metadata_and_mcp_dependencies(tmp_path: Path) -> None:
+    roots = tmp_path / "skills"
+    skill = write_skill(roots, "database", "name: database\ndescription: Query data")
+    write_openai_metadata(
+        skill,
+        """policy:
+  allow_implicit_invocation: false
+dependencies:
+  tools:
+    - type: mcp
+      value: postgres
+      description: Query the application database
+      transport: streamable_http
+      url: https://example.test/mcp
+""",
+    )
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.PROJECT),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert result.manifest.codex_skill is not None
+    assert result.manifest.codex_skill.allow_implicit_invocation is False
+    assert [item.model_dump() for item in result.manifest.codex_skill.tool_dependencies] == [
+        {
+            "dependency_type": "mcp",
+            "value": "postgres",
+            "description": "Query the application database",
+            "transport": "streamable_http",
+            "url": "https://example.test/mcp",
+        }
+    ]
+    assert result.verification.verified
+    assert "dependency:agents/openai.yaml" in result.verification.details
+
+
+def test_invalid_openai_metadata_is_unverified_without_aborting_inventory(tmp_path: Path) -> None:
+    roots = tmp_path / "skills"
+    invalid = write_skill(roots, "invalid", "name: invalid\ndescription: Invalid metadata")
+    write_openai_metadata(invalid, "policy: []\n")
+    write_skill(roots, "valid", "name: valid\ndescription: Valid skill")
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.PROJECT),))
+
+    inventory = InventoryService().scan([adapter])
+
+    assert [item.manifest.name for item in inventory.capabilities] == ["invalid", "valid"]
+    invalid_result = inventory.capabilities[0]
+    assert invalid_result.manifest.codex_skill is not None
+    assert not invalid_result.verification.verified
+    assert any(
+        detail.startswith("invalid_openai_metadata:")
+        for detail in invalid_result.verification.details
+    )
+    assert inventory.diagnostics == ()
+
+
+def test_openai_metadata_content_changes_manifest_digest(tmp_path: Path) -> None:
+    roots = tmp_path / "skills"
+    skill = write_skill(roots, "mutable", "name: mutable\ndescription: Mutable metadata")
+    metadata = write_openai_metadata(
+        skill, "policy:\n  allow_implicit_invocation: true\n"
+    )
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.PROJECT),))
+
+    first = adapter.scan(adapter.discover()[0])
+    metadata.write_text(
+        "policy:\n  allow_implicit_invocation: false\n", encoding="utf-8"
+    )
+    second = adapter.scan(adapter.discover()[0])
+
+    assert first.manifest.content_digest != second.manifest.content_digest
+
+
+def test_absent_openai_metadata_uses_codex_defaults(tmp_path: Path) -> None:
+    roots = tmp_path / "skills"
+    write_skill(roots, "defaults", "name: defaults\ndescription: Default metadata")
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.PROJECT),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert result.manifest.codex_skill is not None
+    assert result.manifest.codex_skill.allow_implicit_invocation is True
+    assert result.manifest.codex_skill.tool_dependencies == ()
+
+
+def test_openai_metadata_never_reads_outside_skill_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    roots = tmp_path / "skills"
+    skill = write_skill(roots, "contained", "name: contained\ndescription: Contained")
+    outside = tmp_path / "outside.yaml"
+    outside.write_text("TOP-SECRET", encoding="utf-8")
+    write_openai_metadata(
+        skill,
+        f"""policy:
+  allow_implicit_invocation: true
+dependencies:
+  tools:
+    - type: mcp
+      value: filesystem
+      url: {outside}
+""",
+    )
+    original = Path.read_bytes
+    opened: list[Path] = []
+
+    def recording_read(path: Path) -> bytes:
+        opened.append(path.resolve())
+        if path.resolve() == outside.resolve():
+            raise AssertionError("metadata caused a read outside the Skill directory")
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", recording_read)
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.PROJECT),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert outside.resolve() not in opened
+    assert result.verification.verified
 
 
 def test_malformed_frontmatter_is_reported_without_hiding_valid_skill(tmp_path: Path) -> None:
@@ -164,4 +292,3 @@ def test_scan_rejects_locator_outside_configured_roots(tmp_path: Path) -> None:
         from vibe.inventory.adapters.base import AdapterDiscovery
 
         adapter.scan(AdapterDiscovery(locator=str(tmp_path / "elsewhere" / "SKILL.md")))
-
