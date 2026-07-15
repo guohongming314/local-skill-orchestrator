@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
 from typer.testing import CliRunner, Result
 
 import vibe.commands.init as init_module
-from tests.materialize.test_templates import inputs
+from tests.materialize.test_templates import inputs, requirements
 from vibe.cli import app
 from vibe.commands.init import _project_changeset
 from vibe.models.resolution import ResolutionPlan
@@ -151,6 +153,37 @@ def test_project_changeset_preserves_explicit_empty_requirements(
         if item.path == ".ai-project/capability-requirements.yaml"
     )
     assert yaml.safe_load(operation.after_content or "")["requirements"] == []
+
+
+def test_project_changeset_replaces_partial_plan_inputs_with_one_coherent_plan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    blueprint, resolution, inventory = inputs()
+    inconsistent_inventory = replace(
+        inventory, inventory_digest="inconsistent-inventory-digest"
+    )
+    plan = SimpleNamespace(
+        inventory=inventory,
+        resolution=resolution,
+        requirements=requirements(),
+    )
+    monkeypatch.setattr(init_module, "build_project_plan", lambda *args, **kwargs: plan)
+
+    changeset = _project_changeset(
+        tmp_path,
+        blueprint,
+        inventory=inconsistent_inventory,
+        resolution=None,
+        requirements=(),
+    )
+
+    lock_operation = next(
+        item
+        for item in changeset.operations
+        if item.path == ".ai-project/capabilities.lock"
+    )
+    lock = yaml.safe_load(lock_operation.after_content or "")
+    assert lock["inventory_digest"] == inventory.inventory_digest
 
 
 def test_init_removes_only_exact_obsolete_project_development_files(

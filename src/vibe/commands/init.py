@@ -311,12 +311,9 @@ def _project_changeset(
 ) -> ChangeSet:
     if inventory is None or resolution is None or requirements is None:
         plan = build_project_plan(root, blueprint, _complete_snapshot(root))
-        if inventory is None:
-            inventory = plan.inventory
-        if resolution is None:
-            resolution = plan.resolution
-        if requirements is None:
-            requirements = plan.requirements
+        inventory = plan.inventory
+        resolution = plan.resolution
+        requirements = plan.requirements
     rendered = render_project_configuration(
         blueprint, resolution, inventory, requirements=requirements
     )

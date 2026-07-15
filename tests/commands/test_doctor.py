@@ -3,9 +3,12 @@
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
+import vibe.commands.doctor as doctor_module
+import vibe.commands.init as init_module
 from vibe.cli import app
 from vibe.commands.doctor import exit_code_for_report
 from vibe.commands.init import _project_changeset
@@ -43,6 +46,30 @@ def test_doctor_reports_healthy_project_in_human_and_stable_json(tmp_path: Path)
         "schema_version": "1",
         "status": "healthy",
     }
+
+
+def test_doctor_builds_one_coherent_project_plan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    initialized_project(tmp_path)
+    real_build_project_plan = doctor_module.build_project_plan
+    calls = 0
+
+    def counted_build(*args: object, **kwargs: object):
+        nonlocal calls
+        calls += 1
+        return real_build_project_plan(*args, **kwargs)
+
+    def unexpected_second_build(*args: object, **kwargs: object) -> None:
+        raise AssertionError("doctor must pass the complete project plan to materialization")
+
+    monkeypatch.setattr(doctor_module, "build_project_plan", counted_build)
+    monkeypatch.setattr(init_module, "build_project_plan", unexpected_second_build)
+
+    result = runner.invoke(app, ["doctor", "--path", str(tmp_path), "--json"])
+
+    assert result.exit_code == 0, result.output
+    assert calls == 1
 
 
 def test_doctor_invalid_configuration_exits_error_without_leaking_value(

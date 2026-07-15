@@ -387,6 +387,7 @@ def test_blank_project_materialization_only_generates_configuration_and_approved
         ".ai-project/blueprint.yaml",
         ".ai-project/capabilities.yaml",
         ".ai-project/capabilities.lock",
+        ".ai-project/capability-requirements.yaml",
         ".ai-project/policy.yaml",
         ".ai-project/decisions.md",
         ".ai-project/quality-gates.md",

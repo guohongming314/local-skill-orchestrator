@@ -97,6 +97,7 @@ def _project_report(root: Path) -> DoctorReport:
         blueprint,
         inventory=project_plan.inventory,
         resolution=project_plan.resolution,
+        requirements=project_plan.requirements,
     )
     drift = detect_drift(baseline, current, changeset)
     drift_findings = tuple(
