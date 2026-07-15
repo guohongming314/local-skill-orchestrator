@@ -132,11 +132,21 @@ def scan_skill(skill_dir: Path) -> SkillScanResult:
                             line=line_number,
                             column=match.start() + 1,
                         ),
-                        evidence=line.strip(),
+                        evidence=_redact_evidence(line.strip()),
                         auto_blocking=pattern.auto_blocking,
                     )
                 )
     return SkillScanResult(flags=tuple(flags))
+
+
+def _redact_evidence(evidence: str) -> str:
+    """Preserve scanner context without serializing credential values."""
+    return re.sub(
+        r"((?:AWS_SECRET_ACCESS_KEY|GITHUB_TOKEN|API_KEY|ACCESS_TOKEN|PASSWORD)\s*=\s*)[^\s]+",
+        r"\1[REDACTED]",
+        evidence,
+        flags=re.IGNORECASE,
+    )
 
 
 def extract_mcp_permissions(metadata: Mapping[str, Any]) -> McpPermissionSummary:
