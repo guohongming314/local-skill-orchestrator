@@ -39,6 +39,9 @@ packages = ["src/vibe"]
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]
+markers = [
+  "validation: consolidated E11-E16 and design acceptance validation",
+]
 
 [tool.ruff]
 target-version = "py312"

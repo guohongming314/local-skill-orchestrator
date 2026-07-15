@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 from vibe.doctor.checks import run_health_checks
@@ -79,6 +80,8 @@ def write_configuration(root: Path, current: InventoryResult) -> None:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
 
+
+pytestmark = pytest.mark.validation
 
 def test_healthy_configuration_reports_success(tmp_path: Path) -> None:
     current = inventory()

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import cast
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
@@ -18,6 +19,8 @@ from vibe.remote.models import (
     RemoteCandidate,
     SourceTier,
 )
+
+pytestmark = pytest.mark.validation
 
 runner = CliRunner()
 

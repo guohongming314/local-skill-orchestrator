@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from vibe.practices.calibration import (
     CalibrationOutcome,
     confirm_suggestion,
@@ -21,6 +23,8 @@ def outcomes(*, count: int, capability: str = "cap.memory") -> tuple[Calibration
         for index in range(1, count + 1)
     )
 
+
+pytestmark = pytest.mark.validation
 
 def test_n_unused_outcomes_propose_explainable_demotion(tmp_path: Path) -> None:
     assert pending_suggestions(tmp_path, outcomes(count=2)) == ()

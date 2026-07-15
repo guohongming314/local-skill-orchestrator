@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from tests.e2e.task_execution_fixture import TaskExecutionFixture
 from vibe.workflows.task_runner import TaskRunStatus
 
+pytestmark = pytest.mark.validation
 
 def test_bug_fix_plan_run_records_outcome_and_surfaces_unused_capability(
     tmp_path: Path,

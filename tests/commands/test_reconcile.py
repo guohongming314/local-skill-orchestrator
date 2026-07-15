@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from vibe.cli import app
@@ -11,6 +12,8 @@ from vibe.inspect.repository import inspect_repository
 from vibe.materialize.writer import apply_changeset
 from vibe.models.blueprint import Blueprint, LifecycleStage
 from vibe.models.risk import RiskLevel
+
+pytestmark = pytest.mark.validation
 
 runner = CliRunner()
 

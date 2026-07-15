@@ -4,11 +4,14 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
 from tests.scenarios.builders import build_scenario
 from vibe.cli import app
+
+pytestmark = pytest.mark.validation
 
 runner = CliRunner()
 

@@ -1,0 +1,28 @@
+# Consolidated acceptance matrix
+
+Each row is a release expectation. Test references are exact pytest node IDs and are checked by
+`tests/validation/test_matrix.py`; removing or renaming a mapped test fails the validation run.
+
+| ID | Expectation | Tests |
+| --- | --- | --- |
+| E11-EXIT | Blank web init binds a configured browser provider or reports an explained ranked gap. | tests/e2e/test_init.py::test_blank_web_init_selects_configured_chrome_devtools_mcp<br>tests/e2e/test_init.py::test_blank_web_init_reports_ranked_browser_gap_without_provider |
+| E12-EXIT | A remote capability is explicitly approved, digest-pinned, verified, reversible, and locally degradable. | tests/e2e/test_remote_install_loop.py::test_gap_to_approved_remote_install_doctor_and_uninstall_round_trip<br>tests/e2e/test_remote_install_loop.py::test_digest_tampered_remote_candidate_is_blocked |
+| E13-EXIT | Conversational init supports revision, locking, fallback, pause, resume, review, and materialization. | tests/e2e/test_conversational_init.py::test_existing_repo_conversation_supports_revision_lock_default_and_apply<br>tests/e2e/test_conversational_init.py::test_user_cancels_mid_conversation_leaving_resumable_paused_checkpoint |
+| E14-EXIT | Natural-language planning runs through approval-gated phases, persists outcomes, and surfaces Doctor insight. | tests/e2e/test_task_execution_loop.py::test_bug_fix_plan_run_records_outcome_and_surfaces_unused_capability<br>tests/commands/test_run.py::test_run_uses_natural_language_classification_and_deterministic_risk_floor |
+| E15-EXIT | Hard routing exposes phase-selected tools, audits denials, isolates sessions, and degrades to soft routing. | tests/e2e/test_hard_routing_tool_visibility.py::test_bug_fix_gateway_exposes_only_each_phase_tools_and_audits_blocked_calls<br>tests/e2e/test_hard_routing_tool_visibility.py::test_disabling_gateway_preserves_soft_routing_tool_visibility<br>tests/e2e/test_hard_routing_tool_visibility.py::test_concurrent_gateway_sessions_have_disjoint_tool_inventories |
+| E16-EXIT | Governed upgrades re-approve permission expansion, audit decisions, and propose outcome-backed policy changes. | tests/commands/test_update.py::test_widened_permission_upgrade_blocks_until_reapproved<br>tests/commands/test_audit.py::test_seeded_events_produce_filtered_ordered_json_output<br>tests/practices/test_calibration.py::test_confirmed_calibration_becomes_project_override_with_provenance |
+| DESIGN-01 | The same Blueprint resolves to a reproducible capability set. | tests/commands/test_project_plan.py::test_repeat_plan_is_deterministic |
+| DESIGN-02 | Suitable trusted local capabilities are preferred. | tests/resolver/test_local.py::test_large_monorepo_selects_available_codegraph |
+| DESIGN-03 | External discovery occurs only after an explicit local capability gap. | tests/e2e/test_remote_install_loop.py::test_disabling_discovery_reproduces_e11_recommendations |
+| DESIGN-04 | Generated project instructions stay concise and project-specific. | tests/skills/test_skills.py::test_generated_project_skill_still_passes_structural_validation |
+| DESIGN-05 | Users can inspect, replace, reject, defer, and lock recommendations. | tests/e2e/test_conversational_init.py::test_existing_repo_conversation_supports_revision_lock_default_and_apply |
+| DESIGN-06 | High-risk capabilities cannot be enabled without approval. | tests/e2e/test_remote_install_loop.py::test_unapproved_remote_install_is_refused_without_changes |
+| DESIGN-07 | Tools and capabilities are verified before being marked available. | tests/doctor/test_checks.py::test_tampered_installed_artifact_is_security_class_drift |
+| DESIGN-08 | Meaningful project and capability drift is detected. | tests/commands/test_reconcile.py::test_stack_drift_offers_both_resolutions_and_applies_accept_reality |
+| DESIGN-09 | Different task scenarios produce risk-matched workflows. | tests/e2e/test_plan.py::test_security_migration_and_review_receive_correct_rigorous_gates |
+| DESIGN-10 | Capabilities are phase-scoped and have a degradation path. | tests/e2e/test_hard_routing_tool_visibility.py::test_disabling_gateway_preserves_soft_routing_tool_visibility |
+| DESIGN-11 | Core bug, feature, refactor, security, migration, and release scenarios have verifiable completion criteria. | tests/e2e/test_plan.py::test_versioned_task_sample_set_has_required_evaluation_coverage |
+| DESIGN-12 | Evaluation measures task outcomes and rework rather than installation count. | tests/practices/test_calibration.py::test_n_unused_outcomes_propose_explainable_demotion |
+| CROSS-01 | A freshly initialized project can proceed through plan and phase-gated run. | tests/validation/test_matrix.py::test_fresh_init_can_plan_and_run |
+| CROSS-02 | A remote-installed capability can be bound into a phase-gated run. | tests/validation/test_matrix.py::test_remote_installed_capability_is_used_by_phase_gated_run |
+| CROSS-03 | Organization policy constrains remote recommendations without bypassing user consent. | tests/resolver/test_org_policy.py::test_org_remote_approvals_filter_publishers_without_bypassing_l_consent |
