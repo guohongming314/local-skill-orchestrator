@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from vibe.generated_project_skills import GENERATED_PROJECT_SKILL_NAMES
 from vibe.inspect.git import inspect_git
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
 
@@ -81,7 +82,11 @@ def _is_source_path(relative: Path) -> bool:
     parts = relative.parts
     if ".git" in parts or (parts and parts[0] == ".ai-project"):
         return False
-    if parts[:3] == (".agents", "skills", "project-capability-manager"):
+    if (
+        parts[:2] == (".agents", "skills")
+        and len(parts) >= 3
+        and parts[2] in GENERATED_PROJECT_SKILL_NAMES
+    ):
         return False
     return not relative.name.startswith(".vibe-init-checkpoints.sqlite3")
 

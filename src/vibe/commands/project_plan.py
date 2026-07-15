@@ -9,6 +9,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from vibe.commands.capabilities import _default_cli_specs
+from vibe.generated_project_skills import GENERATED_PROJECT_SKILL_NAMES
 from vibe.inventory.adapters.agent_skill import AgentSkillAdapter, SkillRoot
 from vibe.inventory.adapters.base import (
     AdapterDiscovery,
@@ -123,7 +124,7 @@ class _SourceSkillAdapter(AgentSkillAdapter):
         return tuple(
             item
             for item in super().discover()
-            if Path(item.locator).parent.name != "project-capability-manager"
+            if Path(item.locator).parent.name not in GENERATED_PROJECT_SKILL_NAMES
         )
 
 

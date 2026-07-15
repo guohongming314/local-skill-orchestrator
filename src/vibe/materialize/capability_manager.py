@@ -47,10 +47,12 @@ def render_capability_manager_references(
     """Render local, deterministic capability context and governance references."""
     manifests = {item.manifest.capability_id: item.manifest for item in inventory.capabilities}
     selected_ids = sorted(
-        resolution.capability_id
-        for resolution in plan.resolutions
-        if resolution.status is ResolutionStatus.SELECTED
-        and resolution.capability_id is not None
+        {
+            resolution.capability_id
+            for resolution in plan.resolutions
+            if resolution.status is ResolutionStatus.SELECTED
+            and resolution.capability_id is not None
+        }
     )
     lines = ["# Approved providers and capability gaps", "", "## Approved providers"]
     if selected_ids:

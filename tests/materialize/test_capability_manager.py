@@ -6,6 +6,7 @@ from vibe.materialize.capability_manager import (
     render_capability_manager_references,
     render_capability_manager_skill,
 )
+from vibe.models.resolution import CapabilityResolution, ResolutionStatus
 
 
 def test_skill_is_narrow_capability_governance_not_a_task_router() -> None:
@@ -52,6 +53,21 @@ def test_references_capture_approved_providers_gaps_and_governance() -> None:
     governance = references["references/quality-and-governance.md"]
     assert "explicit approval" in governance
     assert "Doctor" in governance
+
+
+def test_references_render_a_selected_provider_only_once() -> None:
+    _, plan, inventory = inputs()
+    duplicate = CapabilityResolution(
+        requirement="testing",
+        status=ResolutionStatus.SELECTED,
+        capability_id="cli.pytest",
+        reason="same provider satisfies another requirement",
+    )
+    plan = plan.model_copy(update={"resolutions": (*plan.resolutions, duplicate)})
+
+    references = render_capability_manager_references(plan, inventory)
+
+    assert references["references/capability-gaps.md"].count("`cli.pytest`") == 1
 
 
 def test_agents_guidance_is_concise_and_preserves_codex_ownership() -> None:
