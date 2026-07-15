@@ -12,6 +12,7 @@ Use this checklist for every release candidate. Do not publish from this reposit
 - [ ] Verify blank web-project browser capability routing: configured Chrome DevTools MCP is selected; without a browser provider, Playwright and Chrome DevTools recommendations are ranked and explained (`uv run pytest tests/e2e/test_init.py -k blank_web`).
 - [ ] Verify the offline remote-capability loop: explained browser gap → fixture-registry candidate → explicit approval → digest-pinned install → init binding → healthy Doctor → uninstall/reconcile baseline, including unapproved, digest-tampered, offline, and discovery-disabled cases (`uv run pytest tests/e2e/test_remote_install_loop.py`).
 - [ ] Run the consolidated E11–E16 acceptance matrix and cross-epic fixtures; review `tests/results/validation-summary.json`: `uv run pytest -m validation`.
+- [ ] Run the security and permission-gate adversarial audit, including install/update/policy bypasses, malicious capability content, and seeded-secret artifact scans: `uv run pytest -m validation tests/validation/test_security_gates.py`.
 - [ ] Run the full suite: `uv run pytest`.
 - [ ] Verify the latest E17 validation round is all-PASS with zero open remediation Epics: `uv run python scripts/validation/check_release_gate.py --rounds docs/evaluation/validation-rounds`.
 - [ ] Enforce reviewed task-routing evaluation thresholds with the versioned offline runner.
