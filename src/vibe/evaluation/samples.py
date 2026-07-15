@@ -7,7 +7,13 @@ from enum import StrEnum
 from pydantic import Field, model_validator
 
 from vibe.models.base import VersionedModel
-from vibe.models.risk import RiskLevel
+from vibe.models.risk import (
+    DataSensitivity,
+    Reversibility,
+    RiskLevel,
+    ScopeLevel,
+    TaskOperation,
+)
 from vibe.models.task import WorkflowMode
 from vibe.workflows.scenarios import ScenarioId
 
@@ -18,6 +24,21 @@ class TaskDifficulty(StrEnum):
     HIGH_RISK = "high-risk"
 
 
+class CapabilitySource(StrEnum):
+    LOCAL = "local"
+    REMOTE = "remote"
+
+
+class ModelClassification(VersionedModel):
+    scenario: ScenarioId
+    scope: ScopeLevel
+    data_sensitivity: DataSensitivity
+    reversibility: Reversibility
+    operations: frozenset[TaskOperation]
+    risk_level: RiskLevel
+    workflow_mode: WorkflowMode
+
+
 class SampleCapability(VersionedModel):
     capability_id: str = Field(min_length=1)
     name: str = Field(min_length=1)
@@ -25,6 +46,7 @@ class SampleCapability(VersionedModel):
     provides: tuple[str, ...] = Field(min_length=1)
     permissions: tuple[str, ...] = ()
     phases: tuple[str, ...] = Field(min_length=1)
+    source: CapabilitySource = CapabilitySource.LOCAL
 
 
 class TaskSample(VersionedModel):
@@ -39,6 +61,7 @@ class TaskSample(VersionedModel):
     candidates: tuple[SampleCapability, ...]
     tags: tuple[str, ...] = ()
     goal_change: str | None = None
+    model_classification: ModelClassification | None = None
     expected_risk: RiskLevel
     expected_workflow: WorkflowMode
     expected_selected: tuple[str, ...] = ()

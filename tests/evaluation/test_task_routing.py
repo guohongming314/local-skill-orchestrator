@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from vibe.evaluation.samples import TaskSampleSet
+from vibe.evaluation.samples import TaskSample, TaskSampleSet
 from vibe.evaluation.task_routing import (
     EvaluationThresholds,
     TaskRoutingEvaluation,
@@ -95,3 +95,80 @@ def test_cli_writes_schema_valid_deterministic_report(tmp_path: Path) -> None:
     )
     assert output.read_bytes() == first
     assert json.loads(first)["schema_version"] == "1"
+
+
+def test_post_e14_samples_cover_conversational_classification_and_remote_candidates() -> None:
+    sample_set = _samples()
+
+    conversational = [
+        sample for sample in sample_set.samples if sample.model_classification is not None
+    ]
+    remote = [
+        sample
+        for sample in sample_set.samples
+        if any(candidate.source == "remote" for candidate in sample.candidates)
+    ]
+
+    assert len(conversational) >= 2
+    assert any(
+        sample.model_classification is not None
+        and sample.model_classification.scenario != sample.scenario
+        for sample in conversational
+    )
+    assert len(remote) >= 2
+    assert all("remote-candidate" in sample.tags for sample in remote)
+
+
+def test_evaluation_uses_natural_language_classification_and_risk_floor() -> None:
+    source = _samples().samples[0]
+    payload = source.model_dump(mode="json")
+    payload.update(
+        {
+            "sample_id": "post-e14-conversation",
+            "intent": "The user clarified that this is a payment security review.",
+            "scenario": "documentation",
+            "model_classification": {
+                "scenario": "security",
+                "scope": "local",
+                "data_sensitivity": "sensitive",
+                "reversibility": "reversible",
+                "operations": ["modify-security"],
+                "risk_level": "medium",
+                "workflow_mode": "standard",
+            },
+            "expected_risk": "high",
+            "expected_workflow": "rigorous",
+            "phase": "inspect",
+            "expected_selected": (),
+            "expected_permissions": (),
+        }
+    )
+    sample = TaskSample.model_validate(payload)
+
+    result = evaluate_sample_set(TaskSampleSet(samples=(sample,))).samples[0]
+
+    assert result.expected_intent == "security"
+    assert result.actual_intent == "security"
+    assert result.actual_risk == "high"
+    assert result.actual_workflow == "rigorous"
+    assert "classification:model:security" in result.evidence
+
+
+def test_cli_enforce_uses_versioned_default_inputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sample_bytes = SAMPLES.read_bytes()
+    threshold_bytes = Path("tests/evaluation/task-routing/thresholds.json").read_bytes()
+    monkeypatch.chdir(tmp_path)
+    project = tmp_path
+    samples = project / "tests/scenarios/tasks"
+    thresholds = project / "tests/evaluation/task-routing"
+    samples.mkdir(parents=True)
+    thresholds.mkdir(parents=True)
+    samples.joinpath("samples.json").write_bytes(sample_bytes)
+    thresholds.joinpath("thresholds.json").write_bytes(threshold_bytes)
+
+    assert main(["--enforce"]) == 0
+    output = project / "tests/results/task-routing.json"
+    assert output.is_file()
+    TaskRoutingEvaluation.model_validate_json(output.read_bytes())
