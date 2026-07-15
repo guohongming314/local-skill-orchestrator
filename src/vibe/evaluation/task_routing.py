@@ -10,6 +10,8 @@ from pathlib import Path
 
 from pydantic import Field
 
+from vibe.commands.explain_task import CodexScenarioClassification
+from vibe.commands.run import _validated_classification
 from vibe.compiler.context import (
     CapabilityCandidate,
     ContextSource,
@@ -160,13 +162,26 @@ def _evaluate_sample(sample: TaskSample, source_digest: str) -> SampleEvaluation
     intent = TaskIntent(
         task_id=sample.sample_id,
         summary=sample.intent,
-        scenario=sample.scenario,
+        scenario=(
+            sample.model_classification.scenario
+            if sample.model_classification is not None
+            else sample.scenario
+        ),
         scope=sample.scope,
         acceptance_criteria=sample.acceptance,
         cross_module=sample.cross_module,
     )
-    classification = classify_scenario(
+    model_classification = sample.model_classification
+    request = (
         ScenarioRequest(
+            scenario=model_classification.scenario,
+            scope=model_classification.scope,
+            data_sensitivity=model_classification.data_sensitivity,
+            reversibility=model_classification.reversibility,
+            operations=model_classification.operations,
+        )
+        if model_classification is not None
+        else ScenarioRequest(
             scenario=sample.scenario,
             scope=(
                 ScopeLevel.MULTI_COMPONENT
@@ -177,6 +192,17 @@ def _evaluate_sample(sample: TaskSample, source_digest: str) -> SampleEvaluation
             reversibility=Reversibility.REVERSIBLE,
             operations=_operations_for(sample.scenario),
         )
+    )
+    deterministic = classify_scenario(request)
+    classification = _validated_classification(
+        deterministic,
+        (
+            CodexScenarioClassification.model_validate(
+                model_classification.model_dump(mode="json")
+            )
+            if model_classification is not None
+            else None
+        ),
     )
     plan = build_task_plan(
         sample.sample_id,
@@ -239,7 +265,7 @@ def _evaluate_sample(sample: TaskSample, source_digest: str) -> SampleEvaluation
     doctor_detected = capsule_drift_detected and bool(doctor_report.reasons)
     return SampleEvaluation(
         sample_id=sample.sample_id,
-        expected_intent=sample.scenario.value,
+        expected_intent=request.scenario.value,
         actual_intent=classification.scenario.value,
         expected_risk=sample.expected_risk.value,
         actual_risk=plan.risk_level.value,
@@ -255,6 +281,11 @@ def _evaluate_sample(sample: TaskSample, source_digest: str) -> SampleEvaluation
         configuration_succeeded=True,
         doctor_detected_drift=doctor_detected,
         evidence=(
+            "classification:"
+            f"{'model' if model_classification else 'fixture'}:"
+            f"{classification.scenario.value}",
+            "candidate-sources:"
+            + (",".join(sorted({item.source.value for item in sample.candidates})) or "none"),
             f"risk:{sample.expected_risk.value}->{plan.risk_level.value}",
             f"workflow:{sample.expected_workflow.value}->{plan.workflow_mode.value}",
             f"selected:{','.join(capsule.selected_capability_ids) or 'none'}",
@@ -294,16 +325,24 @@ def _metric(name: str, numerator: float, denominator: float) -> MetricResult:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--samples", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--samples", type=Path, default=Path("tests/scenarios/tasks"))
+    parser.add_argument("--output", type=Path, default=Path("tests/results/task-routing.json"))
     parser.add_argument("--thresholds", type=Path)
+    parser.add_argument("--enforce", action="store_true")
     args = parser.parse_args(argv)
     samples_path = args.samples / "samples.json" if args.samples.is_dir() else args.samples
     sample_set = TaskSampleSet.model_validate_json(samples_path.read_text(encoding="utf-8-sig"))
     report = evaluate_sample_set(sample_set)
-    if args.thresholds is not None:
+    threshold_path = (
+        args.thresholds
+        if args.thresholds is not None
+        else Path("tests/evaluation/task-routing/thresholds.json")
+        if args.enforce
+        else None
+    )
+    if threshold_path is not None:
         thresholds = EvaluationThresholds.model_validate_json(
-            args.thresholds.read_text(encoding="utf-8-sig")
+            threshold_path.read_text(encoding="utf-8-sig")
         )
         enforce_thresholds(report, thresholds)
     args.output.parent.mkdir(parents=True, exist_ok=True)
