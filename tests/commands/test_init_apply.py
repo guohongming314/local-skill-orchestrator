@@ -94,11 +94,14 @@ def test_init_applies_complete_configuration_preserves_user_content_and_is_idemp
     payload = json.loads(first.stdout)
     assert payload["status"] == "completed"
     assert (root / ".ai-project/capabilities.lock").is_file()
-    assert (root / ".agents/skills/project-development/SKILL.md").is_file()
+    assert (root / ".agents/skills/project-capability-manager/SKILL.md").is_file()
+    assert not (root / ".agents/skills/project-development").exists()
     agents = (root / "AGENTS.md").read_text(encoding="utf-8-sig")
     assert agents.startswith("# User guidance\n\nKeep this.\n")
     assert (root / "AGENTS.md").read_bytes().startswith(b"\xef\xbb\xbf")
     assert "local-skill-orchestrator:begin" in agents
+    assert "Codex-native Skill discovery" in agents
+    assert "vibe run" not in agents
     before = project_files(root)
 
     second = invoke(root, answer_path, run_id="apply-two")

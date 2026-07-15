@@ -20,6 +20,7 @@ from vibe.conversation.runner import ConversationRunner
 from vibe.conversation.structured_result import StructuredProjectResult, ValueSource
 from vibe.inventory.service import InventoryResult
 from vibe.materialize.agents_md import merge_agents_md
+from vibe.materialize.capability_manager import render_agents_guidance
 from vibe.materialize.changeset import (
     ChangeProposal,
     ChangeSet,
@@ -355,19 +356,15 @@ def _project_changeset(
     ]
     agents_path = root / "AGENTS.md"
     existing_agents = agents_path.read_bytes() if agents_path.is_file() else None
-    managed_guidance = (
-        "## Project development\n\n"
-        "Use the project-development Skill at "
-        "`.agents/skills/project-development/SKILL.md`.\n"
-    )
+    managed_guidance = render_agents_guidance()
     merged_agents = merge_agents_md(existing_agents, managed_guidance).decode("utf-8")
     proposals.append(
         ChangeProposal(
             path="AGENTS.md",
             desired_content=merged_agents,
             ownership=FileOwnership.MANAGED,
-            source="project-development-skill-v1",
-            reason="route project work through generated local guidance",
+            source="project-capability-manager-skill-v1",
+            reason="govern missing, unhealthy, or explicitly managed capabilities",
         )
     )
     commands: tuple[CommandProposal, ...] = ()

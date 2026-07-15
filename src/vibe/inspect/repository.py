@@ -81,7 +81,7 @@ def _is_source_path(relative: Path) -> bool:
     parts = relative.parts
     if ".git" in parts or (parts and parts[0] == ".ai-project"):
         return False
-    if parts[:3] == (".agents", "skills", "project-development"):
+    if parts[:3] == (".agents", "skills", "project-capability-manager"):
         return False
     return not relative.name.startswith(".vibe-init-checkpoints.sqlite3")
 

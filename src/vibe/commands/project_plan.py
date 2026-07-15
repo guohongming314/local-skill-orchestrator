@@ -117,13 +117,13 @@ class _ProjectMarkerAdapter:
 
 
 class _SourceSkillAdapter(AgentSkillAdapter):
-    """Ignore the generated routing Skill so repeat initialization stays stable."""
+    """Ignore the generated capability Skill so repeat initialization stays stable."""
 
     def discover(self) -> tuple[AdapterDiscovery, ...]:
         return tuple(
             item
             for item in super().discover()
-            if Path(item.locator).parent.name != "project-development"
+            if Path(item.locator).parent.name != "project-capability-manager"
         )
 
 

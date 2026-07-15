@@ -51,10 +51,11 @@ def test_generated_project_skill_still_passes_structural_validation(tmp_path: Pa
         target.write_text(content, encoding="utf-8")
 
     result = _scan(
-        tmp_path / ".agents/skills/project-development",
+        tmp_path / ".agents/skills/project-capability-manager",
         CapabilityScope.PROJECT,
     )
-    assert result.manifest.capability_id == "skill.project-development"
+    assert result.manifest.capability_id == "skill.project-capability-manager"
+    assert result.manifest.codex_skill.allow_implicit_invocation is True
     assert result.verification.verified
 
 

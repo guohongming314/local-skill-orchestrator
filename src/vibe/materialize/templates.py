@@ -9,6 +9,11 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from vibe.inventory.service import InventoryResult
+from vibe.materialize.capability_manager import (
+    render_capability_manager_references,
+    render_capability_manager_skill,
+)
+from vibe.materialize.codex_metadata import render_capability_manager_metadata
 from vibe.models.base import VersionedModel
 from vibe.models.blueprint import Blueprint
 from vibe.models.capability import CapabilityManifest
@@ -141,6 +146,10 @@ def render_project_configuration(
     )
     usage = CapabilityUsage(routes=_usage_routes(selected))
 
+    capability_references = render_capability_manager_references(
+        resolution_plan, inventory
+    )
+    skill_root = ".agents/skills/project-capability-manager"
     files = {
         ".ai-project/blueprint.yaml": _yaml(blueprint.model_dump(mode="json")),
         ".ai-project/capabilities.yaml": _yaml(capabilities.model_dump(mode="json")),
@@ -151,11 +160,12 @@ def render_project_configuration(
         ".ai-project/workflows.yaml": _yaml(workflows.model_dump(mode="json")),
         ".ai-project/task-policies.yaml": _yaml(task_policies.model_dump(mode="json")),
         ".ai-project/capability-usage.yaml": _yaml(usage.model_dump(mode="json")),
-        ".agents/skills/project-development/SKILL.md": _skill(blueprint),
-        ".agents/skills/project-development/references/capability-routing.md": (
-            _capability_routing(selected, resolution_plan)
-        ),
-        ".agents/skills/project-development/references/quality-gates.md": _quality_gates(),
+        f"{skill_root}/SKILL.md": render_capability_manager_skill(blueprint),
+        f"{skill_root}/agents/openai.yaml": render_capability_manager_metadata(),
+        **{
+            f"{skill_root}/{path}": content
+            for path, content in capability_references.items()
+        },
     }
     return RenderedProject(tuple(RenderedFile(path, files[path]) for path in sorted(files)))
 
@@ -271,40 +281,3 @@ Before completing a change:
 4. Build the distributable artifact.
 5. Require CI to pass before merge.
 """
-
-
-def _skill(blueprint: Blueprint) -> str:
-    return f"""---
-name: project-development
-description: Develop {blueprint.project_name} with local policy and verified capabilities.
-version: 1.0.0
----
-
-# Project development
-
-Use the project's deterministic configuration when planning and implementing changes.
-
-- Read [capability routing](references/capability-routing.md) before choosing tools.
-- Follow the [quality gates](references/quality-gates.md) before completion.
-"""
-
-
-def _capability_routing(
-    selected: tuple[CapabilityManifest, ...], plan: ResolutionPlan
-) -> str:
-    lines = ["# Capability routing", "", "## Selected providers"]
-    if selected:
-        lines.extend(
-            f"- `{manifest.capability_id}`: {', '.join(sorted(manifest.provides))}"
-            for manifest in selected
-        )
-    else:
-        lines.append("- No additional local providers selected.")
-    gaps = sorted(
-        resolution.requirement
-        for resolution in plan.resolutions
-        if resolution.status is ResolutionStatus.GAP
-    )
-    lines.extend(["", "## Gaps"])
-    lines.extend(f"- {gap}" for gap in gaps) if gaps else lines.append("- None.")
-    return "\n".join(lines) + "\n"

@@ -125,9 +125,10 @@ def test_renders_complete_project_configuration_and_all_yaml_validates() -> None
         ".ai-project/workflows.yaml",
         ".ai-project/task-policies.yaml",
         ".ai-project/capability-usage.yaml",
-        ".agents/skills/project-development/SKILL.md",
-        ".agents/skills/project-development/references/capability-routing.md",
-        ".agents/skills/project-development/references/quality-gates.md",
+        ".agents/skills/project-capability-manager/SKILL.md",
+        ".agents/skills/project-capability-manager/agents/openai.yaml",
+        ".agents/skills/project-capability-manager/references/capability-gaps.md",
+        ".agents/skills/project-capability-manager/references/quality-and-governance.md",
     }
     validate_rendered_yaml(rendered)
     Blueprint.model_validate(yaml.safe_load(files[".ai-project/blueprint.yaml"]))
@@ -174,17 +175,18 @@ def test_generated_project_skill_passes_local_structural_validation(tmp_path: Pa
     )
     result = adapter.scan(adapter.discover()[0])
 
-    assert result.manifest.capability_id == "skill.project-development"
+    assert result.manifest.capability_id == "skill.project-capability-manager"
     assert result.manifest.version == "1.0.0"
     assert result.verification.verified
     assert result.verification.details == (
-        "dependency:references/capability-routing.md",
-        "dependency:references/quality-gates.md",
+        "dependency:agents/openai.yaml",
+        "dependency:references/capability-gaps.md",
+        "dependency:references/quality-and-governance.md",
     )
 
 
 def test_template_sources_are_versioned_and_do_not_contain_project_values() -> None:
-    template_root = Path(__file__).parents[2] / "templates" / "project-development"
+    template_root = Path(__file__).parents[2] / "templates" / "project-capability-manager"
 
     skill_template = (template_root / "SKILL.md.tmpl").read_text(encoding="utf-8")
 

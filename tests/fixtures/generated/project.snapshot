@@ -1,34 +1,52 @@
-=== .agents/skills/project-development/SKILL.md ===
+=== .agents/skills/project-capability-manager/SKILL.md ===
 ---
-name: project-development
-description: Develop demo-project with local policy and verified capabilities.
+name: project-capability-manager
+description: Diagnose and govern missing or unhealthy capabilities for demo-project.
 version: 1.0.0
 ---
 
-# Project development
+# Project capability manager
 
-Use the project's deterministic configuration when planning and implementing changes.
+Use this Skill only when Codex cannot complete a task with the current skills or tools,
+a required dependency is missing or unhealthy, or the user asks to manage capabilities.
 
-- Read [capability routing](references/capability-routing.md) before choosing tools.
-- Follow the [quality gates](references/quality-gates.md) before completion.
-=== .agents/skills/project-development/references/capability-routing.md ===
-# Capability routing
+Do not use this Skill for ordinary task classification or when existing capabilities suffice.
+Use Codex-native Skill discovery for ordinary tasks.
 
-## Selected providers
+When capability governance is needed:
+
+1. Read [approved providers and capability gaps](references/capability-gaps.md).
+2. Read the [quality and governance rules](references/quality-and-governance.md).
+3. Diagnose and explain the capability gap or unhealthy dependency.
+4. Recommend the smallest suitable change and obtain approval before mutation.
+5. As approved, install, replace, update, disable, or remove the capability.
+6. Run Doctor and focused verification after changes.
+
+Never start another Codex, and never delegate task execution to `vibe run`.
+=== .agents/skills/project-capability-manager/agents/openai.yaml ===
+interface:
+  display_name: Project Capability Manager
+  short_description: Govern missing or unhealthy project capabilities
+  default_prompt: Use $project-capability-manager to diagnose and manage a missing
+    or unhealthy project capability.
+policy:
+  allow_implicit_invocation: true
+=== .agents/skills/project-capability-manager/references/capability-gaps.md ===
+# Approved providers and capability gaps
+
+## Approved providers
 - `cli.pytest`: quality.gates, testing
 
-## Gaps
+## Capability gaps
 - release-automation
-=== .agents/skills/project-development/references/quality-gates.md ===
-# Quality gates
+=== .agents/skills/project-capability-manager/references/quality-and-governance.md ===
+# Quality and governance
 
-Before completing a change:
-
-1. Run focused verification.
-2. Run the full test suite.
-3. Run lint and static type checks.
-4. Build the distributable artifact.
-5. Require CI to pass before merge.
+- Explain the capability gap and why current capabilities do not suffice.
+- Prefer approved, least-privilege providers and the smallest reversible change.
+- Obtain explicit approval before install, replace, update, disable, or remove actions.
+- Preserve project-owned files and record deterministic capability state.
+- Run Doctor and focused verification after every approved change.
 === .ai-project/blueprint.yaml ===
 constraints:
 - locked: true
