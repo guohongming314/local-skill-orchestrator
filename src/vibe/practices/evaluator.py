@@ -65,7 +65,6 @@ def evaluate_practice_packs(
                 )
             )
     override_map = _normalize_overrides(overrides)
-    override_map = _normalize_overrides(overrides)
     merged: list[AbstractCapabilityRequirement] = []
     for capability in sorted(contributions):
         merged_requirement = _merge_requirement(
@@ -146,4 +145,5 @@ def _merge_requirement(
         reasons=tuple(item.rationale for item in ordered),
         verification=tuple(step for item in ordered for step in item.verification),
         overridden=override is not None,
+        override_provenance=override.provenance if override is not None else None,
     )

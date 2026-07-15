@@ -1,4 +1,6 @@
-﻿from __future__ import annotations
+from __future__ import annotations
+
+from enum import StrEnum
 
 from pydantic import Field, model_validator
 
@@ -6,10 +8,16 @@ from vibe.models.base import VersionedModel
 from vibe.practices.models import RequirementStrength
 
 
+class OverrideProvenance(StrEnum):
+    USER = "user"
+    OUTCOME_CALIBRATION = "outcome-calibration"
+
+
 class RequirementOverride(VersionedModel):
     capability: str = Field(min_length=1)
     enabled: bool = True
     strength: RequirementStrength | None = None
+    provenance: OverrideProvenance = OverrideProvenance.USER
 
     @model_validator(mode="after")
     def disabled_override_has_no_strength(self) -> RequirementOverride:
@@ -26,3 +34,4 @@ class AbstractCapabilityRequirement(VersionedModel):
     reasons: tuple[str, ...] = Field(min_length=1)
     verification: tuple[str, ...] = Field(min_length=1)
     overridden: bool = False
+    override_provenance: OverrideProvenance | None = None

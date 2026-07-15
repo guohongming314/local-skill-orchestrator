@@ -1,5 +1,13 @@
-﻿"""Abstract capability requirement generation and local resolution."""
+"""Abstract capability requirement generation and local resolution."""
 
-from vibe.resolver.requirements import AbstractCapabilityRequirement, RequirementOverride
+from vibe.resolver.requirements import (
+    AbstractCapabilityRequirement,
+    OverrideProvenance,
+    RequirementOverride,
+)
 
-__all__ = ["AbstractCapabilityRequirement", "RequirementOverride"]
+__all__ = [
+    "AbstractCapabilityRequirement",
+    "OverrideProvenance",
+    "RequirementOverride",
+]

@@ -35,6 +35,7 @@ from vibe.models.base import VersionedModel
 from vibe.models.blueprint import Blueprint
 from vibe.persistence.database import default_database_path
 from vibe.policy.org import load_org_policy
+from vibe.practices.calibration import CalibrationOutcome, pending_suggestions
 from vibe.practices.loader import load_practice_pack
 
 CommandResolver = Callable[[str], str | None]
@@ -418,6 +419,47 @@ class OutcomeInsightsCheck:
         )
 
 
+class CalibrationSuggestionsCheck:
+    """Surface pending outcome-calibration changes for explicit user review."""
+
+    def __init__(self, database: Path | None = None) -> None:
+        self._database = (database or default_database_path()).resolve()
+
+    def check(self, context: DoctorContext) -> tuple[DoctorFinding, ...]:
+        outcomes = OutcomeInsightsCheck(self._database)._read_outcomes()
+        suggestions = pending_suggestions(
+            context.root,
+            tuple(
+                CalibrationOutcome(
+                    task_id=record.task_id,
+                    unused_recommendations=record.unused_recommendations,
+                )
+                for record in outcomes
+            ),
+        )
+        return tuple(
+            DoctorFinding(
+                code="outcome.calibration-pending",
+                severity=Severity.ACTIONABLE,
+                summary=(
+                    f"Recommendation strength for {suggestion.capability} can be "
+                    f"changed from {suggestion.current_strength.value} to "
+                    f"{suggestion.proposed_strength.value}."
+                ),
+                evidence=(
+                    suggestion.capability,
+                    suggestion.rule,
+                    *suggestion.evidence,
+                ),
+                remediation=(
+                    "Review the listed outcomes and explicitly confirm or reject this "
+                    "project calibration; it will not be applied automatically."
+                ),
+            )
+            for suggestion in suggestions
+        )
+
+
 class OrganizationPolicyCheck:
     """Report generated project configuration that violates current org guardrails."""
 
@@ -501,6 +543,7 @@ DEFAULT_CHECKS: tuple[DoctorCheck, ...] = (
     OrganizationPolicyCheck(),
     ConversationRecoveryCheck(),
     OutcomeInsightsCheck(),
+    CalibrationSuggestionsCheck(),
 )
 
 
