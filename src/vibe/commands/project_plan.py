@@ -31,6 +31,7 @@ from vibe.models.capability import (
 )
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
 from vibe.models.resolution import CapabilityResolution, ResolutionPlan, ResolutionStatus
+from vibe.practices.calibration import load_confirmed_overrides
 from vibe.practices.evaluator import evaluate_practice_packs
 from vibe.practices.loader import load_practice_packs
 from vibe.practices.models import RequirementStrength
@@ -143,7 +144,7 @@ def build_project_plan(
 ) -> ProjectPlan:
     profiled = _with_scale_facts(repository)
     inventory = inventory or _project_inventory(root)
-    requirements = _requirements(inventory, blueprint, profiled)
+    requirements = _requirements(root, inventory, blueprint, profiled)
     resolution = resolve_local_capabilities(
         requirements,
         inventory,
@@ -209,13 +210,17 @@ def _user_codex_home() -> Path:
 
 
 def _requirements(
+    root: Path,
     inventory: InventoryResult,
     blueprint: Blueprint,
     repository: RepositorySnapshot,
 ) -> tuple[AbstractCapabilityRequirement, ...]:
     packs_root = Path(__file__).resolve().parents[3] / "practice-packs"
     pack_requirements = evaluate_practice_packs(
-        load_practice_packs(packs_root), blueprint, repository
+        load_practice_packs(packs_root),
+        blueprint,
+        repository,
+        overrides=load_confirmed_overrides(root),
     )
     marker_requirements = _marker_requirements(inventory)
     return tuple(
