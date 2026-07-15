@@ -2,13 +2,13 @@
   "schema_version": 1,
   "round": 1,
   "expectations": [
-    {"id": "E17-1", "expectation": "Blank web project recommends and binds browser verification", "status": "PASS", "evidence": ["../../../tests/e2e/test_init.py"]},
-    {"id": "E17-2", "expectation": "Capability gaps are explained and local choices remain reversible", "status": "PASS", "evidence": ["../../../tests/resolver/test_local.py", "../../../tests/materialize/test_writer.py"]},
-    {"id": "E17-3", "expectation": "Initialization covers project goal, stage, risk, constraints, permissions, and preferences", "status": "PASS", "evidence": ["../../../tests/conversation/test_interview.py"]},
-    {"id": "E17-4", "expectation": "Planned tasks are phase-gated with outcome and doctor support", "status": "PASS", "evidence": ["../../../tests/workflows/test_task_graph.py", "../../../tests/doctor/test_checks.py"]},
-    {"id": "E17-5", "expectation": "Hard routing exposes only capsule-selected tools", "status": "PASS", "evidence": ["../../../tests/compiler/test_context.py"]},
-    {"id": "E17-6", "expectation": "Lifecycle governance re-approves permission expansion", "status": "PASS", "evidence": ["../../../tests/codex/test_approvals.py"]},
-    {"id": "E17-7", "expectation": "Design success criteria are traceable", "status": "PASS", "evidence": ["../task-routing-baseline.md", "../../../tests/e2e"]}
+    {"id": "E17-1", "expectation": "Blank web project + installed Chrome DevTools MCP: vibe init recommends/binds browser verification (E11)", "status": "PASS", "evidence": ["../../../tests/e2e/test_init.py"]},
+    {"id": "E17-2", "expectation": "Missing capability -> explained remote candidates -> approved install -> locked, verified, reversible (E12)", "status": "PASS", "evidence": ["../../../tests/e2e/test_remote_install_loop.py", "../../../tests/remote/test_install.py"]},
+    {"id": "E17-3", "expectation": "vibe init runs as a real conversation covering goal, stage, risk, constraints, permissions, preferences (E13)", "status": "PASS", "evidence": ["../../../tests/e2e/test_conversational_init.py", "../../../tests/conversation/test_interview.py"]},
+    {"id": "E17-4", "expectation": "A planned task executes phase-gated with outcome recording and doctor insights (E14)", "status": "PASS", "evidence": ["../../../tests/e2e/test_task_execution_loop.py", "../../../tests/workflows/test_task_runner.py"]},
+    {"id": "E17-5", "expectation": "Sessions see only capsule-selected tools when hard routing is enabled (E15)", "status": "PASS", "evidence": ["../../../tests/e2e/test_hard_routing_tool_visibility.py", "../../../tests/routing/test_gateway.py"]},
+    {"id": "E17-6", "expectation": "Update/reconcile/audit lifecycle works with re-approval on permission expansion (E16)", "status": "PASS", "evidence": ["../../../tests/commands/test_update.py", "../../../tests/commands/test_audit.py", "../../../tests/commands/test_reconcile.py"]},
+    {"id": "E17-7", "expectation": "Every design success-criteria bullet holds via the traceability matrix", "status": "PASS", "evidence": ["../acceptance-matrix.md", "../task-routing-2026-07-15.md", "../../../tests/validation/test_matrix.py"]}
   ],
   "remediation_epics": [],
   "expectation_changes": []
