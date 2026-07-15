@@ -11,6 +11,15 @@ from vibe.materialize.capability_manager import (
 def test_skill_is_narrow_capability_governance_not_a_task_router() -> None:
     blueprint, _, _ = inputs()
     document = render_capability_manager_skill(blueprint)
+    frontmatter = document.split("---", 2)[1]
+
+    for phrase in (
+        "missing or unhealthy capability or dependency",
+        "install, replace, update, remove, or manage",
+        "Do not use for ordinary task classification",
+        "existing capabilities are sufficient",
+    ):
+        assert phrase in frontmatter
 
     for phrase in (
         "cannot complete a task with the current skills or tools",

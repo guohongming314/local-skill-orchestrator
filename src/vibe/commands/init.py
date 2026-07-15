@@ -354,6 +354,20 @@ def _project_changeset(
         )
         for path, content in rendered_files.items()
     ]
+    proposals.extend(
+        ChangeProposal(
+            path=path,
+            desired_content=None,
+            ownership=FileOwnership.OWNED,
+            source="project-capability-manager-migration-v1",
+            reason="remove obsolete generated project-development Skill file",
+        )
+        for path in (
+            ".agents/skills/project-development/SKILL.md",
+            ".agents/skills/project-development/references/capability-routing.md",
+            ".agents/skills/project-development/references/quality-gates.md",
+        )
+    )
     agents_path = root / "AGENTS.md"
     existing_agents = agents_path.read_bytes() if agents_path.is_file() else None
     managed_guidance = render_agents_guidance()

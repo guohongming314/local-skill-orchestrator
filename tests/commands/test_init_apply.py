@@ -111,6 +111,31 @@ def test_init_applies_complete_configuration_preserves_user_content_and_is_idemp
     assert json.loads(second.stdout)["applied_paths"] == []
 
 
+def test_init_removes_only_exact_obsolete_project_development_files(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "pyproject.toml").write_text("[project]\nname='demo'\n", encoding="utf-8")
+    legacy_root = root / ".agents/skills/project-development"
+    legacy_files = (
+        legacy_root / "SKILL.md",
+        legacy_root / "references/capability-routing.md",
+        legacy_root / "references/quality-gates.md",
+    )
+    for path in legacy_files:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("legacy generated content\n", encoding="utf-8")
+    user_file = legacy_root / "notes.md"
+    user_file.write_text("keep user content\n", encoding="utf-8")
+
+    result = invoke(root, answers(tmp_path), run_id="legacy-migration")
+
+    assert result.exit_code == 0, result.output
+    assert all(not path.exists() for path in legacy_files)
+    assert user_file.read_text(encoding="utf-8") == "keep user content\n"
+
+
 def test_init_review_surfaces_practice_pack_origins_and_reasons(tmp_path: Path) -> None:
     root = tmp_path / "web-project"
     root.mkdir()

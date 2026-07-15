@@ -21,4 +21,3 @@ def test_capability_manager_metadata_is_deterministic_and_codex_native() -> None
         },
         "policy": {"allow_implicit_invocation": True},
     }
-

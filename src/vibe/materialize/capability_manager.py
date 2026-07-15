@@ -9,9 +9,14 @@ from vibe.models.resolution import ResolutionPlan, ResolutionStatus
 
 def render_capability_manager_skill(blueprint: Blueprint) -> str:
     """Render guidance that activates only for capability governance."""
+    description = (
+        "Use for a missing or unhealthy capability or dependency, or when the user asks "
+        "to install, replace, update, remove, or manage capabilities. Do not use for "
+        "ordinary task classification or when existing capabilities are sufficient."
+    )
     return f"""---
 name: project-capability-manager
-description: Diagnose and govern missing or unhealthy capabilities for {blueprint.project_name}.
+description: {description}
 version: 1.0.0
 ---
 

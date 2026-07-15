@@ -23,4 +23,3 @@ def render_capability_manager_metadata() -> str:
         allow_unicode=True,
         default_flow_style=False,
     )
-
