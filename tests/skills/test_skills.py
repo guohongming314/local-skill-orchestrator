@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from tests.materialize.test_templates import inputs
+from tests.materialize.test_templates import inputs, requirements
 from vibe.inventory.adapters.agent_skill import AgentSkillAdapter, SkillRoot
 from vibe.inventory.adapters.base import AdapterScanResult
 from vibe.materialize.templates import render_project_configuration
@@ -44,7 +44,10 @@ def test_bootstrap_skill_keeps_guidance_separate_from_cli_policy() -> None:
 
 
 def test_generated_project_skill_still_passes_structural_validation(tmp_path: Path) -> None:
-    rendered = render_project_configuration(*inputs())
+    blueprint, plan, inventory = inputs()
+    rendered = render_project_configuration(
+        blueprint, plan, inventory, requirements=requirements()
+    )
     for relative, content in rendered.as_dict().items():
         target = tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)

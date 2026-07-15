@@ -242,6 +242,7 @@ def init_command(
                 structured.blueprint,
                 inventory=project_plan.inventory,
                 resolution=project_plan.resolution,
+                requirements=project_plan.requirements,
                 git_init_decision=git_init if snapshot.is_empty else None,
                 remote_decisions=effective_remote_decisions,
             )
@@ -304,14 +305,21 @@ def _project_changeset(
     *,
     inventory: InventoryResult | None = None,
     resolution: ResolutionPlan | None = None,
+    requirements: tuple[AbstractCapabilityRequirement, ...] | None = None,
     git_init_decision: bool | None = None,
     remote_decisions: Mapping[str, str] | None = None,
 ) -> ChangeSet:
-    if inventory is None or resolution is None:
+    if inventory is None or resolution is None or requirements is None:
         plan = build_project_plan(root, blueprint, _complete_snapshot(root))
-        inventory = plan.inventory
-        resolution = plan.resolution
-    rendered = render_project_configuration(blueprint, resolution, inventory)
+        if inventory is None:
+            inventory = plan.inventory
+        if resolution is None:
+            resolution = plan.resolution
+        if requirements is None:
+            requirements = plan.requirements
+    rendered = render_project_configuration(
+        blueprint, resolution, inventory, requirements=requirements
+    )
     rendered_files = rendered.as_dict()
     if git_init_decision is not None:
         decision = "approved" if git_init_decision else "declined"

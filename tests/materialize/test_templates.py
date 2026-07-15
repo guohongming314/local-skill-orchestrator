@@ -19,6 +19,7 @@ from vibe.models.capability import (
     CapabilityScope,
     Permission,
 )
+from vibe.models.codex_skill import CodexSkillMetadata, SkillToolDependency
 from vibe.models.resolution import (
     CapabilityRecommendation,
     CapabilityResolution,
@@ -28,6 +29,7 @@ from vibe.models.resolution import (
 )
 from vibe.models.risk import RiskLevel
 from vibe.practices.models import RequirementStrength
+from vibe.resolver.requirements import AbstractCapabilityRequirement
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "generated" / "project.snapshot"
 
@@ -38,6 +40,7 @@ def capability(
     provides: tuple[str, ...],
     digest: str,
     kind: CapabilityKind = CapabilityKind.CLI_TOOL,
+    codex_skill: CodexSkillMetadata | None = None,
 ) -> AdapterScanResult:
     manifest = CapabilityManifest(
         capability_id=capability_id,
@@ -50,11 +53,33 @@ def capability(
         version="1.2.3",
         content_digest=digest,
         verified=True,
+        codex_skill=codex_skill,
     )
     return AdapterScanResult(
         manifest=manifest,
         provenance=AdapterProvenance("fixture", capability_id),
         verification=AdapterVerification(True, ("fixture verified",)),
+    )
+
+
+def requirements() -> tuple[AbstractCapabilityRequirement, ...]:
+    return (
+        AbstractCapabilityRequirement(
+            capability="quality.gates",
+            strength=RequirementStrength.REQUIRED,
+            originating_packs=("quality",),
+            originating_requirements=("quality-gates",),
+            reasons=("The project requires deterministic quality checks.",),
+            verification=("Run the configured quality gate before completion.",),
+        ),
+        AbstractCapabilityRequirement(
+            capability="testing",
+            strength=RequirementStrength.RECOMMENDED,
+            originating_packs=("development",),
+            originating_requirements=("test-runner",),
+            reasons=("The project preference is test-first development.",),
+            verification=("Run focused tests for changed behavior.",),
+        ),
     )
 
 
@@ -81,6 +106,18 @@ def inputs() -> tuple[Blueprint, ResolutionPlan, InventoryResult]:
                 digest="search-content-digest",
                 kind=CapabilityKind.MCP,
             ),
+            capability(
+                "skill.test-guide",
+                provides=("testing",),
+                digest="skill-content-digest",
+                kind=CapabilityKind.SKILL,
+                codex_skill=CodexSkillMetadata(
+                    allow_implicit_invocation=False,
+                    tool_dependencies=(
+                        SkillToolDependency(dependency_type="mcp", value="filesystem"),
+                    ),
+                ),
+            ),
         ),
         diagnostics=(),
         inventory_digest="inventory-digest",
@@ -102,6 +139,12 @@ def inputs() -> tuple[Blueprint, ResolutionPlan, InventoryResult]:
                 reason="higher permission provider rejected",
             ),
             CapabilityResolution(
+                requirement="testing",
+                status=ResolutionStatus.SELECTED,
+                capability_id="skill.test-guide",
+                reason="selected project testing guidance",
+            ),
+            CapabilityResolution(
                 requirement="release-automation",
                 status=ResolutionStatus.GAP,
                 reason="no local provider",
@@ -111,14 +154,22 @@ def inputs() -> tuple[Blueprint, ResolutionPlan, InventoryResult]:
     return blueprint, plan, inventory
 
 
+def render_inputs():
+    blueprint, plan, inventory = inputs()
+    return render_project_configuration(
+        blueprint, plan, inventory, requirements=requirements()
+    )
+
+
 def test_renders_complete_project_configuration_and_all_yaml_validates() -> None:
-    rendered = render_project_configuration(*inputs())
+    rendered = render_inputs()
     files = rendered.as_dict()
 
     assert set(files) == {
         ".ai-project/blueprint.yaml",
         ".ai-project/capabilities.yaml",
         ".ai-project/capabilities.lock",
+        ".ai-project/capability-requirements.yaml",
         ".ai-project/policy.yaml",
         ".ai-project/decisions.md",
         ".ai-project/quality-gates.md",
@@ -135,35 +186,59 @@ def test_renders_complete_project_configuration_and_all_yaml_validates() -> None
 
 
 def test_lockfile_pins_selected_provider_identity_and_content_digest() -> None:
-    files = render_project_configuration(*inputs()).as_dict()
+    files = render_inputs().as_dict()
 
     lock = yaml.safe_load(files[".ai-project/capabilities.lock"])
 
     assert lock["schema_version"] == "1"
     assert lock["inventory_digest"] == "inventory-digest"
-    assert lock["providers"] == [
-        {
-            "provider_id": "cli.pytest",
-            "kind": "cli-tool",
-            "scope": "user",
-            "source": "local:cli.pytest",
-            "version": "1.2.3",
-            "content_digest": "pytest-content-digest",
-        }
-    ]
+    assert lock["providers"][0] == {
+        "provider_id": "cli.pytest",
+        "kind": "cli-tool",
+        "scope": "user",
+        "source": "local:cli.pytest",
+        "version": "1.2.3",
+        "content_digest": "pytest-content-digest",
+    }
+    assert "codex_skill" not in lock["providers"][0]
+    assert lock["providers"][1]["provider_id"] == "skill.test-guide"
+    assert lock["providers"][1]["codex_skill"] == {
+        "allow_implicit_invocation": False,
+        "tool_dependencies": [
+            {"dependency_type": "mcp", "value": "filesystem"}
+        ],
+    }
     assert "mcp.search" not in files[".ai-project/capabilities.lock"]
 
 
+def test_requirement_artifact_preserves_abstract_evaluation_without_provider_binding() -> None:
+    payload = yaml.safe_load(
+        render_inputs().as_dict()[".ai-project/capability-requirements.yaml"]
+    )
+
+    quality_gate = next(
+        item for item in payload["requirements"] if item["capability"] == "quality.gates"
+    )
+    assert quality_gate["strength"] == "required"
+    assert quality_gate["reasons"] == [
+        "The project requires deterministic quality checks."
+    ]
+    assert quality_gate["verification"] == [
+        "Run the configured quality gate before completion."
+    ]
+    assert quality_gate["selected_provider"] is None
+
+
 def test_rendered_snapshot_is_byte_stable() -> None:
-    first = render_project_configuration(*inputs()).snapshot_bytes()
-    second = render_project_configuration(*inputs()).snapshot_bytes()
+    first = render_inputs().snapshot_bytes()
+    second = render_inputs().snapshot_bytes()
 
     assert first == second
     assert first == FIXTURE.read_bytes()
 
 
 def test_generated_project_skill_passes_local_structural_validation(tmp_path: Path) -> None:
-    rendered = render_project_configuration(*inputs())
+    rendered = render_inputs()
     for relative_path, content in rendered.as_dict().items():
         target = tmp_path / relative_path
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -226,7 +301,9 @@ def test_gap_recommendations_render_in_decisions() -> None:
     )
     plan = plan.model_copy(update={"resolutions": (*plan.resolutions, browser_gap)})
 
-    decisions = render_project_configuration(blueprint, plan, inventory).as_dict()[
+    decisions = render_project_configuration(
+        blueprint, plan, inventory, requirements=requirements()
+    ).as_dict()[
         ".ai-project/decisions.md"
     ]
 
@@ -247,7 +324,9 @@ def test_zero_gap_plan_renders_no_recommendation_section() -> None:
         }
     )
 
-    decisions = render_project_configuration(blueprint, plan, inventory).as_dict()[
+    decisions = render_project_configuration(
+        blueprint, plan, inventory, requirements=requirements()
+    ).as_dict()[
         ".ai-project/decisions.md"
     ]
 

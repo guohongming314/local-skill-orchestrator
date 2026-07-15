@@ -17,7 +17,10 @@ from vibe.materialize.codex_metadata import render_capability_manager_metadata
 from vibe.models.base import VersionedModel
 from vibe.models.blueprint import Blueprint
 from vibe.models.capability import CapabilityManifest
+from vibe.models.codex_skill import CodexSkillMetadata
 from vibe.models.resolution import ResolutionPlan, ResolutionStatus
+from vibe.practices.models import RequirementStrength
+from vibe.resolver.requirements import AbstractCapabilityRequirement
 
 
 @dataclass(frozen=True, order=True)
@@ -53,6 +56,7 @@ class CapabilityLockEntry(BaseModel):
     publisher_verification: str | None = None
     digest_verified: bool | None = None
     permission_level: str | None = None
+    codex_skill: CodexSkillMetadata | None = None
 
 
 class CapabilityLock(VersionedModel):
@@ -84,10 +88,25 @@ class CapabilityUsage(VersionedModel):
     routes: tuple[dict[str, Any], ...]
 
 
+class EvaluatedCapabilityRequirement(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    capability: str = Field(min_length=1)
+    strength: RequirementStrength
+    reasons: tuple[str, ...] = Field(min_length=1)
+    verification: tuple[str, ...] = Field(min_length=1)
+    selected_provider: None = None
+
+
+class CapabilityRequirements(VersionedModel):
+    requirements: tuple[EvaluatedCapabilityRequirement, ...]
+
+
 def render_project_configuration(
     blueprint: Blueprint,
     resolution_plan: ResolutionPlan,
     inventory: InventoryResult,
+    *,
+    requirements: tuple[AbstractCapabilityRequirement, ...],
 ) -> RenderedProject:
     """Render all project configuration in memory without touching the target project."""
     if resolution_plan.inventory_digest != inventory.inventory_digest:
@@ -105,6 +124,7 @@ def render_project_configuration(
                 source=manifest.source,
                 version=manifest.version,
                 content_digest=manifest.content_digest,
+                codex_skill=manifest.codex_skill,
             )
             for manifest in selected
         ),
@@ -145,6 +165,17 @@ def render_project_configuration(
         )
     )
     usage = CapabilityUsage(routes=_usage_routes(selected))
+    evaluated_requirements = CapabilityRequirements(
+        requirements=tuple(
+            EvaluatedCapabilityRequirement(
+                capability=requirement.capability,
+                strength=requirement.strength,
+                reasons=requirement.reasons,
+                verification=requirement.verification,
+            )
+            for requirement in sorted(requirements, key=lambda item: item.capability)
+        )
+    )
 
     capability_references = render_capability_manager_references(
         resolution_plan, inventory
@@ -154,6 +185,9 @@ def render_project_configuration(
         ".ai-project/blueprint.yaml": _yaml(blueprint.model_dump(mode="json")),
         ".ai-project/capabilities.yaml": _yaml(capabilities.model_dump(mode="json")),
         ".ai-project/capabilities.lock": _yaml(lock.model_dump(mode="json", exclude_none=True)),
+        ".ai-project/capability-requirements.yaml": _yaml(
+            evaluated_requirements.model_dump(mode="json")
+        ),
         ".ai-project/policy.yaml": _yaml(policy.model_dump(mode="json")),
         ".ai-project/decisions.md": _decisions(blueprint, resolution_plan),
         ".ai-project/quality-gates.md": _quality_gates(),
@@ -181,6 +215,7 @@ def validate_rendered_yaml(rendered: RenderedProject) -> None:
         ".ai-project/workflows.yaml": ProjectWorkflows,
         ".ai-project/task-policies.yaml": ProjectTaskPolicies,
         ".ai-project/capability-usage.yaml": CapabilityUsage,
+        ".ai-project/capability-requirements.yaml": CapabilityRequirements,
     }
     for path, model in validators.items():
         payload = yaml.safe_load(files[path])

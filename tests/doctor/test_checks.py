@@ -23,6 +23,8 @@ from vibe.models.capability import (
 )
 from vibe.models.resolution import CapabilityResolution, ResolutionPlan, ResolutionStatus
 from vibe.models.risk import RiskLevel
+from vibe.practices.models import RequirementStrength
+from vibe.resolver.requirements import AbstractCapabilityRequirement
 
 
 def inventory(
@@ -74,7 +76,21 @@ def write_configuration(root: Path, current: InventoryResult) -> None:
         ),
     )
     for relative, content in (
-        render_project_configuration(blueprint, plan, current).as_dict().items()
+        render_project_configuration(
+            blueprint,
+            plan,
+            current,
+            requirements=(
+                AbstractCapabilityRequirement(
+                    capability="testing",
+                    strength=RequirementStrength.REQUIRED,
+                    originating_packs=("doctor-fixture",),
+                    originating_requirements=("testing",),
+                    reasons=("Health checks require a test provider.",),
+                    verification=("Run the selected test provider.",),
+                ),
+            ),
+        ).as_dict().items()
     ):
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)

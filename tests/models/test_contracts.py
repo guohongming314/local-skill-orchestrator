@@ -6,6 +6,10 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from vibe.materialize.templates import (
+    CapabilityRequirements,
+    EvaluatedCapabilityRequirement,
+)
 from vibe.models import (
     Blueprint,
     CapabilityManifest,
@@ -295,6 +299,27 @@ def test_non_skill_capability_manifest_may_omit_codex_skill_metadata() -> None:
 
     assert manifest.codex_skill is None
     assert "codex_skill" not in manifest.model_dump(mode="json")
+
+
+def test_capability_requirements_schema_is_versioned_and_provider_independent() -> None:
+    schema = CapabilityRequirements.model_json_schema()
+
+    assert "schema_version" in schema["properties"]
+    requirement_schema = schema["$defs"]["EvaluatedCapabilityRequirement"]
+    assert requirement_schema["additionalProperties"] is False
+    assert requirement_schema["properties"]["selected_provider"]["default"] is None
+
+
+def test_evaluated_capability_requirement_is_frozen() -> None:
+    requirement = EvaluatedCapabilityRequirement(
+        capability="quality.gates",
+        strength="required",
+        reasons=("Quality matters.",),
+        verification=("Run quality checks.",),
+    )
+
+    with pytest.raises(ValidationError, match="frozen"):
+        requirement.capability = "testing"
 
 
 @pytest.mark.parametrize(
