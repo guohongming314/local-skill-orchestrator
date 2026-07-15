@@ -80,7 +80,11 @@ PreflightRun = Callable[
 
 
 def build_install_plan(
-    root: Path, candidate: RemoteCandidate, package: InstallPackage
+    root: Path,
+    candidate: RemoteCandidate,
+    package: InstallPackage,
+    *,
+    replace_existing: bool = False,
 ) -> InstallPlan:
     """Build a deterministic project-local install plan without writing anything."""
     provenance = candidate.provenance
@@ -108,7 +112,11 @@ def build_install_plan(
         for item in package.files
     )
     transaction_path = _transaction_path(_provider_id(candidate))
-    if (root / transaction_path).exists() and not _passed_preflight(root, candidate):
+    if (
+        (root / transaction_path).exists()
+        and not replace_existing
+        and not _passed_preflight(root, candidate)
+    ):
         raise ValueError(f"install transaction already exists for {candidate.name}")
     transaction_content = _render_transaction(
         root,
