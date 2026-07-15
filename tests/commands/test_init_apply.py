@@ -4,9 +4,13 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 from typer.testing import CliRunner, Result
 
+import vibe.commands.init as init_module
+from tests.materialize.test_templates import inputs
 from vibe.cli import app
+from vibe.commands.init import _project_changeset
 from vibe.models.resolution import ResolutionPlan
 
 runner = CliRunner()
@@ -75,6 +79,7 @@ def test_init_dry_run_previews_all_changes_without_writes(tmp_path: Path) -> Non
     payload = json.loads(result.stdout)
     assert payload["status"] == "dry-run"
     assert "CREATE .ai-project/blueprint.yaml" in payload["preview"]
+    assert "CREATE .ai-project/capability-requirements.yaml" in payload["preview"]
     assert "UPDATE AGENTS.md" in payload["preview"]
     assert project_files(root) == {"AGENTS.md": original}
 
@@ -94,6 +99,18 @@ def test_init_applies_complete_configuration_preserves_user_content_and_is_idemp
     payload = json.loads(first.stdout)
     assert payload["status"] == "completed"
     assert (root / ".ai-project/capabilities.lock").is_file()
+    requirements_path = root / ".ai-project/capability-requirements.yaml"
+    assert requirements_path.is_file()
+    requirements_payload = yaml.safe_load(requirements_path.read_text(encoding="utf-8"))
+    assert requirements_payload["schema_version"] == "1"
+    quality_gates = next(
+        item
+        for item in requirements_payload["requirements"]
+        if item["capability"] == "quality.gates"
+    )
+    assert quality_gates["reasons"]
+    assert quality_gates["verification"]
+    assert quality_gates["selected_provider"] is None
     assert (root / ".agents/skills/project-capability-manager/SKILL.md").is_file()
     assert not (root / ".agents/skills/project-development").exists()
     agents = (root / "AGENTS.md").read_text(encoding="utf-8-sig")
@@ -109,6 +126,31 @@ def test_init_applies_complete_configuration_preserves_user_content_and_is_idemp
     assert second.exit_code == 0, second.output
     assert project_files(root) == before
     assert json.loads(second.stdout)["applied_paths"] == []
+
+
+def test_project_changeset_preserves_explicit_empty_requirements(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    blueprint, resolution, inventory = inputs()
+
+    def unexpected_plan_build(*args: object, **kwargs: object) -> None:
+        raise AssertionError("explicit requirements must not rebuild the project plan")
+
+    monkeypatch.setattr(init_module, "build_project_plan", unexpected_plan_build)
+
+    changeset = _project_changeset(
+        tmp_path,
+        blueprint,
+        inventory=inventory,
+        resolution=resolution,
+        requirements=(),
+    )
+    operation = next(
+        item
+        for item in changeset.operations
+        if item.path == ".ai-project/capability-requirements.yaml"
+    )
+    assert yaml.safe_load(operation.after_content or "")["requirements"] == []
 
 
 def test_init_removes_only_exact_obsolete_project_development_files(
