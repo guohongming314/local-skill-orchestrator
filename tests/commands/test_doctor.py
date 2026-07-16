@@ -12,11 +12,16 @@ import vibe.commands.init as init_module
 from vibe.cli import app
 from vibe.commands.doctor import exit_code_for_report
 from vibe.commands.init import _project_changeset
+from vibe.commands.project_plan import ProjectPlan, build_project_plan
 from vibe.doctor.report import DoctorFinding, DoctorReport, Severity
 from vibe.inspect.repository import inspect_repository
+from vibe.inventory.service import InventoryResult
 from vibe.materialize.writer import apply_changeset
 from vibe.models.blueprint import Blueprint, LifecycleStage
+from vibe.models.repository import RepositorySnapshot
 from vibe.models.risk import RiskLevel
+from vibe.remote.models import RemoteCandidate
+from vibe.remote.scoring import CandidateEvidence
 
 runner = CliRunner()
 
@@ -52,13 +57,29 @@ def test_doctor_builds_one_coherent_project_plan(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     initialized_project(tmp_path)
-    real_build_project_plan = doctor_module.build_project_plan
     calls = 0
 
-    def counted_build(*args: object, **kwargs: object):
+    def counted_build(
+        root: Path,
+        blueprint: Blueprint,
+        repository: RepositorySnapshot,
+        *,
+        inventory: InventoryResult | None = None,
+        remote_candidates: tuple[RemoteCandidate, ...] = (),
+        remote_evidence: dict[str, CandidateEvidence] | None = None,
+        rejected_remote_candidates: frozenset[str] = frozenset(),
+    ) -> ProjectPlan:
         nonlocal calls
         calls += 1
-        return real_build_project_plan(*args, **kwargs)
+        return build_project_plan(
+            root,
+            blueprint,
+            repository,
+            inventory=inventory,
+            remote_candidates=remote_candidates,
+            remote_evidence=remote_evidence,
+            rejected_remote_candidates=rejected_remote_candidates,
+        )
 
     def unexpected_second_build(*args: object, **kwargs: object) -> None:
         raise AssertionError("doctor must pass the complete project plan to materialization")

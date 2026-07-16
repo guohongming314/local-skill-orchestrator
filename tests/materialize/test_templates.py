@@ -16,6 +16,7 @@ from vibe.inventory.service import InventoryResult
 from vibe.materialize.templates import (
     CapabilityLock,
     CapabilityLockEntry,
+    RenderedProject,
     render_project_configuration,
     validate_rendered_yaml,
 )
@@ -175,7 +176,7 @@ def inputs() -> tuple[Blueprint, ResolutionPlan, InventoryResult]:
     return blueprint, plan, inventory
 
 
-def render_inputs():
+def render_inputs() -> RenderedProject:
     blueprint, plan, inventory = inputs()
     return render_project_configuration(blueprint, plan, inventory, requirements=requirements())
 

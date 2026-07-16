@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import IO, Any, cast
 
 import pytest
 
@@ -152,7 +153,7 @@ def test_content_changed_between_rescan_and_bundle_capture_is_refused(
     original_open = Path.open
     reads = 0
 
-    def mutating_open(path: Path, *args: object, **kwargs: object):
+    def mutating_open(path: Path, *args: Any, **kwargs: Any) -> IO[Any]:
         nonlocal reads
         mode = str(args[0]) if args else str(kwargs.get("mode", "r"))
         if path == skill_file and mode == "r":
@@ -162,7 +163,7 @@ def test_content_changed_between_rescan_and_bundle_capture_is_refused(
                     handle.write(
                         "---\nname: formatter\ndescription: formatter helper\n---\nchanged\n"
                     )
-        return original_open(path, *args, **kwargs)
+        return cast(IO[Any], original_open(path, *args, **kwargs))
 
     monkeypatch.setattr(Path, "open", mutating_open)
 

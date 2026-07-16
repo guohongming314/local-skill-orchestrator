@@ -296,7 +296,7 @@ def _approved_hook_policy(**updates: object) -> ProjectHookPolicy:
         "approval_provenance": "review:hook-1",
     }
     values.update(updates)
-    return ProjectHookPolicy(**values)
+    return ProjectHookPolicy.model_validate(values)
 
 
 def test_doctor_accepts_healthy_approved_project_hook(tmp_path: Path) -> None:
@@ -376,6 +376,7 @@ def test_doctor_reports_widened_hook_permissions(tmp_path: Path) -> None:
 
     codes = {item.code: item for item in run_health_checks(tmp_path, inventory()).findings}
 
+    assert codes["hook.permission-widened"].classification is not None
     assert codes["hook.permission-widened"].classification.value == "security"
 
 

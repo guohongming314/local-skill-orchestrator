@@ -28,6 +28,7 @@ from vibe.models.repository import FactConfidence, RepositoryFact
 from vibe.models.resolution import CapabilityResolution, ResolutionStatus
 from vibe.models.risk import RiskDimension, RiskFactor, RiskLevel
 from vibe.models.task import TaskPhase, WorkflowMode
+from vibe.practices.models import RequirementStrength
 
 
 def minimal_models(tmp_path: Path) -> tuple[VersionedModel, ...]:
@@ -313,7 +314,7 @@ def test_capability_requirements_schema_is_versioned_and_provider_independent() 
 def test_evaluated_capability_requirement_is_frozen() -> None:
     requirement = EvaluatedCapabilityRequirement(
         capability="quality.gates",
-        strength="required",
+        strength=RequirementStrength.REQUIRED,
         reasons=("Quality matters.",),
         verification=("Run quality checks.",),
     )

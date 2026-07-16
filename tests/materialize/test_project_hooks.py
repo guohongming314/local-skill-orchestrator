@@ -14,8 +14,9 @@ from vibe.inventory.adapters.base import AdapterProvenance, AdapterScanResult, A
 from vibe.inventory.service import InventoryResult
 from vibe.materialize.project_hooks import ProjectHookPolicy, render_project_hooks
 from vibe.materialize.templates import CapabilityLock, render_project_configuration
+from vibe.models.blueprint import Blueprint
 from vibe.models.capability import CapabilityKind, CapabilityManifest, CapabilityScope, Permission
-from vibe.models.resolution import CapabilityResolution, ResolutionStatus
+from vibe.models.resolution import CapabilityResolution, ResolutionPlan, ResolutionStatus
 
 
 def policy(**updates: object) -> ProjectHookPolicy:
@@ -28,7 +29,7 @@ def policy(**updates: object) -> ProjectHookPolicy:
         "approval_provenance": "review:change-42",
     }
     values.update(updates)
-    return ProjectHookPolicy(**values)
+    return ProjectHookPolicy.model_validate(values)
 
 
 def test_approved_policy_renders_exact_events_script_and_fixed_command() -> None:
@@ -118,7 +119,7 @@ def test_project_configuration_records_both_artifact_digests_and_combined_trust(
     assert hook.hook_permissions == ("execute-command",)
 
 
-def _inputs_with_selected_project_hook():
+def _inputs_with_selected_project_hook() -> tuple[Blueprint, ResolutionPlan, InventoryResult]:
     blueprint, plan, inventory = inputs()
     manifest = CapabilityManifest(
         capability_id="hook.project",

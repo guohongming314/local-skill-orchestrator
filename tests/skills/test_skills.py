@@ -94,6 +94,7 @@ def test_generated_project_skill_still_passes_structural_validation(tmp_path: Pa
         CapabilityScope.PROJECT,
     )
     assert result.manifest.capability_id == "skill.project-capability-manager"
+    assert result.manifest.codex_skill is not None
     assert result.manifest.codex_skill.allow_implicit_invocation is True
     assert result.verification.verified
 
