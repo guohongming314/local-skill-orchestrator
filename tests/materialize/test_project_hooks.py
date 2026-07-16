@@ -19,7 +19,6 @@ def test_approved_policy_renders_only_explicit_events_deterministically() -> Non
         permissions=("execute-command",),
         approved=True,
         approval_provenance="review:change-42",
-        trust_digest="sha256:trusted-project-state",
     )
 
     rendered = render_project_hooks(policy)
@@ -65,10 +64,20 @@ def test_unapproved_policy_renders_no_hook_configuration() -> None:
 
 def test_hook_digest_changes_with_definition() -> None:
     first = render_project_hooks(
-        ProjectHookPolicy(events=("Stop",), command="python3 hook.py", approved=True)
+        ProjectHookPolicy(
+            events=("Stop",),
+            command="python3 hook.py",
+            approved=True,
+            approval_provenance="review:first",
+        )
     )
     second = render_project_hooks(
-        ProjectHookPolicy(events=("PreToolUse",), command="python3 hook.py", approved=True)
+        ProjectHookPolicy(
+            events=("PreToolUse",),
+            command="python3 hook.py",
+            approved=True,
+            approval_provenance="review:second",
+        )
     )
 
     assert first.content_digest != second.content_digest
@@ -84,7 +93,12 @@ def test_hook_digest_changes_with_definition() -> None:
 )
 def test_hook_command_rejects_paths_outside_project(command: str) -> None:
     with pytest.raises(ValidationError):
-        ProjectHookPolicy(events=("Stop",), command=command, approved=True)
+        ProjectHookPolicy(
+            events=("Stop",),
+            command=command,
+            approved=True,
+            approval_provenance="review:path",
+        )
 
 
 def test_hook_policy_rejects_unknown_events_and_extra_fields() -> None:
@@ -92,6 +106,15 @@ def test_hook_policy_rejects_unknown_events_and_extra_fields() -> None:
         ProjectHookPolicy(events=("SessionStart",), command="python3 hook.py")
     with pytest.raises(ValidationError):
         ProjectHookPolicy(events=("Stop",), command="python3 hook.py", semantic_router=True)
+
+
+def test_hook_policy_is_strict_and_requires_approval_provenance() -> None:
+    with pytest.raises(ValidationError):
+        ProjectHookPolicy(events=["Stop"], command="python3 hook.py")
+    with pytest.raises(ValidationError):
+        ProjectHookPolicy(events=("Stop",), command="python3 hook.py", approved=1)
+    with pytest.raises(ValidationError):
+        ProjectHookPolicy(events=("Stop",), command="python3 hook.py", approved=True)
 
 
 def test_project_configuration_records_approved_hook_trust_in_lock() -> None:
@@ -102,7 +125,6 @@ def test_project_configuration_records_approved_hook_trust_in_lock() -> None:
         permissions=("execute-command", "read-project"),
         approved=True,
         approval_provenance="review:security-17",
-        trust_digest="sha256:project-reviewed",
     )
 
     rendered = render_project_configuration(
@@ -116,6 +138,18 @@ def test_project_configuration_records_approved_hook_trust_in_lock() -> None:
     assert hook.content_digest == hashlib.sha256(files[".codex/hooks.json"].encode()).hexdigest()
     assert hook.hook_approved is True
     assert hook.hook_approval_provenance == "review:security-17"
-    assert hook.hook_trust_digest == "sha256:project-reviewed"
+    assert hook.hook_trust_digest == hook.content_digest
     assert hook.hook_events == ("PermissionRequest", "Stop")
     assert hook.hook_permissions == ("execute-command", "read-project")
+
+
+@pytest.mark.parametrize(
+    "command",
+    (
+        "python3 --output=/tmp/evil hook.py",
+        "python3 --config=../../outside hook.py",
+    ),
+)
+def test_hook_command_rejects_escaped_option_values(command: str) -> None:
+    with pytest.raises(ValidationError):
+        ProjectHookPolicy(events=("Stop",), command=command)

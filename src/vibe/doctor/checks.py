@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import shlex
 import shutil
 import sqlite3
 from collections.abc import Callable
@@ -18,6 +17,7 @@ from pydantic import ValidationError
 from vibe.doctor.drift import DriftClassification
 from vibe.doctor.report import DoctorFinding, DoctorReport, Severity, aggregate_findings
 from vibe.inventory.service import InventoryResult
+from vibe.materialize.project_hooks import command_project_paths
 from vibe.materialize.templates import (
     CapabilityLock,
     CapabilityUsage,
@@ -262,14 +262,33 @@ class ProjectHookGovernanceCheck:
     """Verify project-local Hooks still match their explicit approval record."""
 
     def check(self, context: DoctorContext) -> tuple[DoctorFinding, ...]:
+        path = context.root / ".codex" / "hooks.json"
         lock = _load(context.root, ".ai-project/capabilities.lock", CapabilityLock)
         if lock is None:
-            return ()
+            return (
+                (
+                    self._finding(
+                        "hook.project-untrusted",
+                        "Project-local Hooks have no approval lock record.",
+                    ),
+                )
+                if path.is_file()
+                else ()
+            )
         provider = next(
             (item for item in lock.providers if item.provider_id == "hook.project"), None
         )
         if provider is None:
-            return ()
+            return (
+                (
+                    self._finding(
+                        "hook.project-untrusted",
+                        "Project-local Hooks have no approval lock record.",
+                    ),
+                )
+                if path.is_file()
+                else ()
+            )
         findings: list[DoctorFinding] = []
         path = context.root / provider.source
         if not path.is_file():
@@ -302,6 +321,15 @@ class ProjectHookGovernanceCheck:
             findings.append(
                 self._finding("hook.trust-missing", "Project Hook trust provenance is absent.")
             )
+        elif provider.hook_trust_digest != provider.content_digest or (
+            hashlib.sha256(raw).hexdigest() != provider.hook_trust_digest
+        ):
+            findings.append(
+                self._finding(
+                    "hook.trust-drift",
+                    "Project Hook trust is not bound to the current definition.",
+                )
+            )
         actual_permissions = _hook_permissions(payload)
         approved_permissions = set(provider.hook_permissions or ())
         widened = sorted(actual_permissions - approved_permissions)
@@ -314,8 +342,15 @@ class ProjectHookGovernanceCheck:
                 )
             )
         if provider.hook_command:
-            script = _project_script_path(context.root, provider.hook_command)
-            if script is not None and not script.is_file():
+            script, contained = _project_script_path(context.root, provider.hook_command)
+            if not contained:
+                findings.append(
+                    self._finding(
+                        "hook.command-invalid",
+                        "Approved Hook command escapes the project root.",
+                    )
+                )
+            elif script is not None and not script.is_file():
                 findings.append(
                     self._finding(
                         "hook.command-missing",
@@ -656,15 +691,14 @@ def _hook_permissions(payload: Any) -> set[str]:
     return permissions
 
 
-def _project_script_path(root: Path, command: str) -> Path | None:
+def _project_script_path(root: Path, command: str) -> tuple[Path | None, bool]:
     try:
-        parts = shlex.split(command)
+        paths = command_project_paths(command)
     except ValueError:
-        return None
-    for part in parts[1:]:
-        if part.startswith("-"):
-            continue
-        if "/" in part or part.endswith((".py", ".sh", ".js", ".ts")):
-            candidate = (root / part).resolve()
-            return candidate if candidate.is_relative_to(root) else None
-    return None
+        return None, False
+    scripts = tuple(path for path in paths if str(path).endswith((".py", ".sh", ".js", ".ts")))
+    if not scripts:
+        return None, True
+    candidate = root / str(scripts[0])
+    resolved = candidate.resolve()
+    return resolved, resolved.is_relative_to(root.resolve())

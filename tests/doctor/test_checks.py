@@ -294,7 +294,6 @@ def _approved_hook_policy(**updates: object) -> ProjectHookPolicy:
         "permissions": ("execute-command",),
         "approved": True,
         "approval_provenance": "review:hook-1",
-        "trust_digest": "sha256:trusted-state",
     }
     values.update(updates)
     return ProjectHookPolicy(**values)
@@ -345,16 +344,21 @@ def test_doctor_reports_project_hook_security_drift(
 
 
 @pytest.mark.parametrize(
-    ("updates", "code"),
+    ("field", "code"),
     (
-        ({"approval_provenance": None}, "hook.approval-missing"),
-        ({"trust_digest": None}, "hook.trust-missing"),
+        ("hook_approval_provenance", "hook.approval-missing"),
+        ("hook_trust_digest", "hook.trust-missing"),
     ),
 )
 def test_doctor_reports_missing_hook_approval_or_trust(
-    tmp_path: Path, updates: dict[str, object], code: str
+    tmp_path: Path, field: str, code: str
 ) -> None:
-    _write_hook_configuration(tmp_path, policy=_approved_hook_policy(**updates))
+    _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
+    lock_path = tmp_path / ".ai-project" / "capabilities.lock"
+    payload = yaml.safe_load(lock_path.read_text(encoding="utf-8"))
+    hook = next(item for item in payload["providers"] if item["provider_id"] == "hook.project")
+    hook.pop(field)
+    lock_path.write_text(yaml.safe_dump(payload, sort_keys=True), encoding="utf-8")
 
     finding = next(
         item for item in run_health_checks(tmp_path, inventory()).findings if item.code == code
@@ -392,3 +396,58 @@ def test_doctor_reports_untrusted_project_hook_state(tmp_path: Path) -> None:
 
     assert finding.classification is not None
     assert finding.classification.value == "security"
+
+
+@pytest.mark.parametrize("with_lock", (False, True))
+def test_doctor_reports_unmanaged_project_hook_file(tmp_path: Path, with_lock: bool) -> None:
+    if with_lock:
+        write_configuration(tmp_path, inventory())
+    hook = tmp_path / ".codex" / "hooks.json"
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    hook.write_text('{"hooks": {}}\n', encoding="utf-8")
+
+    finding = next(
+        item
+        for item in run_health_checks(tmp_path, inventory()).findings
+        if item.code == "hook.project-untrusted"
+    )
+
+    assert finding.classification is not None
+    assert finding.classification.value == "security"
+
+
+def test_doctor_binds_hook_trust_digest_to_actual_content(tmp_path: Path) -> None:
+    _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
+    lock_path = tmp_path / ".ai-project" / "capabilities.lock"
+    payload = yaml.safe_load(lock_path.read_text(encoding="utf-8"))
+    hook = next(item for item in payload["providers"] if item["provider_id"] == "hook.project")
+    hook["hook_trust_digest"] = "different-trust-digest"
+    lock_path.write_text(yaml.safe_dump(payload, sort_keys=True), encoding="utf-8")
+
+    codes = {item.code for item in run_health_checks(tmp_path, inventory()).findings}
+
+    assert "hook.trust-drift" in codes
+
+
+def test_doctor_checks_direct_script_command(tmp_path: Path) -> None:
+    _write_hook_configuration(
+        tmp_path,
+        policy=_approved_hook_policy(command="./hooks/governance.py"),
+    )
+
+    codes = {item.code for item in run_health_checks(tmp_path, inventory()).findings}
+
+    assert "hook.command-missing" in codes
+
+
+def test_doctor_rejects_symlinked_script_outside_project(tmp_path: Path) -> None:
+    _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
+    outside = tmp_path.parent / "outside-hook.py"
+    outside.write_text("# outside\n", encoding="utf-8")
+    script = tmp_path / ".ai-project" / "hooks" / "governance.py"
+    script.parent.mkdir(parents=True)
+    script.symlink_to(outside)
+
+    codes = {item.code for item in run_health_checks(tmp_path, inventory()).findings}
+
+    assert "hook.command-invalid" in codes

@@ -132,7 +132,7 @@ def render_project_configuration(
             content_digest=hook_render.content_digest,
             hook_approved=hook_policy.approved,
             hook_approval_provenance=hook_policy.approval_provenance,
-            hook_trust_digest=hook_policy.trust_digest,
+            hook_trust_digest=hook_render.content_digest,
             hook_events=tuple(sorted(set(hook_policy.events))),
             hook_permissions=tuple(sorted(set(hook_policy.permissions))),
             hook_command=hook_policy.command,
