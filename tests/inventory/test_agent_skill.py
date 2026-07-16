@@ -82,6 +82,46 @@ def test_parses_metadata_local_dependencies_and_content_digest(tmp_path: Path) -
     assert "dependency:references/guide.md" in first.verification.details
 
 
+def test_explicit_provides_separates_resolution_from_native_description(
+    tmp_path: Path,
+) -> None:
+    roots = tmp_path / "skills"
+    write_skill(
+        roots,
+        "debugging",
+        "\n".join(
+            (
+                "name: debugging",
+                "description: Diagnose intermittent failures and verify bug fixes",
+                "provides: quality.gates, testing unit.testing quality.gates",
+            )
+        ),
+    )
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.PROJECT),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert result.manifest.provides == (
+        "quality.gates",
+        "testing",
+        "unit.testing",
+    )
+
+
+def test_description_remains_legacy_provides_fallback(tmp_path: Path) -> None:
+    roots = tmp_path / "skills"
+    write_skill(
+        roots,
+        "legacy",
+        "name: legacy\ndescription: Legacy capability identifier",
+    )
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.PROJECT),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert result.manifest.provides == ("Legacy capability identifier",)
+
+
 def test_normalizes_codex_invocation_metadata_and_mcp_dependencies(tmp_path: Path) -> None:
     roots = tmp_path / "skills"
     skill = write_skill(roots, "database", "name: database\ndescription: Query data")

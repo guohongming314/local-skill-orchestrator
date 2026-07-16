@@ -1,14 +1,14 @@
 {
   "candidate": {
     "candidate_ref": "registry:agent-skill/browser-testing@1.2.3",
-    "digest": "sha256:a96c0b830df36ef376413f24502c3fa1bc852fe46c96921a357d32d869eec94f",
+    "digest": "sha256:016b4340744031fa04c45b45c286de34184129089bcde26ca916da758db55223",
     "kind": "agent-skill",
     "name": "browser-testing",
     "permissions_as_declared": [
       "read-project"
     ],
     "provenance": {
-      "digest": "sha256:a96c0b830df36ef376413f24502c3fa1bc852fe46c96921a357d32d869eec94f",
+      "digest": "sha256:016b4340744031fa04c45b45c286de34184129089bcde26ca916da758db55223",
       "digest_verified": true,
       "permission_level": "L1",
       "publisher": "fixture-org",
@@ -31,7 +31,7 @@
     "commands": [],
     "files": [
       {
-        "content": "---\nname: browser-testing\ndescription: browser.validation\nversion: 1.2.3\n---\n\nUse deterministic browser validation for user-visible flows.\n",
+        "content": "---\nname: browser-testing\ndescription: Validate browser checkout flows with deterministic end-to-end testing\nprovides: browser.validation\nversion: 1.2.3\n---\n\nUse deterministic browser validation for user-visible flows.\n",
         "path": ".agents/skills/browser-testing/SKILL.md",
         "schema_version": "1"
       }

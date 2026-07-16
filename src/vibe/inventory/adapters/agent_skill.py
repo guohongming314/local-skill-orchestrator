@@ -153,7 +153,7 @@ class AgentSkillAdapter:
             kind=CapabilityKind.SKILL,
             scope=root.scope,
             source=str(skill_file),
-            provides=(description,),
+            provides=_words(metadata.get("provides", "")) or (description,),
             permissions=permissions,
             version=metadata.get("version"),
             content_digest=_skill_content_digest(captured),
