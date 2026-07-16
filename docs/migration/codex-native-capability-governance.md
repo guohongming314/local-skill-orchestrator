@@ -26,10 +26,10 @@ workflow, including user-visible activation and any Skill-specific gates.
 
 ## Missing capabilities
 
-When Codex cannot find an appropriate installed Skill, use the capability manager to
-inspect available capabilities and install or reconcile the missing project-local
-capability. Then continue the same Codex conversation so the newly available Skill can
-be selected with the existing task context.
+When a required capability or dependency is missing or unhealthy, Codex selects and
+invokes the generated `project-capability-manager` Skill. It can inspect, recommend,
+install, or reconcile project-local capabilities after user approval. The current Codex
+then continues the original task in the same conversation with the existing task context.
 
 ## Remaining CLI uses
 

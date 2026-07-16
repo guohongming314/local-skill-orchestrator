@@ -111,3 +111,20 @@ def test_release_checklist_covers_required_manual_reviews_and_gates() -> None:
         "git diff --check",
     ):
         assert requirement in document
+
+
+def test_migration_guide_explains_missing_capability_manager_flow() -> None:
+    document = (
+        ROOT / "docs/migration/codex-native-capability-governance.md"
+    ).read_text(encoding="utf-8")
+    normalized = " ".join(document.split())
+
+    for requirement in (
+        "project-capability-manager",
+        "missing or unhealthy",
+        "inspect, recommend, install, or reconcile",
+        "user approval",
+        "continues the original task",
+        "same conversation",
+    ):
+        assert requirement in normalized
