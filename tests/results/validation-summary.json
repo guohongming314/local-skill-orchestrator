@@ -25,7 +25,7 @@
       ]
     },
     {
-      "expectation": "Natural-language planning runs through approval-gated phases, persists outcomes, and surfaces Doctor insight.",
+      "expectation": "The deprecated external-runner compatibility path retains approval-gated phases, persisted outcomes, and Doctor insight; it is not the normal Codex task path.",
       "id": "E14-EXIT",
       "tests": [
         "tests/e2e/test_task_execution_loop.py::test_bug_fix_plan_run_records_outcome_and_surfaces_unused_capability",
@@ -33,7 +33,7 @@
       ]
     },
     {
-      "expectation": "Hard routing exposes phase-selected tools, audits denials, isolates sessions, and degrades to soft routing.",
+      "expectation": "The deprecated external-runner compatibility path retains phase-selected tool exposure, denial audits, session isolation, and soft-routing degradation.",
       "id": "E15-EXIT",
       "tests": [
         "tests/e2e/test_hard_routing_tool_visibility.py::test_bug_fix_gateway_exposes_only_each_phase_tools_and_audits_blocked_calls",
@@ -153,6 +153,42 @@
       "id": "CROSS-03",
       "tests": [
         "tests/resolver/test_org_policy.py::test_org_remote_approvals_filter_publishers_without_bypassing_l_consent"
+      ]
+    },
+    {
+      "expectation": "Initialized repository Skills are discoverable through Codex-native `.agents/skills` paths, carry valid metadata, bind selected user Skills, and do not mandate `vibe run`.",
+      "id": "NATIVE-01",
+      "tests": [
+        "tests/e2e/test_codex_native_project_experience.py::test_init_generates_codex_native_discoverable_project_capabilities"
+      ]
+    },
+    {
+      "expectation": "A task with sufficient existing capability loads the matching native Skill without invoking the Vibe task router.",
+      "id": "NATIVE-02",
+      "tests": [
+        "tests/e2e/test_codex_native_project_experience.py::test_sufficient_existing_capabilities_do_not_invoke_vibe_task_router"
+      ]
+    },
+    {
+      "expectation": "An approved missing capability is installed project-locally and the original Codex conversation continues.",
+      "id": "NATIVE-03",
+      "tests": [
+        "tests/e2e/test_codex_native_project_experience.py::test_missing_capability_install_stays_in_current_codex_conversation"
+      ]
+    },
+    {
+      "expectation": "Ordinary native tasks and approved gap installation start no nested Codex task process or thread.",
+      "id": "NATIVE-04",
+      "tests": [
+        "tests/e2e/test_codex_native_project_experience.py::test_sufficient_existing_capabilities_do_not_invoke_vibe_task_router",
+        "tests/e2e/test_codex_native_project_experience.py::test_missing_capability_install_stays_in_current_codex_conversation"
+      ]
+    },
+    {
+      "expectation": "Project Hook governance is optional; an approved managed Hook has exact exposure and trust while native Skill behavior remains unchanged.",
+      "id": "NATIVE-05",
+      "tests": [
+        "tests/e2e/test_codex_native_project_experience.py::test_approved_hook_governance_preserves_native_skill_behavior"
       ]
     }
   ],

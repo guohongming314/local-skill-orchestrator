@@ -63,6 +63,7 @@ EXPECTED_IDS = {
     "CROSS-01",
     "CROSS-02",
     "CROSS-03",
+    *(f"NATIVE-{index:02d}" for index in range(1, 6)),
 }
 
 

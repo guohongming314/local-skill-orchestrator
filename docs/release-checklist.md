@@ -29,6 +29,10 @@ Use this checklist for every release candidate. Do not publish from this reposit
 - [ ] **Rollback:** exercise cancellation/resume and rollback paths; document how to restore generated configuration and the prior package version.
 - [ ] **Manual core-flow review:** perform blank-project init, existing-project init, dry-run, apply, repeat apply, conversation-native Skill selection, Doctor checks, and a compatibility-only `plan` diagnostic.
 - [ ] Review the Bootstrap Skill guidance/CLI policy boundary and verify no Skill text can bypass deterministic policy.
+- [ ] **Attended real-Codex smoke (human-required):** from a Codex conversation, initialize a fixture project without asking the user to enter a CLI command.
+- [ ] Start a new Codex session in the initialized repository and ask for a bug fix that implicitly matches an installed debugging Skill; confirm Codex loads that Skill.
+- [ ] In the same session, ask for work with a missing capability, approve the proposed project-local candidate, and confirm installation completes while the original conversation/thread continues.
+- [ ] Confirm the attended smoke used no user-entered `vibe` command and started no nested Codex task process or thread. Record the observer and evidence; automated fake-host coverage does not replace this human-required smoke.
 
 ## Release record
 
