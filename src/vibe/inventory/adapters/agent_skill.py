@@ -105,12 +105,9 @@ class AgentSkillAdapter:
             if shutil.which(tool) is None:
                 details.append(f"missing_tool:{tool}")
 
-        digest = hashlib.sha256()
-        digest.update(b"SKILL.md\0")
-        digest.update(text.encode())
+        captured: dict[Path, bytes] = {Path("SKILL.md"): text.encode()}
         if metadata_details or metadata_content:
-            digest.update(b"agents/openai.yaml\0")
-            digest.update(metadata_content)
+            captured[Path("agents/openai.yaml")] = metadata_content
             try:
                 metadata_content.decode("utf-8")
             except UnicodeError:
@@ -141,9 +138,7 @@ class AgentSkillAdapter:
             except UnicodeError:
                 details.append(f"undecodable_dependency:{normalized}")
                 continue
-            digest.update(normalized.encode())
-            digest.update(b"\0")
-            digest.update(content)
+            captured[dependency] = content
             details.append(f"dependency:{normalized}")
 
         permissions = _permissions(metadata.get("allowed-tools", ""))
@@ -161,7 +156,7 @@ class AgentSkillAdapter:
             provides=(description,),
             permissions=permissions,
             version=metadata.get("version"),
-            content_digest=digest.hexdigest(),
+            content_digest=_skill_content_digest(captured),
             verified=verified,
             codex_skill=codex_skill,
         )
@@ -197,25 +192,31 @@ def skill_bundle_files(skill_file: Path) -> SkillBundle:
         raise ValueError(f"Skill bundle is unverified: {details}")
 
     files: list[SkillBundleFile] = []
+    captured: dict[Path, bytes] = {}
     with resolved.open("r", encoding="utf-8", newline="") as handle:
         skill_text = handle.read()
     _, body = _parse_frontmatter(skill_text)
     files.append(SkillBundleFile(Path("SKILL.md"), skill_text))
+    captured[Path("SKILL.md")] = skill_text.encode("utf-8")
     metadata_path = resolved.parent / "agents/openai.yaml"
     if _has_symlink_component(resolved.parent, Path("agents/openai.yaml")):
         raise ValueError("unsafe_symlink_metadata:agents/openai.yaml")
     if metadata_path.is_file():
         with metadata_path.open("r", encoding="utf-8", newline="") as handle:
-            files.append(SkillBundleFile(Path("agents/openai.yaml"), handle.read()))
+            metadata_text = handle.read()
+        files.append(SkillBundleFile(Path("agents/openai.yaml"), metadata_text))
+        captured[Path("agents/openai.yaml")] = metadata_text.encode("utf-8")
     for dependency in _local_dependencies(body):
         if _has_symlink_component(resolved.parent, dependency):
             raise ValueError(f"unsafe_symlink_dependency:{dependency.as_posix()}")
         candidate = (resolved.parent / dependency).resolve()
         with candidate.open("r", encoding="utf-8", newline="") as handle:
-            files.append(SkillBundleFile(dependency, handle.read()))
+            dependency_text = handle.read()
+        files.append(SkillBundleFile(dependency, dependency_text))
+        captured[dependency] = dependency_text.encode("utf-8")
     return SkillBundle(
         files=tuple(sorted(files, key=lambda item: item.relative_path.as_posix())),
-        content_digest=result.manifest.content_digest,
+        content_digest=_skill_content_digest(captured),
     )
 
 
@@ -395,3 +396,23 @@ def _has_symlink_component(root: Path, relative: Path) -> bool:
         if not candidate.exists():
             return False
     return False
+
+
+def _skill_content_digest(files: Mapping[Path, bytes]) -> str:
+    """Digest captured Skill files in the adapter's stable domain order."""
+    ordered = [Path("SKILL.md")]
+    metadata = Path("agents/openai.yaml")
+    if metadata in files:
+        ordered.append(metadata)
+    ordered.extend(
+        sorted(
+            (path for path in files if path not in {Path("SKILL.md"), metadata}),
+            key=lambda path: path.as_posix(),
+        )
+    )
+    digest = hashlib.sha256()
+    for path in ordered:
+        digest.update(path.as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(files[path])
+    return digest.hexdigest()

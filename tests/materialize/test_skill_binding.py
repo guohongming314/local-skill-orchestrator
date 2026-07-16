@@ -140,3 +140,73 @@ def test_duplicate_selected_skill_name_is_refused(tmp_path: Path) -> None:
             _plan(inventory, "skill.formatter", "skill.formatter"),
             inventory,
         )
+
+
+def test_content_changed_between_rescan_and_bundle_capture_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    user_root = tmp_path / "user"
+    skill = _skill(user_root, "formatter")
+    inventory = _inventory(user_root, CapabilityScope.USER)
+    skill_file = skill / "SKILL.md"
+    original_open = Path.open
+    reads = 0
+
+    def mutating_open(path: Path, *args: object, **kwargs: object):
+        nonlocal reads
+        mode = str(args[0]) if args else str(kwargs.get("mode", "r"))
+        if path == skill_file and mode == "r":
+            reads += 1
+            if reads == 2:
+                with original_open(skill_file, "w", encoding="utf-8", newline="") as handle:
+                    handle.write(
+                        "---\nname: formatter\ndescription: formatter helper\n---\nchanged\n"
+                    )
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", mutating_open)
+
+    with pytest.raises(ValueError, match="changed after verification"):
+        build_skill_binding_proposals(
+            tmp_path / "project", _plan(inventory, "skill.formatter"), inventory
+        )
+
+
+def test_bound_project_copy_has_same_semantic_manifest_as_source(tmp_path: Path) -> None:
+    user_root = tmp_path / "user"
+    skill = _skill(
+        user_root,
+        "database",
+        "Read [guide](references/guide.md).\r\n",
+    )
+    skill_md = skill / "SKILL.md"
+    skill_md.write_bytes(
+        skill_md.read_bytes().replace(
+            b"description: database helper",
+            b"description: quality.gates\r\nversion: 2.1.0\r\nallowed-tools: Read Bash",
+        )
+    )
+    (skill / "references").mkdir()
+    (skill / "references/guide.md").write_text("guide\n", encoding="utf-8")
+    (skill / "agents").mkdir()
+    (skill / "agents/openai.yaml").write_text(
+        "policy:\n  allow_implicit_invocation: false\n", encoding="utf-8"
+    )
+    source_inventory = _inventory(user_root, CapabilityScope.USER)
+    project = tmp_path / "project"
+
+    for proposal in build_skill_binding_proposals(
+        project, _plan(source_inventory, "skill.database"), source_inventory
+    ):
+        target = project / proposal.path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(proposal.desired_content or "", encoding="utf-8", newline="")
+    bound_inventory = _inventory(project / ".agents/skills", CapabilityScope.PROJECT)
+
+    source = source_inventory.capabilities[0].manifest.model_dump()
+    bound = bound_inventory.capabilities[0].manifest.model_dump()
+    source.pop("scope")
+    source.pop("source")
+    bound.pop("scope")
+    bound.pop("source")
+    assert bound == source
