@@ -46,7 +46,8 @@ Record the commit, Python version, artifact hashes, CI run, task-routing sample 
 - [ ] Attended real-Codex smoke: PENDING. `codex-cli 0.144.3` was available,
   but the isolated non-destructive attempt failed with HTTP 401
   `invalid_api_key` before implicit Skill selection could be observed.
-- [ ] Release gate: BLOCKED by round 0002 `E17-2` and open remediation `E18`
+- [ ] Release gate: BLOCKED by round 0002 `NATIVE-02`, `NATIVE-03`, and
+  `NATIVE-04`, with open remediation `E18`
   / issue `#143`; see `docs/evaluation/validation-rounds/round-0002.md`.
 - Known limitation: no release-ready claim until an authenticated observer
   completes the real-Codex Skill-selection and project-local gap smoke.

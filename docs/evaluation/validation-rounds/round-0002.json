@@ -3,50 +3,58 @@
   "round": 2,
   "expectations": [
     {
-      "id": "E17-1",
+      "id": "NATIVE-01",
       "expectation": "Initialized repository Skills are discoverable through Codex-native .agents/skills paths, carry valid metadata, bind selected user Skills, and do not mandate vibe run.",
       "status": "PASS",
       "evidence": ["../../../tests/e2e/test_codex_native_project_experience.py::test_init_generates_codex_native_discoverable_project_capabilities"]
     },
     {
-      "id": "E17-2",
+      "id": "NATIVE-02",
       "expectation": "A real installed Codex implicitly selects and loads the matching project debugging Skill without a user-entered vibe command.",
       "status": "FAIL",
       "evidence": ["round-0002.md#real-codex-smoke-attempt--pending", "../../../tests/e2e/test_codex_native_project_experience.py::test_sufficient_existing_capabilities_do_not_invoke_vibe_task_router"]
     },
     {
-      "id": "E17-3",
-      "expectation": "An approved missing capability is installed project-locally and the original Codex conversation continues.",
-      "status": "PASS",
-      "evidence": ["../../../tests/e2e/test_codex_native_project_experience.py::test_missing_capability_install_stays_in_current_codex_conversation"]
+      "id": "NATIVE-03",
+      "expectation": "In a real Codex conversation, an approved missing capability is installed project-locally and the original conversation continues.",
+      "status": "FAIL",
+      "evidence": ["round-0002.md#real-codex-smoke-attempt--pending", "../../../tests/e2e/test_codex_native_project_experience.py::test_missing_capability_install_stays_in_current_codex_conversation"]
     },
     {
-      "id": "E17-4",
-      "expectation": "Ordinary native tasks and approved gap installation start no nested Codex task process or thread at the tested host boundary.",
-      "status": "PASS",
-      "evidence": ["../../../tests/e2e/test_codex_native_project_experience.py::test_sufficient_existing_capabilities_do_not_invoke_vibe_task_router", "../../../tests/e2e/test_codex_native_project_experience.py::test_missing_capability_install_stays_in_current_codex_conversation", "../../../tests/e2e/test_codex_native_project_experience.py::test_nested_codex_boundaries_are_recorded_and_rejected"]
+      "id": "NATIVE-04",
+      "expectation": "Real ordinary native work and approved gap installation start no nested Codex task process or thread.",
+      "status": "FAIL",
+      "evidence": ["round-0002.md#real-codex-smoke-attempt--pending", "../../../tests/e2e/test_codex_native_project_experience.py::test_sufficient_existing_capabilities_do_not_invoke_vibe_task_router", "../../../tests/e2e/test_codex_native_project_experience.py::test_missing_capability_install_stays_in_current_codex_conversation", "../../../tests/e2e/test_codex_native_project_experience.py::test_nested_codex_boundaries_are_recorded_and_rejected"]
     },
     {
-      "id": "E17-5",
-      "expectation": "Optional approved Hook governance exposes only managed events, preserves trust bindings, and does not change native Skill discovery.",
+      "id": "NATIVE-05",
+      "expectation": "Optional approved Hook governance exposes only managed events, preserves trust bindings, adds no prompt-submit routing, and does not change native Skill discovery.",
       "status": "PASS",
       "evidence": ["../../../tests/e2e/test_codex_native_project_experience.py::test_optional_hook_governance_does_not_change_native_skill_discovery", "../../../tests/doctor/test_checks.py::test_doctor_reports_project_hook_security_drift", "../../../tests/doctor/test_checks.py::test_doctor_reports_widened_hook_permissions"]
     },
     {
-      "id": "E17-6",
+      "id": "GOV-01",
       "expectation": "Capability security and governance retain approval, provenance, digest, project-boundary, update, audit, reconciliation, and organization-policy controls.",
       "status": "PASS",
       "evidence": ["../../../tests/validation/test_security_gates.py::test_install_bypasses_fail_closed_with_explainable_refusals", "../../../tests/validation/test_security_gates.py::test_permission_expansion_and_org_policy_bypasses_are_audited", "../../../tests/validation/test_security_gates.py::test_malicious_skill_is_scanned_rejected_and_never_recommended", "../../../tests/validation/test_security_gates.py::test_seeded_credentials_never_appear_in_serialized_artifacts", "../../../tests/e2e/test_remote_install_loop.py::test_digest_tampered_remote_candidate_is_blocked", "../../../tests/commands/test_update.py::test_widened_permission_upgrade_blocks_until_reapproved", "../../../tests/commands/test_audit.py::test_seeded_events_produce_filtered_ordered_json_output", "../../../tests/commands/test_reconcile.py::test_stack_drift_offers_both_resolutions_and_applies_accept_reality", "../../../tests/resolver/test_org_policy.py::test_org_remote_approvals_filter_publishers_without_bypassing_l_consent"]
     },
     {
-      "id": "E17-7",
+      "id": "QUALITY-01",
       "expectation": "The consolidated acceptance matrix, complete test suite, lint, strict typing, and build gates pass for the validation revision.",
       "status": "PASS",
       "evidence": ["../acceptance-matrix.md", "../../../tests/validation/test_matrix.py::test_acceptance_matrix_covers_all_expectations_with_existing_tests", "round-0002.md#fresh-automated-results"]
     }
   ],
   "remediation_epics": [
-    {"id": "E18", "issue": 143, "status": "OPEN", "expectations": ["E17-2"]}
+    {"id": "E18", "issue": 143, "status": "OPEN", "expectations": ["NATIVE-02", "NATIVE-03", "NATIVE-04"]}
   ],
-  "expectation_changes": []
+  "expectation_changes": [
+    {"expectation": "E17-1", "decision": "Replaced by NATIVE-01 under the user-approved Codex-conversation-native validation design.", "decided_by": "user", "evidence": "docs/superpowers/specs/2026-07-15-codex-conversation-native-capability-routing-design.md@e42168b; docs/superpowers/plans/2026-07-15-codex-native-capability-governance-implementation-plan.md@8dc150d"},
+    {"expectation": "E17-2", "decision": "Replaced by NATIVE-02 and NATIVE-03 under the user-approved Codex-conversation-native validation design.", "decided_by": "user", "evidence": "docs/superpowers/specs/2026-07-15-codex-conversation-native-capability-routing-design.md@e42168b; docs/superpowers/plans/2026-07-15-codex-native-capability-governance-implementation-plan.md@8dc150d"},
+    {"expectation": "E17-3", "decision": "Replaced by NATIVE-01 and QUALITY-01 under the user-approved Codex-conversation-native validation design.", "decided_by": "user", "evidence": "docs/superpowers/specs/2026-07-15-codex-conversation-native-capability-routing-design.md@e42168b; docs/superpowers/plans/2026-07-15-codex-native-capability-governance-implementation-plan.md@8dc150d"},
+    {"expectation": "E17-4", "decision": "Replaced by NATIVE-02, NATIVE-03, NATIVE-04, and QUALITY-01 under the user-approved Codex-conversation-native validation design.", "decided_by": "user", "evidence": "docs/superpowers/specs/2026-07-15-codex-conversation-native-capability-routing-design.md@e42168b; docs/superpowers/plans/2026-07-15-codex-native-capability-governance-implementation-plan.md@8dc150d"},
+    {"expectation": "E17-5", "decision": "Replaced by NATIVE-04, NATIVE-05, and GOV-01 under the user-approved Codex-conversation-native validation design.", "decided_by": "user", "evidence": "docs/superpowers/specs/2026-07-15-codex-conversation-native-capability-routing-design.md@e42168b; docs/superpowers/plans/2026-07-15-codex-native-capability-governance-implementation-plan.md@8dc150d"},
+    {"expectation": "E17-6", "decision": "Replaced by GOV-01 under the user-approved Codex-conversation-native validation design.", "decided_by": "user", "evidence": "docs/superpowers/specs/2026-07-15-codex-conversation-native-capability-routing-design.md@e42168b; docs/superpowers/plans/2026-07-15-codex-native-capability-governance-implementation-plan.md@8dc150d"},
+    {"expectation": "E17-7", "decision": "Replaced by NATIVE-01 through NATIVE-05, GOV-01, and QUALITY-01 under the user-approved Codex-conversation-native validation design.", "decided_by": "user", "evidence": "docs/superpowers/specs/2026-07-15-codex-conversation-native-capability-routing-design.md@e42168b; docs/superpowers/plans/2026-07-15-codex-native-capability-governance-implementation-plan.md@8dc150d"}
+  ]
 }

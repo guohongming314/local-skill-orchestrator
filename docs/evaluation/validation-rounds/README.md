@@ -1,6 +1,6 @@
 # Validation rounds and remediation protocol
 
-This directory is the release record for E17 validation. Reports are immutable,
+This directory is the versioned release record for validation. Reports are immutable,
 versioned pairs named `round-NNNN.md` and `round-NNNN.json`; the largest filename
 is the latest round. The Markdown file is the reviewed human record and the JSON
 file is the CI-checkable equivalent. Both contain exactly one row for each
@@ -15,23 +15,26 @@ blocker must be recorded with an open remediation.
 ```json
 {
   "schema_version": 1,
-  "round": 1,
+  "round": 2,
   "expectations": [
-    {"id": "E17-1", "expectation": "...", "status": "PASS", "evidence": ["path-or-url"]}
+    {"id": "NATIVE-01", "expectation": "...", "status": "PASS", "evidence": ["path-or-url"]}
   ],
   "remediation_epics": [
-    {"id": "E18", "issue": 147, "status": "OPEN", "expectations": ["E17-2"]}
+    {"id": "E18", "issue": 143, "status": "OPEN", "expectations": ["NATIVE-02"]}
   ],
   "expectation_changes": [
-    {"expectation": "E17-2", "decision": "...", "decided_by": "user", "evidence": "..."}
+    {"expectation": "E17-2", "decision": "Replaced by NATIVE-02", "decided_by": "user", "evidence": "reviewed-design-path@commit"}
   ]
 }
 ```
 
 Statuses are uppercase `PASS` or `FAIL`. Evidence arrays must be non-empty.
 Remediation statuses are `OPEN` or `CLOSED`, and every remediation Epic links the
-expectation rows it fixes. `expectation_changes` is empty unless the user changes
-an expectation.
+expectation rows it fixes. IDs have stable longitudinal meaning and must not be
+silently redefined between rounds. `expectation_changes` is empty only when the
+reviewed expectation set is unchanged; every replacement, weakening, removal,
+or split requires an explicit user decision and a mapping from the prior ID to
+the replacement set with durable evidence.
 
 ## Failure remediation loop
 
