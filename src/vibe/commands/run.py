@@ -38,6 +38,10 @@ _LEVEL_ORDER = {
     RiskLevel.CRITICAL: 3,
 }
 _ACTIVE_PLAN_PHASES: dict[str, tuple[str, ...]] = {}
+_DEPRECATION_WARNING = (
+    "Warning: 'vibe run' is deprecated and retained for compatibility only. "
+    "Keep normal project work in the current Codex conversation using Codex-native Skills."
+)
 
 
 class CodexTaskAppServer:
@@ -100,7 +104,12 @@ def run_command(
     json_output: Annotated[bool, typer.Option("--json")] = False,
     database: Annotated[Path | None, typer.Option("--database", hidden=True)] = None,
 ) -> None:
-    """Run a plan sequentially; pause durably at gates or invalidation boundaries."""
+    """Deprecated compatibility command for external task execution.
+
+    Normal project work stays in the current Codex conversation using Codex-native
+    Skills.
+    """
+    typer.echo(_DEPRECATION_WARNING, err=True)
     root = (path or Path.cwd()).resolve()
     checkpoint_path = checkpoint or root / ".vibe-task-checkpoint.json"
     task_scope = tuple(scope or ["."])

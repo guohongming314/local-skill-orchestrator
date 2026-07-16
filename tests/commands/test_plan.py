@@ -12,6 +12,16 @@ from vibe.models.task import TaskPlan
 runner = CliRunner()
 
 
+def test_plan_help_marks_command_as_compatibility_diagnostic_only() -> None:
+    result = runner.invoke(app, ["plan", "--help"])
+    help_text = " ".join(result.stdout.split())
+
+    assert result.exit_code == 0
+    assert "compatibility" in help_text.lower()
+    assert "diagnostic" in help_text.lower()
+    assert "Native Skill selection" in help_text
+
+
 def arguments(root: Path) -> list[str]:
     return [
         "plan",
@@ -50,6 +60,8 @@ def test_plan_json_contains_valid_stable_plan_and_capsule(tmp_path: Path) -> Non
     assert first.exit_code == 0
     assert second.exit_code == 0
     assert first.stdout == second.stdout
+    assert first.stderr.count("deprecated") == 1
+    assert "compatibility" in first.stderr
     payload = json.loads(first.stdout)
     task_plan = TaskPlan.model_validate(payload["task_plan"])
     capsule = ContextCapsule.model_validate(payload["context_capsule"])

@@ -25,6 +25,17 @@ pytestmark = pytest.mark.validation
 runner = CliRunner()
 
 
+def test_run_help_marks_command_as_deprecated_compatibility_only() -> None:
+    result = runner.invoke(app, ["run", "--help"])
+    help_text = " ".join(result.stdout.split())
+
+    assert result.exit_code == 0
+    assert "deprecated" in help_text.lower()
+    assert "compatibility" in help_text.lower()
+    assert "current Codex conversation" in help_text
+    assert "Codex-native Skills" in help_text
+
+
 class CompletingAppServer:
     async def start_thread(self, root: Path) -> str:
         return "thread-cli"
@@ -87,6 +98,8 @@ def test_run_uses_natural_language_classification_and_deterministic_risk_floor(
 
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
+    assert result.stderr.count("deprecated") == 1
+    assert "compatibility" in result.stderr
     assert payload["status"] == "completed"
     assert payload["risk_level"] == "medium"
     assert payload["workflow_mode"] == "standard"

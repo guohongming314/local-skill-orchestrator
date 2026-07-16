@@ -48,6 +48,10 @@ _ROUTE_CANDIDATES = (
         permissions=frozenset({Permission.EXECUTE_COMMAND, Permission.NETWORK}),
     ),
 )
+_DEPRECATION_WARNING = (
+    "Warning: 'vibe plan' is deprecated and retained for compatibility and diagnostic "
+    "use only. Native Skill selection is the normal Codex workflow."
+)
 
 
 def plan_command(
@@ -75,7 +79,11 @@ def plan_command(
     user_rework: Annotated[bool, typer.Option("--user-rework")] = False,
     database: Annotated[Path | None, typer.Option("--database", hidden=True)] = None,
 ) -> None:
-    """Compile a reviewable plan and capsule; never execute the requested task."""
+    """Compatibility and diagnostic plan preview; never execute the task.
+
+    Native Skill selection in the current Codex conversation is the normal workflow.
+    """
+    typer.echo(_DEPRECATION_WARNING, err=True)
     root = (path or Path.cwd()).resolve()
     try:
         task_plan, capsule = _compile_review(
