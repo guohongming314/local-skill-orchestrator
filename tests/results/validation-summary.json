@@ -135,17 +135,19 @@
       ]
     },
     {
-      "expectation": "A freshly initialized project can proceed through plan and phase-gated run.",
+      "expectation": "A freshly initialized project exposes native Skills and continues work in the current Codex session.",
       "id": "CROSS-01",
       "tests": [
-        "tests/validation/test_matrix.py::test_fresh_init_can_plan_and_run"
+        "tests/e2e/test_codex_native_project_experience.py::test_init_generates_codex_native_discoverable_project_capabilities",
+        "tests/e2e/test_codex_native_project_experience.py::test_sufficient_existing_capabilities_do_not_invoke_vibe_task_router"
       ]
     },
     {
-      "expectation": "A remote-installed capability can be bound into a phase-gated run.",
+      "expectation": "An approved remote-installed capability becomes project-discoverable and usable in the same Codex session without nested Codex.",
       "id": "CROSS-02",
       "tests": [
-        "tests/validation/test_matrix.py::test_remote_installed_capability_is_used_by_phase_gated_run"
+        "tests/e2e/test_codex_native_project_experience.py::test_missing_capability_install_stays_in_current_codex_conversation",
+        "tests/e2e/test_remote_install_loop.py::test_gap_to_approved_remote_install_doctor_and_uninstall_round_trip"
       ]
     },
     {

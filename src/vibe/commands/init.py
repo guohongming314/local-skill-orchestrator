@@ -10,6 +10,7 @@ from typing import Annotated, Any, Literal, cast
 
 import anyio
 import typer
+import yaml
 
 from vibe.codex.exec_fallback import StructuredResultError as CodexStructuredResultError
 from vibe.commands.inspect import _complete_snapshot
@@ -18,7 +19,7 @@ from vibe.conversation.interview import InterviewInput, InterviewQuestion, build
 from vibe.conversation.prompts import QUESTION_ORDER
 from vibe.conversation.runner import ConversationRunner
 from vibe.conversation.structured_result import StructuredProjectResult, ValueSource
-from vibe.inventory.service import InventoryResult
+from vibe.inventory.service import InventoryResult, inventory_digest
 from vibe.materialize.agents_md import merge_agents_md
 from vibe.materialize.capability_manager import render_agents_guidance
 from vibe.materialize.changeset import (
@@ -29,6 +30,7 @@ from vibe.materialize.changeset import (
     render_dry_run,
 )
 from vibe.materialize.ownership import FileOwnership
+from vibe.materialize.project_hooks import ProjectHookPolicy
 from vibe.materialize.skill_binding import (
     build_skill_binding_proposals,
     normalize_bound_skill_inventory,
@@ -70,6 +72,16 @@ def init_command(
     remote_decision: Annotated[
         list[str] | None, typer.Option("--remote-decision")
     ] = None,
+    hook_policy_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--hook-policy-file",
+            exists=True,
+            dir_okay=False,
+            hidden=True,
+            help="Internal approved ProjectHookPolicy JSON/YAML artifact.",
+        ),
+    ] = None,
 ) -> None:
     """Inspect, review, and optionally materialize project AI configuration."""
     if model_only and dry_run:
@@ -82,6 +94,7 @@ def init_command(
     workflow = InitializationGraph(checkpoint_store)
 
     try:
+        hook_policy = _load_hook_policy(hook_policy_file)
         snapshot = _complete_snapshot(root)
         checkpoint = _open_run(
             workflow,
@@ -101,6 +114,8 @@ def init_command(
                 confirmed={"repository": snapshot.model_dump(mode="json")},
             )
         inventory = scan_project_inventory(root)
+        if hook_policy is not None:
+            inventory = _without_managed_project_hook(inventory)
         if checkpoint.stage is InitStage.INVENTORY:
             checkpoint = workflow.advance(
                 run_id,
@@ -249,8 +264,11 @@ def init_command(
                 requirements=project_plan.requirements,
                 git_init_decision=git_init if snapshot.is_empty else None,
                 remote_decisions=effective_remote_decisions,
+                hook_policy=hook_policy,
             )
             preview = render_dry_run(changeset)
+            if hook_policy is not None:
+                preview += _hook_policy_preview(changeset)
             if dry_run:
                 applied_paths = ()
                 completion_details = {"dry_run_changeset": changeset.digest}
@@ -312,6 +330,7 @@ def _project_changeset(
     requirements: tuple[AbstractCapabilityRequirement, ...] | None = None,
     git_init_decision: bool | None = None,
     remote_decisions: Mapping[str, str] | None = None,
+    hook_policy: ProjectHookPolicy | None = None,
 ) -> ChangeSet:
     if inventory is None or resolution is None or requirements is None:
         plan = build_project_plan(root, blueprint, _complete_snapshot(root))
@@ -321,7 +340,11 @@ def _project_changeset(
     source_inventory = inventory
     resolution, inventory = normalize_bound_skill_inventory(root, resolution, inventory)
     rendered = render_project_configuration(
-        blueprint, resolution, inventory, requirements=requirements
+        blueprint,
+        resolution,
+        inventory,
+        requirements=requirements,
+        hook_policy=hook_policy,
     )
     rendered_files = rendered.as_dict()
     if git_init_decision is not None:
@@ -425,6 +448,54 @@ def _open_run(
 
 
 RemoteDecision = Literal["accept", "reject", "defer"]
+
+
+def _load_hook_policy(path: Path | None) -> ProjectHookPolicy | None:
+    if path is None:
+        return None
+    payload = yaml.safe_load(path.read_text(encoding="utf-8-sig"))
+    if not isinstance(payload, dict):
+        raise ValueError("Hook policy file must contain one JSON/YAML object")
+    policy = ProjectHookPolicy.model_validate_json(json.dumps(payload))
+    if not policy.approved:
+        raise ValueError("Hook policy file must be approved")
+    return policy
+
+
+def _without_managed_project_hook(inventory: InventoryResult) -> InventoryResult:
+    capabilities = tuple(
+        item
+        for item in inventory.capabilities
+        if item.manifest.capability_id != "hook.project"
+    )
+    return InventoryResult(
+        capabilities=capabilities,
+        diagnostics=inventory.diagnostics,
+        inventory_digest=inventory_digest(capabilities),
+    )
+
+
+def _hook_policy_preview(changeset: ChangeSet) -> str:
+    selected = {
+        operation.path: operation.after_content
+        for operation in changeset.operations
+        if operation.path
+        in {
+            ".ai-project/hooks/governance.py",
+            ".codex/hooks.json",
+            ".ai-project/capabilities.lock",
+        }
+    }
+    lines = ["", "Approved Hook policy artifacts:"]
+    for path in (
+        ".ai-project/hooks/governance.py",
+        ".codex/hooks.json",
+        ".ai-project/capabilities.lock",
+    ):
+        content = selected.get(path)
+        if content is not None:
+            lines.extend((f"--- {path}", content.rstrip("\n")))
+    return "\n" + "\n".join(lines)
 
 
 def _parse_remote_decisions(values: list[str]) -> dict[str, RemoteDecision]:

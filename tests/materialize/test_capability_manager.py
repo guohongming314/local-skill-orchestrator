@@ -45,6 +45,7 @@ def test_references_capture_approved_providers_gaps_and_governance() -> None:
 
     assert set(references) == {
         "references/capability-gaps.md",
+        "references/governance-commands.md",
         "references/quality-and-governance.md",
     }
     gaps = references["references/capability-gaps.md"]
@@ -53,6 +54,37 @@ def test_references_capture_approved_providers_gaps_and_governance() -> None:
     governance = references["references/quality-and-governance.md"]
     assert "explicit approval" in governance
     assert "Doctor" in governance
+
+
+def test_governance_commands_are_exact_internal_codex_workflows() -> None:
+    _, plan, inventory = inputs()
+    document = render_capability_manager_references(plan, inventory)[
+        "references/governance-commands.md"
+    ]
+
+    for command in (
+        "vibe inspect --path <root> --json",
+        "vibe capabilities list --path <root>",
+        "vibe install <name> --path <root> --candidate-file <bundle> --approve",
+        "vibe doctor --path <root> --json",
+        "vibe update <name> --path <root> --candidate-file <bundle> --approve",
+        "vibe uninstall <name> --path <root>",
+        "vibe reconcile --path <root> --dry-run",
+    ):
+        assert f"`{command}`" in document
+    assert "L3" in document
+    assert "item-specific approval" in document
+    assert "Internal Codex operations" in document
+    assert "Never ask the user to run" in document
+    assert "Never start another Codex" in document
+    assert "preserve the current conversation" in document
+
+
+def test_skill_requires_governance_commands_reference_for_management() -> None:
+    blueprint, _, _ = inputs()
+    document = render_capability_manager_skill(blueprint)
+
+    assert "[deterministic governance commands](references/governance-commands.md)" in document
 
 
 def test_references_render_a_selected_provider_only_once() -> None:

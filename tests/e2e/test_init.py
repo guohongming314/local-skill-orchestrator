@@ -396,8 +396,9 @@ def test_blank_project_materialization_only_generates_configuration_and_approved
         ".ai-project/capability-usage.yaml",
         ".agents/skills/project-capability-manager/SKILL.md",
         ".agents/skills/project-capability-manager/agents/openai.yaml",
-        ".agents/skills/project-capability-manager/references/capability-gaps.md",
-        ".agents/skills/project-capability-manager/references/quality-and-governance.md",
+            ".agents/skills/project-capability-manager/references/capability-gaps.md",
+            ".agents/skills/project-capability-manager/references/governance-commands.md",
+            ".agents/skills/project-capability-manager/references/quality-and-governance.md",
         "AGENTS.md",
     }
     assert files == expected

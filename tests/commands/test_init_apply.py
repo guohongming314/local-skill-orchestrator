@@ -34,6 +34,21 @@ def answers(tmp_path: Path) -> Path:
     return path
 
 
+def hook_policy(tmp_path: Path, **updates: object) -> Path:
+    payload: dict[str, object] = {
+        "events": ["PreToolUse", "Stop"],
+        "script_path": ".ai-project/hooks/governance.py",
+        "script_content": "print('governance')\n",
+        "permissions": ["execute-command"],
+        "approved": True,
+        "approval_provenance": "test:attended-review",
+    }
+    payload.update(updates)
+    path = tmp_path / "hook-policy.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
 def invoke(
     root: Path,
     answer_path: Path,
@@ -84,6 +99,101 @@ def test_init_dry_run_previews_all_changes_without_writes(tmp_path: Path) -> Non
     assert "CREATE .ai-project/capability-requirements.yaml" in payload["preview"]
     assert "UPDATE AGENTS.md" in payload["preview"]
     assert project_files(root) == {"AGENTS.md": original}
+
+
+def test_init_hook_policy_dry_run_previews_managed_artifacts_without_writes(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    policy_path = hook_policy(tmp_path)
+
+    result = invoke(
+        root,
+        answers(tmp_path),
+        run_id="hook-preview",
+        dry_run=True,
+        extra_args=("--hook-policy-file", str(policy_path)),
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert "CREATE .ai-project/hooks/governance.py" in payload["preview"]
+    assert "CREATE .codex/hooks.json" in payload["preview"]
+    assert "hook_approval_provenance: test:attended-review" in payload["preview"]
+    assert "hook_trust_digest:" in payload["preview"]
+    assert project_files(root) == {}
+
+
+def test_init_applies_approved_hook_policy_atomically_and_idempotently(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "pyproject.toml").write_text("[project]\nname='demo'\n", encoding="utf-8")
+    policy_path = hook_policy(tmp_path)
+    extra = ("--hook-policy-file", str(policy_path))
+
+    first = invoke(root, answers(tmp_path), run_id="hook-apply-one", extra_args=extra)
+
+    assert first.exit_code == 0, first.output
+    hooks = json.loads((root / ".codex/hooks.json").read_text(encoding="utf-8"))
+    assert set(hooks["hooks"]) == {"PreToolUse", "Stop"}
+    assert (root / ".ai-project/hooks/governance.py").read_text(encoding="utf-8") == (
+        "print('governance')\n"
+    )
+    lock = yaml.safe_load(
+        (root / ".ai-project/capabilities.lock").read_text(encoding="utf-8")
+    )
+    hook = next(item for item in lock["providers"] if item["provider_id"] == "hook.project")
+    assert hook["hook_approved"] is True
+    assert hook["hook_approval_provenance"] == "test:attended-review"
+    assert hook["hook_trust_digest"]
+    before_hooks = (root / ".codex/hooks.json").read_bytes()
+    before_script = (root / ".ai-project/hooks/governance.py").read_bytes()
+    before_trust = hook["hook_trust_digest"]
+
+    second = invoke(root, answers(tmp_path), run_id="hook-apply-two", extra_args=extra)
+
+    assert second.exit_code == 0, second.output
+    assert ".codex/hooks.json" not in json.loads(second.stdout)["applied_paths"]
+    assert ".ai-project/hooks/governance.py" not in json.loads(second.stdout)["applied_paths"]
+    assert (root / ".codex/hooks.json").read_bytes() == before_hooks
+    assert (root / ".ai-project/hooks/governance.py").read_bytes() == before_script
+    updated_lock = yaml.safe_load(
+        (root / ".ai-project/capabilities.lock").read_text(encoding="utf-8")
+    )
+    updated_hook = next(
+        item for item in updated_lock["providers"] if item["provider_id"] == "hook.project"
+    )
+    assert updated_hook["hook_trust_digest"] == before_trust
+
+
+@pytest.mark.parametrize(
+    "updates, error",
+    [
+        ({"approved": False, "approval_provenance": None}, "must be approved"),
+        ({"unexpected": True}, "Extra inputs are not permitted"),
+        ({"events": ["NotAnEvent"]}, "Input should be"),
+    ],
+)
+def test_init_rejects_invalid_or_unapproved_hook_policy_without_changes(
+    tmp_path: Path, updates: dict[str, object], error: str
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    policy_path = hook_policy(tmp_path, **updates)
+
+    result = invoke(
+        root,
+        answers(tmp_path),
+        run_id="hook-invalid",
+        extra_args=("--hook-policy-file", str(policy_path)),
+    )
+
+    assert result.exit_code == 2
+    assert error in result.output
+    assert project_files(root) == {}
 
 
 def test_init_applies_complete_configuration_preserves_user_content_and_is_idempotent(

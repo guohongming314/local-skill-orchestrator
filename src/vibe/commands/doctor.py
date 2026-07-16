@@ -12,7 +12,7 @@ import yaml
 from pydantic import ValidationError
 
 from vibe.commands.capabilities import _default_cli_specs
-from vibe.commands.init import _project_changeset
+from vibe.commands.init import _project_changeset, _without_managed_project_hook
 from vibe.commands.project_plan import build_project_plan, scan_project_inventory
 from vibe.compiler.invalidation import InvalidationReason
 from vibe.doctor.checks import run_health_checks
@@ -29,6 +29,7 @@ from vibe.inventory.adapters.agent_skill import AgentSkillAdapter, SkillRoot
 from vibe.inventory.adapters.base import CapabilityAdapter
 from vibe.inventory.adapters.cli_tool import CliToolAdapter
 from vibe.inventory.service import InventoryResult, InventoryService
+from vibe.materialize.project_hooks import ProjectHookPolicy
 from vibe.models.blueprint import Blueprint
 from vibe.models.capability import CapabilityScope
 from vibe.models.repository import RepositorySnapshot
@@ -89,6 +90,9 @@ def _project_report(root: Path) -> DoctorReport:
         update={"source_digest": blueprint.repository_digest}
     )
     project_inventory = scan_project_inventory(root)
+    hook_policy = _recorded_hook_policy(root)
+    if hook_policy is not None:
+        project_inventory = _without_managed_project_hook(project_inventory)
     project_plan = build_project_plan(
         root, blueprint, current, inventory=project_inventory
     )
@@ -98,6 +102,7 @@ def _project_report(root: Path) -> DoctorReport:
         inventory=project_plan.inventory,
         resolution=project_plan.resolution,
         requirements=project_plan.requirements,
+        hook_policy=hook_policy,
     )
     drift = detect_drift(baseline, current, changeset)
     drift_findings = tuple(
@@ -137,6 +142,33 @@ def _load_blueprint(root: Path) -> Blueprint | None:
             yaml.safe_load(target.read_text(encoding="utf-8-sig"))
         )
     except (OSError, UnicodeError, yaml.YAMLError, ValidationError, ValueError):
+        return None
+
+
+def _recorded_hook_policy(root: Path) -> ProjectHookPolicy | None:
+    lock_path = root / ".ai-project/capabilities.lock"
+    if not lock_path.is_file():
+        return None
+    try:
+        payload = yaml.safe_load(lock_path.read_text(encoding="utf-8-sig"))
+        providers = payload.get("providers", []) if isinstance(payload, dict) else []
+        hook = next(
+            item
+            for item in providers
+            if isinstance(item, dict) and item.get("provider_id") == "hook.project"
+        )
+        script_path = hook["hook_script_path"]
+        if not isinstance(script_path, str):
+            return None
+        return ProjectHookPolicy(
+            events=tuple(hook["hook_events"]),
+            script_path=script_path,
+            script_content=(root / script_path).read_text(encoding="utf-8"),
+            permissions=tuple(hook["hook_permissions"]),
+            approved=hook["hook_approved"],
+            approval_provenance=hook["hook_approval_provenance"],
+        )
+    except (KeyError, OSError, StopIteration, TypeError, ValueError):
         return None
 
 

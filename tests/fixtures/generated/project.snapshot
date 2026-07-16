@@ -17,10 +17,11 @@ When capability governance is needed:
 
 1. Read [approved providers and capability gaps](references/capability-gaps.md).
 2. Read the [quality and governance rules](references/quality-and-governance.md).
-3. Diagnose and explain the capability gap or unhealthy dependency.
-4. Recommend the smallest suitable change and obtain approval before mutation.
-5. As approved, install, replace, update, disable, or remove the capability.
-6. Run Doctor and focused verification after changes.
+3. Read the [deterministic governance commands](references/governance-commands.md).
+4. Diagnose and explain the capability gap or unhealthy dependency.
+5. Recommend the smallest suitable change and obtain approval before mutation.
+6. As approved, install, replace, update, disable, or remove the capability.
+7. Run Doctor and focused verification after changes.
 
 Never start another Codex, and never delegate task execution to `vibe run`.
 === .agents/skills/project-capability-manager/agents/openai.yaml ===
@@ -40,6 +41,62 @@ policy:
 
 ## Capability gaps
 - release-automation
+=== .agents/skills/project-capability-manager/references/governance-commands.md ===
+# Deterministic governance commands
+
+These are Internal Codex operations. Never ask the user to run them. Never start another Codex;
+do not start another process or thread, and preserve the current conversation throughout.
+Use the command tool available in the current conversation with the exact argument
+contracts below.
+
+## Inspect current capabilities and gaps
+
+1. Run `vibe inspect --path <root> --json` for repository facts.
+2. Run `vibe capabilities list --path <root>` for normalized local providers.
+3. Read `.ai-project/capability-requirements.yaml`, `.ai-project/decisions.md`, and
+   `references/capability-gaps.md` to identify the smallest unresolved gap.
+
+## Review candidate evidence
+
+Before mutation, inspect the candidate bundle at `<bundle>` and verify its identity,
+source, digest, permissions, compatibility, risk level, and evidence. Explain the
+specific proposed change and obtain approval in the current conversation.
+
+## Approved project-local install
+
+After approval, run
+`vibe install <name> --path <root> --candidate-file <bundle> --approve`.
+The `--approve` flag covers only an approved L1/L2 install. For an L3 bundle, obtain
+item-specific approval for every L3 capability or permission boundary before invoking
+the install; one broad approval must never be reused for multiple L3 items.
+
+## Doctor
+
+After every mutation, run `vibe doctor --path <root> --json` and focused verification.
+
+## Update
+
+Review the replacement bundle and permission delta, obtain fresh approval, then run
+`vibe update <name> --path <root> --candidate-file <bundle> --approve`. Permission
+expansion and every L3 item require their own explicit approval boundary.
+
+## Uninstall
+
+Explain the recorded transaction being reversed, obtain approval, then run
+`vibe uninstall <name> --path <root>`. Follow with Doctor and focused verification.
+
+## Reconcile
+
+Run `vibe reconcile --path <root> --dry-run` first. Explain each proposed drift
+resolution and obtain approval before running `vibe reconcile --path <root>` to apply
+the approved reconciliation.
+
+## Approved Hook policy boundary
+
+For optional project Hook governance, create a strict `ProjectHookPolicy` JSON or YAML
+file only after item-specific user approval, including non-empty
+`approval_provenance`. Pass that internal artifact to init with
+`--hook-policy-file <policy-file>`. Never infer approval or coerce an unapproved policy.
 === .agents/skills/project-capability-manager/references/quality-and-governance.md ===
 # Quality and governance
 

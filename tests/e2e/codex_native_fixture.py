@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 import subprocess
 import sys
 from collections.abc import Iterator
@@ -21,12 +22,7 @@ from vibe.cli import app
 from vibe.codex.app_server import CodexAppServerClient
 from vibe.codex.jsonrpc import JsonRpcSubprocessClient
 from vibe.inventory.adapters.agent_skill import AgentSkillAdapter, SkillRoot
-from vibe.materialize.project_hooks import (
-    ProjectHookPolicy,
-    combined_hook_trust_digest,
-    render_project_hooks,
-)
-from vibe.materialize.templates import CapabilityLock, CapabilityLockEntry
+from vibe.materialize.project_hooks import combined_hook_trust_digest
 from vibe.models.capability import CapabilityScope
 
 _FRONTMATTER = re.compile(
@@ -51,12 +47,6 @@ _STOPWORDS = frozenset(
         "with",
     }
 )
-
-
-@dataclass(frozen=True)
-class InstalledHook:
-    hooks: dict[str, Any]
-    trust_digest: str
 
 
 @dataclass(frozen=True)
@@ -222,17 +212,22 @@ class CodexNativeSession:
         if self._pending_capability is None:
             raise AssertionError("no capability gap is awaiting approval")
         bundle = self._project.root / ".scenario/registry" / f"{name}.json"
-        result = self._project._invoke_vibe(
-            [
-                "install",
-                name,
-                "--path",
-                str(self._project.root),
-                "--candidate-file",
-                str(bundle),
-                "--approve",
-            ],
+        reference = (
+            self._project.root
+            / ".agents/skills/project-capability-manager/references/governance-commands.md"
+        ).read_text(encoding="utf-8")
+        documented = (
+            "vibe install <name> --path <root> --candidate-file <bundle> --approve"
         )
+        if f"`{documented}`" not in reference:
+            raise AssertionError("generated manager does not document the install contract")
+        command = documented.replace("<name>", name).replace(
+            "<root>", str(self._project.root)
+        ).replace("<bundle>", str(bundle))
+        argv = shlex.split(command)
+        if argv[0] != "vibe":
+            raise AssertionError("documented install contract is not a vibe command")
+        result = self._project._invoke_vibe(argv[1:])
         assert result.exit_code == 0, result.output
         self.discovered_skills = self._project.discoverable_skills()
         installed = _select_native_skill(self._pending_capability, self.discovered_skills)
@@ -264,7 +259,7 @@ class CodexNativeProjectFixture:
         self.vibe_invocations: list[tuple[str, ...]] = []
         self._run_number = 0
 
-    def initialize(self, *, selected_skill: str) -> Result:
+    def initialize(self, *, selected_skill: str, approved_hook: bool = False) -> Result:
         self._install_user_skill(selected_skill)
         self._run_number += 1
         answers = self.root.parent / f"native-answers-{self._run_number}.json"
@@ -279,22 +274,37 @@ class CodexNativeProjectFixture:
             ),
             encoding="utf-8",
         )
-        return self._invoke_vibe(
-            [
-                "init",
-                "--path",
-                str(self.root),
-                "--run-id",
-                f"native-init-{self._run_number}",
-                "--checkpoints",
-                str(self.root.parent / f"native-init-{self._run_number}.sqlite3"),
-                "--answers",
-                str(answers),
-                "--confirm",
-                "--remote-discovery",
-                "--json",
-            ],
-        )
+        arguments = [
+            "init",
+            "--path",
+            str(self.root),
+            "--run-id",
+            f"native-init-{self._run_number}",
+            "--checkpoints",
+            str(self.root.parent / f"native-init-{self._run_number}.sqlite3"),
+            "--answers",
+            str(answers),
+            "--confirm",
+            "--remote-discovery",
+            "--json",
+        ]
+        if approved_hook:
+            policy = self.root.parent / f"native-hook-policy-{self._run_number}.json"
+            policy.write_text(
+                json.dumps(
+                    {
+                        "events": ["PreToolUse", "Stop"],
+                        "script_path": ".ai-project/hooks/governance.py",
+                        "script_content": "print('governance')\n",
+                        "permissions": ["execute-command"],
+                        "approved": True,
+                        "approval_provenance": "acceptance:attended-review",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            arguments.extend(("--hook-policy-file", str(policy)))
+        return self._invoke_vibe(arguments)
 
     def start_session(self) -> CodexNativeSession:
         if not (self.root / "AGENTS.md").is_file():
@@ -362,50 +372,6 @@ class CodexNativeProjectFixture:
         result = adapter.scan(discovery)
         return result.verification.verified and result.manifest.name == path.parent.name
 
-    def install_approved_hook(self) -> InstalledHook:
-        policy = ProjectHookPolicy(
-            events=("PreToolUse", "Stop"),
-            script_path=".ai-project/hooks/governance.py",
-            script_content="print('governance')\n",
-            approved=True,
-            approval_provenance="acceptance:attended-review",
-        )
-        rendered = render_project_hooks(policy)
-        for item in rendered.files:
-            target = self.root / item.path
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(item.content, encoding="utf-8")
-        assert rendered.trust_digest is not None
-        assert rendered.content_digest is not None
-        assert rendered.script_digest is not None
-        lock_path = self.root / ".ai-project/capabilities.lock"
-        lock = CapabilityLock.model_validate(
-            yaml.safe_load(lock_path.read_text(encoding="utf-8"))
-        )
-        hook = CapabilityLockEntry(
-            provider_id="hook.project",
-            kind="hook",
-            scope="project",
-            source=".codex/hooks.json",
-            content_digest=rendered.content_digest,
-            hook_approved=True,
-            hook_approval_provenance=policy.approval_provenance,
-            hook_trust_digest=rendered.trust_digest,
-            hook_events=tuple(sorted(policy.events)),
-            hook_permissions=tuple(sorted(policy.permissions)),
-            hook_script_path=policy.script_path,
-            hook_script_digest=rendered.script_digest,
-        )
-        updated = lock.model_copy(update={"providers": (*lock.providers, hook)})
-        lock_path.write_text(
-            yaml.safe_dump(updated.model_dump(mode="json"), sort_keys=True),
-            encoding="utf-8",
-        )
-        return InstalledHook(
-            hooks=json.loads((self.root / ".codex/hooks.json").read_text(encoding="utf-8")),
-            trust_digest=rendered.trust_digest,
-        )
-
     def installed_hook_trust_digest(self) -> str:
         hooks = (self.root / ".codex/hooks.json").read_bytes()
         script_path = ".ai-project/hooks/governance.py"
@@ -423,6 +389,9 @@ class CodexNativeProjectFixture:
     def _invoke_vibe(self, arguments: list[str]) -> Result:
         self.vibe_invocations.append(tuple(arguments))
         return self.runner.invoke(app, arguments)
+
+    def invoke_internal(self, arguments: list[str]) -> Result:
+        return self._invoke_vibe(arguments)
 
     def _install_nested_start_guards(self) -> None:
         if self._guards_installed:

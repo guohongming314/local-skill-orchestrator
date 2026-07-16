@@ -199,6 +199,7 @@ def test_renders_complete_project_configuration_and_all_yaml_validates() -> None
         ".agents/skills/project-capability-manager/SKILL.md",
         ".agents/skills/project-capability-manager/agents/openai.yaml",
         ".agents/skills/project-capability-manager/references/capability-gaps.md",
+        ".agents/skills/project-capability-manager/references/governance-commands.md",
         ".agents/skills/project-capability-manager/references/quality-and-governance.md",
     }
     validate_rendered_yaml(rendered)
@@ -266,6 +267,7 @@ def test_generated_project_skill_passes_local_structural_validation(tmp_path: Pa
     assert result.verification.details == (
         "dependency:agents/openai.yaml",
         "dependency:references/capability-gaps.md",
+        "dependency:references/governance-commands.md",
         "dependency:references/quality-and-governance.md",
     )
 

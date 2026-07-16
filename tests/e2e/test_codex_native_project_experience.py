@@ -18,8 +18,13 @@ def test_init_generates_codex_native_discoverable_project_capabilities(
 
     assert result.exit_code == 0, result.output
     manager = native_project.root / ".agents/skills/project-capability-manager/SKILL.md"
+    commands = manager.parent / "references/governance-commands.md"
     debugging = native_project.root / ".agents/skills/systematic-debugging/SKILL.md"
     assert manager.is_file()
+    assert commands.is_file()
+    assert "vibe install <name> --path <root> --candidate-file <bundle> --approve" in (
+        commands.read_text(encoding="utf-8")
+    )
     assert debugging.is_file()
     assert native_project.discoverable_skill_names() == (
         "project-capability-manager",
@@ -95,10 +100,18 @@ def test_sufficient_existing_capabilities_do_not_invoke_vibe_task_router(
 def test_optional_hook_governance_does_not_change_native_skill_discovery(
     native_project: CodexNativeProjectFixture,
 ) -> None:
-    native_project.initialize(selected_skill="systematic-debugging")
-    assert not (native_project.root / ".codex/hooks.json").exists()
-
-    native_project.install_approved_hook()
+    result = native_project.initialize(
+        selected_skill="systematic-debugging", approved_hook=True
+    )
+    assert result.exit_code == 0, result.output
+    doctor = native_project.invoke_internal(
+        ["doctor", "--path", str(native_project.root), "--json"]
+    )
+    doctor_payload = json.loads(doctor.stdout)
+    assert not any(
+        "hook" in finding["code"] or ".codex/hooks.json" in finding["evidence"]
+        for finding in doctor_payload["findings"]
+    ), doctor.output
     session = native_project.start_session()
     assert session.configured_hook_events == ("PreToolUse", "Stop")
     assert "UserPromptSubmit" not in session.configured_hook_events
