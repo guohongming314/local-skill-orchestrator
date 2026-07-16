@@ -46,6 +46,10 @@ def render_capability_manager_references(
     plan: ResolutionPlan, inventory: InventoryResult
 ) -> dict[str, str]:
     """Render local, deterministic capability context and governance references."""
+    host_inventory_command = (
+        "vibe capabilities list --config <codex-config> --plugins-root <plugins-root> "
+        "--project <root> --user-skills <user-skills> --json"
+    )
     manifests = {item.manifest.capability_id: item.manifest for item in inventory.capabilities}
     selected_ids = sorted(
         {
@@ -79,7 +83,7 @@ def render_capability_manager_references(
 - Preserve project-owned files and record deterministic capability state.
 - Run Doctor and focused verification after every approved change.
 """
-    commands = """# Deterministic governance commands
+    commands = f"""# Deterministic governance commands
 
 These are Internal Codex operations. Never ask the user to run them. Never start another Codex;
 do not start another process or thread, and preserve the current conversation throughout.
@@ -88,10 +92,19 @@ contracts below.
 
 ## Inspect current capabilities and gaps
 
-1. Run `vibe inspect --path <root> --json` for repository facts.
-2. Run `vibe capabilities list --path <root>` for normalized local providers.
-3. Read `.ai-project/capability-requirements.yaml`, `.ai-project/decisions.md`, and
-   `references/capability-gaps.md` to identify the smallest unresolved gap.
+1. Read `.ai-project/capability-requirements.yaml`, `.ai-project/capabilities.yaml`,
+   and `.ai-project/capabilities.lock` for the approved project state and gaps.
+2. Run `vibe doctor --path <root> --json` for current health and drift.
+3. Read `.ai-project/decisions.md` and `references/capability-gaps.md` to identify
+   the smallest unresolved gap.
+
+If a fresh host inventory is explicitly needed, resolve `<codex-config>` and
+`<plugins-root>` from the active `CODEX_HOME`, resolve `<root>` from the current
+project, and run
+`{host_inventory_command}`.
+Codex may omit `--user-skills` and its `<user-skills>` value when no optional
+user-Skills directory is active. The required `<codex-config>` and `<plugins-root>`
+placeholders must always name the active Codex configuration file and plugins root.
 
 ## Review candidate evidence
 

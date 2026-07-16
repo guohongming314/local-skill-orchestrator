@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import pytest
+from typer.main import get_command
+from typer.testing import CliRunner
+
 from tests.materialize.test_templates import inputs
+from vibe.cli import app
 from vibe.materialize.capability_manager import (
     render_agents_guidance,
     render_capability_manager_references,
@@ -63,13 +68,14 @@ def test_governance_commands_are_exact_internal_codex_workflows() -> None:
     ]
 
     for command in (
-        "vibe inspect --path <root> --json",
-        "vibe capabilities list --path <root>",
-        "vibe install <name> --path <root> --candidate-file <bundle> --approve",
         "vibe doctor --path <root> --json",
+        "vibe capabilities list --config <codex-config> --plugins-root <plugins-root> "
+        "--project <root> --user-skills <user-skills> --json",
+        "vibe install <name> --path <root> --candidate-file <bundle> --approve",
         "vibe update <name> --path <root> --candidate-file <bundle> --approve",
         "vibe uninstall <name> --path <root>",
         "vibe reconcile --path <root> --dry-run",
+        "vibe reconcile --path <root>",
     ):
         assert f"`{command}`" in document
     assert "L3" in document
@@ -78,6 +84,45 @@ def test_governance_commands_are_exact_internal_codex_workflows() -> None:
     assert "Never ask the user to run" in document
     assert "Never start another Codex" in document
     assert "preserve the current conversation" in document
+    for project_file in (
+        ".ai-project/capability-requirements.yaml",
+        ".ai-project/capabilities.yaml",
+        ".ai-project/capabilities.lock",
+    ):
+        assert project_file in document
+    assert "active `CODEX_HOME`" in document
+    assert "may omit `--user-skills`" in document
+
+
+@pytest.mark.parametrize(
+    ("command_path", "options"),
+    (
+        (("doctor",), ("--path", "--json")),
+        (
+            ("capabilities", "list"),
+            ("--config", "--plugins-root", "--project", "--user-skills", "--json"),
+        ),
+        (("install",), ("--path", "--candidate-file", "--approve")),
+        (("update",), ("--path", "--candidate-file", "--approve")),
+        (("uninstall",), ("--path",)),
+        (("reconcile",), ("--path", "--dry-run")),
+    ),
+)
+def test_each_documented_governance_command_uses_options_from_cli_help(
+    command_path: tuple[str, ...], options: tuple[str, ...]
+) -> None:
+    result = CliRunner().invoke(app, [*command_path, "--help"])
+
+    assert result.exit_code == 0, result.output
+    for option in options:
+        assert option in result.output
+
+
+def test_documented_internal_hook_policy_option_is_registered_on_init() -> None:
+    root = get_command(app)
+    init = root.commands["init"]
+
+    assert any("--hook-policy-file" in parameter.opts for parameter in init.params)
 
 
 def test_skill_requires_governance_commands_reference_for_management() -> None:
