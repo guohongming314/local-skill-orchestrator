@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from vibe.inventory.service import InventoryResult
 from vibe.materialize.capability_manager import (
@@ -70,6 +70,13 @@ class CapabilityLockEntry(BaseModel):
 class CapabilityLock(VersionedModel):
     inventory_digest: str = Field(min_length=8)
     providers: tuple[CapabilityLockEntry, ...]
+
+    @model_validator(mode="after")
+    def provider_ids_are_unique(self) -> CapabilityLock:
+        provider_ids = tuple(item.provider_id for item in self.providers)
+        if len(provider_ids) != len(set(provider_ids)):
+            raise ValueError("capability lock provider_id values must be unique")
+        return self
 
 
 class RenderedCapabilities(VersionedModel):
@@ -159,6 +166,7 @@ def render_project_configuration(
                     codex_skill=manifest.codex_skill,
                 )
                 for manifest in selected
+                if hook_lock is None or manifest.capability_id != "hook.project"
             ),
             *((hook_lock,) if hook_lock is not None else ()),
         ),

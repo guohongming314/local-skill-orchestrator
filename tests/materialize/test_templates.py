@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
+from pydantic import ValidationError
 
 from vibe.inventory.adapters.agent_skill import AgentSkillAdapter, SkillRoot
 from vibe.inventory.adapters.base import (
@@ -11,7 +13,12 @@ from vibe.inventory.adapters.base import (
     AdapterVerification,
 )
 from vibe.inventory.service import InventoryResult
-from vibe.materialize.templates import render_project_configuration, validate_rendered_yaml
+from vibe.materialize.templates import (
+    CapabilityLock,
+    CapabilityLockEntry,
+    render_project_configuration,
+    validate_rendered_yaml,
+)
 from vibe.models.blueprint import Blueprint, LifecycleStage, ProjectConstraint
 from vibe.models.capability import (
     CapabilityKind,
@@ -30,6 +37,20 @@ from vibe.models.resolution import (
 from vibe.models.risk import RiskLevel
 from vibe.practices.models import RequirementStrength
 from vibe.resolver.requirements import AbstractCapabilityRequirement
+
+
+def test_capability_lock_rejects_duplicate_provider_ids() -> None:
+    provider = CapabilityLockEntry(
+        provider_id="hook.project",
+        kind="hook",
+        scope="project",
+        source=".codex/hooks.json",
+        content_digest="digest-value",
+    )
+
+    with pytest.raises(ValidationError):
+        CapabilityLock(inventory_digest="inventory-digest", providers=(provider, provider))
+
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "generated" / "project.snapshot"
 
@@ -156,9 +177,7 @@ def inputs() -> tuple[Blueprint, ResolutionPlan, InventoryResult]:
 
 def render_inputs():
     blueprint, plan, inventory = inputs()
-    return render_project_configuration(
-        blueprint, plan, inventory, requirements=requirements()
-    )
+    return render_project_configuration(blueprint, plan, inventory, requirements=requirements())
 
 
 def test_renders_complete_project_configuration_and_all_yaml_validates() -> None:
@@ -204,28 +223,20 @@ def test_lockfile_pins_selected_provider_identity_and_content_digest() -> None:
     assert lock["providers"][1]["provider_id"] == "skill.test-guide"
     assert lock["providers"][1]["codex_skill"] == {
         "allow_implicit_invocation": False,
-        "tool_dependencies": [
-            {"dependency_type": "mcp", "value": "filesystem"}
-        ],
+        "tool_dependencies": [{"dependency_type": "mcp", "value": "filesystem"}],
     }
     assert "mcp.search" not in files[".ai-project/capabilities.lock"]
 
 
 def test_requirement_artifact_preserves_abstract_evaluation_without_provider_binding() -> None:
-    payload = yaml.safe_load(
-        render_inputs().as_dict()[".ai-project/capability-requirements.yaml"]
-    )
+    payload = yaml.safe_load(render_inputs().as_dict()[".ai-project/capability-requirements.yaml"])
 
     quality_gate = next(
         item for item in payload["requirements"] if item["capability"] == "quality.gates"
     )
     assert quality_gate["strength"] == "required"
-    assert quality_gate["reasons"] == [
-        "The project requires deterministic quality checks."
-    ]
-    assert quality_gate["verification"] == [
-        "Run the configured quality gate before completion."
-    ]
+    assert quality_gate["reasons"] == ["The project requires deterministic quality checks."]
+    assert quality_gate["verification"] == ["Run the configured quality gate before completion."]
     assert quality_gate["selected_provider"] is None
 
 
@@ -245,9 +256,7 @@ def test_generated_project_skill_passes_local_structural_validation(tmp_path: Pa
         target.write_text(content, encoding="utf-8")
 
     skill_root = tmp_path / ".agents" / "skills"
-    adapter = AgentSkillAdapter(
-        roots=(SkillRoot(skill_root, CapabilityScope.PROJECT),)
-    )
+    adapter = AgentSkillAdapter(roots=(SkillRoot(skill_root, CapabilityScope.PROJECT),))
     result = adapter.scan(adapter.discover()[0])
 
     assert result.manifest.capability_id == "skill.project-capability-manager"
@@ -303,9 +312,7 @@ def test_gap_recommendations_render_in_decisions() -> None:
 
     decisions = render_project_configuration(
         blueprint, plan, inventory, requirements=requirements()
-    ).as_dict()[
-        ".ai-project/decisions.md"
-    ]
+    ).as_dict()[".ai-project/decisions.md"]
 
     assert "## Capability gap recommendations" in decisions
     assert "browser.validation: Validate user-visible browser behavior" in decisions
@@ -326,8 +333,6 @@ def test_zero_gap_plan_renders_no_recommendation_section() -> None:
 
     decisions = render_project_configuration(
         blueprint, plan, inventory, requirements=requirements()
-    ).as_dict()[
-        ".ai-project/decisions.md"
-    ]
+    ).as_dict()[".ai-project/decisions.md"]
 
     assert "Capability gap recommendations" not in decisions
