@@ -185,10 +185,10 @@
       ]
     },
     {
-      "expectation": "Project Hook governance is optional; an approved managed Hook has exact exposure and trust while native Skill behavior remains unchanged.",
+      "expectation": "Optional approved Hook governance exposes only managed events, adds no prompt-submit routing, and does not change Codex-native Skill discovery.",
       "id": "NATIVE-05",
       "tests": [
-        "tests/e2e/test_codex_native_project_experience.py::test_approved_hook_governance_preserves_native_skill_behavior"
+        "tests/e2e/test_codex_native_project_experience.py::test_optional_hook_governance_does_not_change_native_skill_discovery"
       ]
     }
   ],

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 
+import pytest
 import yaml
 
 from tests.e2e.codex_native_fixture import CodexNativeProjectFixture, native_project
@@ -49,12 +50,18 @@ def test_missing_capability_install_stays_in_current_codex_conversation(
     session = native_project.start_session()
     original_thread_id = session.thread_id
     original_observed_threads = session.observed_thread_ids
+    assert original_thread_id == "thread-persisted"
+    assert native_project.observed_process_starts == 1
+    assert native_project.observed_thread_starts == 1
+    assert native_project.fake_host_state()["threadId"] == original_thread_id
 
     session.request("Validate the browser checkout flow")
     session.approve_project_candidate("browser-testing")
 
     assert session.thread_id == original_thread_id
     assert session.observed_thread_ids == original_observed_threads
+    assert native_project.observed_process_starts == 1
+    assert native_project.observed_thread_starts == 1
     assert session.started_nested_codex_processes == 0
     assert session.started_nested_codex_threads == 0
     assert session.internal_commands == ("init", "install")
@@ -85,7 +92,7 @@ def test_sufficient_existing_capabilities_do_not_invoke_vibe_task_router(
     assert session.started_nested_codex_threads == 0
 
 
-def test_approved_hook_governance_preserves_native_skill_behavior(
+def test_optional_hook_governance_does_not_change_native_skill_discovery(
     native_project: CodexNativeProjectFixture,
 ) -> None:
     native_project.initialize(selected_skill="systematic-debugging")
@@ -93,6 +100,8 @@ def test_approved_hook_governance_preserves_native_skill_behavior(
 
     native_project.install_approved_hook()
     session = native_project.start_session()
+    assert session.configured_hook_events == ("PreToolUse", "Stop")
+    assert "UserPromptSubmit" not in session.configured_hook_events
     session.request("Fix the intermittent login failure")
 
     hooks = json.loads(
@@ -126,3 +135,18 @@ def test_approved_hook_governance_preserves_native_skill_behavior(
     assert session.loaded_skill_names == ("systematic-debugging",)
     assert session.started_nested_codex_processes == 0
     assert session.started_nested_codex_threads == 0
+
+
+def test_nested_codex_boundaries_are_recorded_and_rejected(
+    native_project: CodexNativeProjectFixture,
+) -> None:
+    native_project.initialize(selected_skill="systematic-debugging")
+    native_project.start_session()
+
+    with pytest.raises(AssertionError, match="nested Codex process"):
+        native_project.attempt_nested_process_start()
+    with pytest.raises(AssertionError, match="nested Codex thread"):
+        native_project.attempt_nested_thread_start()
+
+    assert native_project.observed_process_starts == 2
+    assert native_project.observed_thread_starts == 2

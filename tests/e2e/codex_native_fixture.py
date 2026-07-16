@@ -4,16 +4,22 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import sys
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import IO, Any, cast
 
+import anyio
 import pytest
 import yaml
 from typer.testing import CliRunner, Result
 
 from tests.scenarios.builders import build_scenario
 from vibe.cli import app
+from vibe.codex.app_server import CodexAppServerClient
+from vibe.codex.jsonrpc import JsonRpcSubprocessClient
 from vibe.inventory.adapters.agent_skill import AgentSkillAdapter, SkillRoot
 from vibe.materialize.project_hooks import (
     ProjectHookPolicy,
@@ -63,16 +69,107 @@ class NativeSkillMetadata:
 @dataclass
 class ObservedCodexBoundaries:
     thread_ids: list[str]
-    nested_process_starts: int = 0
-    nested_thread_starts: int = 0
+    process_starts: int = 0
+    thread_starts: int = 0
 
     async def reject_process_start(self, *_args: object, **_kwargs: object) -> None:
-        self.nested_process_starts += 1
+        self.process_starts += 1
         raise AssertionError("Vibe attempted to start a nested Codex process")
 
     async def reject_thread_start(self, *_args: object, **_kwargs: object) -> None:
-        self.nested_thread_starts += 1
+        self.thread_starts += 1
         raise AssertionError("Vibe attempted to start a nested Codex thread")
+
+
+class FakeCodexLifecycleHost:
+    """Synchronous JSONL client for the repository's fake app-server lifecycle."""
+
+    def __init__(self, state_path: Path, boundaries: ObservedCodexBoundaries) -> None:
+        self.state_path = state_path
+        self.boundaries = boundaries
+        self._process: subprocess.Popen[str] | None = None
+        self._next_id = 1
+
+    def start(self, root: Path) -> str:
+        if self._process is not None:
+            raise AssertionError("fake Codex host is already started")
+        script = Path(__file__).parents[1] / "fakes/fake_app_server.py"
+        self._process = subprocess.Popen(
+            [sys.executable, str(script), "lifecycle", str(self.state_path)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            bufsize=1,
+        )
+        self.boundaries.process_starts += 1
+        self._request(
+            "initialize",
+            {"clientInfo": {"name": "native-acceptance", "version": "1"}},
+        )
+        self._write({"method": "initialized"})
+        result = self._request("thread/start", {"cwd": str(root.resolve())})
+        notification = self._read()
+        if notification.get("method") != "thread/started":
+            raise AssertionError("fake Codex host did not emit thread/started")
+        thread_id = str(result["thread"]["id"])
+        observed = str(notification["params"]["thread"]["id"])
+        if observed != thread_id:
+            raise AssertionError("thread/start response and notification disagree")
+        self.boundaries.thread_ids.append(thread_id)
+        self.boundaries.thread_starts += 1
+        return thread_id
+
+    def close(self) -> None:
+        process = self._process
+        if process is None:
+            return
+        if process.stdin is not None:
+            process.stdin.close()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.terminate()
+            process.wait(timeout=5)
+        self._process = None
+
+    def _request(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+        request_id = self._next_id
+        self._next_id += 1
+        self._write({"id": request_id, "method": method, "params": params})
+        while True:
+            message = self._read()
+            if message.get("id") == request_id:
+                result = message.get("result")
+                if not isinstance(result, dict):
+                    raise AssertionError(f"fake Codex {method} returned no object result")
+                return result
+
+    def _write(self, message: dict[str, Any]) -> None:
+        stream = self._stdin()
+        stream.write(json.dumps(message, separators=(",", ":")) + "\n")
+        stream.flush()
+
+    def _read(self) -> dict[str, Any]:
+        line = self._stdout().readline()
+        if not line:
+            stderr = self._process.stderr.read() if self._process and self._process.stderr else ""
+            raise AssertionError(f"fake Codex host closed unexpectedly: {stderr}")
+        message = json.loads(line)
+        if not isinstance(message, dict):
+            raise AssertionError("fake Codex host emitted a non-object message")
+        return cast(dict[str, Any], message)
+
+    def _stdin(self) -> IO[str]:
+        if self._process is None or self._process.stdin is None:
+            raise AssertionError("fake Codex host stdin is unavailable")
+        return self._process.stdin
+
+    def _stdout(self) -> IO[str]:
+        if self._process is None or self._process.stdout is None:
+            raise AssertionError("fake Codex host stdout is unavailable")
+        return self._process.stdout
 
 
 class CodexNativeSession:
@@ -83,6 +180,12 @@ class CodexNativeSession:
         self.thread_id = project.codex_boundaries.thread_ids[-1]
         self.agents_md = (project.root / "AGENTS.md").read_text(encoding="utf-8")
         self.discovered_skills = project.discoverable_skills()
+        hooks_path = project.root / ".codex/hooks.json"
+        hooks = json.loads(hooks_path.read_text(encoding="utf-8")) if hooks_path.is_file() else {}
+        configured = hooks.get("hooks", {})
+        self.configured_hook_events = (
+            tuple(sorted(configured)) if isinstance(configured, dict) else ()
+        )
         self.loaded_skill_paths: list[Path] = []
         self._pending_capability: str | None = None
 
@@ -100,11 +203,11 @@ class CodexNativeSession:
 
     @property
     def started_nested_codex_processes(self) -> int:
-        return self._project.codex_boundaries.nested_process_starts
+        return self._project.codex_boundaries.process_starts - 1
 
     @property
     def started_nested_codex_threads(self) -> int:
-        return self._project.codex_boundaries.nested_thread_starts
+        return self._project.codex_boundaries.thread_starts - 1
 
     def request(self, prompt: str) -> None:
         match = _select_native_skill(prompt, self.discovered_skills)
@@ -149,10 +252,14 @@ class CodexNativeProjectFixture:
         root: Path,
         codex_home: Path,
         codex_boundaries: ObservedCodexBoundaries,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         self.root = root
         self.codex_home = codex_home
         self.codex_boundaries = codex_boundaries
+        self._monkeypatch = monkeypatch
+        self._host = FakeCodexLifecycleHost(root.parent / "fake-codex-state.json", codex_boundaries)
+        self._guards_installed = False
         self.runner = CliRunner()
         self.vibe_invocations: list[tuple[str, ...]] = []
         self._run_number = 0
@@ -192,7 +299,39 @@ class CodexNativeProjectFixture:
     def start_session(self) -> CodexNativeSession:
         if not (self.root / "AGENTS.md").is_file():
             raise AssertionError("project must be initialized before starting Codex")
+        if not self.codex_boundaries.thread_ids:
+            self._host.start(self.root)
+        self._install_nested_start_guards()
         return CodexNativeSession(self)
+
+    @property
+    def observed_process_starts(self) -> int:
+        return self.codex_boundaries.process_starts
+
+    @property
+    def observed_thread_starts(self) -> int:
+        return self.codex_boundaries.thread_starts
+
+    def fake_host_state(self) -> dict[str, Any]:
+        return cast(
+            dict[str, Any],
+            json.loads(self._host.state_path.read_text(encoding="utf-8")),
+        )
+
+    def close(self) -> None:
+        self._host.close()
+
+    def attempt_nested_process_start(self) -> None:
+        client = JsonRpcSubprocessClient(("codex", "app-server"))
+        anyio.run(client.start)
+
+    def attempt_nested_thread_start(self) -> None:
+        client = CodexAppServerClient(cast(Any, object()))
+
+        async def start() -> None:
+            await client.start_thread(cwd=self.root)
+
+        anyio.run(start)
 
     def discoverable_skills(self) -> tuple[NativeSkillMetadata, ...]:
         found: list[NativeSkillMetadata] = []
@@ -285,6 +424,19 @@ class CodexNativeProjectFixture:
         self.vibe_invocations.append(tuple(arguments))
         return self.runner.invoke(app, arguments)
 
+    def _install_nested_start_guards(self) -> None:
+        if self._guards_installed:
+            return
+        self._monkeypatch.setattr(
+            "vibe.codex.jsonrpc.anyio.open_process",
+            self.codex_boundaries.reject_process_start,
+        )
+        self._monkeypatch.setattr(
+            "vibe.codex.app_server.CodexAppServerClient.start_thread",
+            self.codex_boundaries.reject_thread_start,
+        )
+        self._guards_installed = True
+
     def _install_user_skill(self, name: str) -> None:
         skill = self.codex_home / "skills" / name
         skill.mkdir(parents=True, exist_ok=True)
@@ -340,16 +492,13 @@ def _select_native_skill(
 @pytest.fixture
 def native_project(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> CodexNativeProjectFixture:
+) -> Iterator[CodexNativeProjectFixture]:
     codex_home = tmp_path / "codex-home"
     monkeypatch.setenv("CODEX_HOME", str(codex_home))
-    boundaries = ObservedCodexBoundaries(thread_ids=["thread-codex-native-observed"])
-    monkeypatch.setattr(
-        "vibe.codex.jsonrpc.anyio.open_process", boundaries.reject_process_start
-    )
-    monkeypatch.setattr(
-        "vibe.codex.app_server.CodexAppServerClient.start_thread",
-        boundaries.reject_thread_start,
-    )
+    boundaries = ObservedCodexBoundaries(thread_ids=[])
     built = build_scenario("blank-web-remote", tmp_path / "project")
-    return CodexNativeProjectFixture(built.root, codex_home, boundaries)
+    fixture = CodexNativeProjectFixture(built.root, codex_home, boundaries, monkeypatch)
+    try:
+        yield fixture
+    finally:
+        fixture.close()
