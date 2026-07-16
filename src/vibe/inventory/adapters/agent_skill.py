@@ -44,6 +44,22 @@ class SkillRoot:
     scope: CapabilityScope
 
 
+@dataclass(frozen=True)
+class SkillBundleFile:
+    """One verified UTF-8 text file belonging to an Agent Skill."""
+
+    relative_path: Path
+    content: str
+
+
+@dataclass(frozen=True)
+class SkillBundle:
+    """Exact files and digest used to verify an Agent Skill."""
+
+    files: tuple[SkillBundleFile, ...]
+    content_digest: str
+
+
 class AgentSkillAdapter:
     """Discover and safely normalize Agent Skills without executing them."""
 
@@ -68,7 +84,8 @@ class AgentSkillAdapter:
         skill_file = Path(discovery.locator).resolve()
         root = self._root_for(skill_file)
         try:
-            text = skill_file.read_text(encoding="utf-8")
+            with skill_file.open("r", encoding="utf-8", newline="") as handle:
+                text = handle.read()
         except (OSError, UnicodeError) as error:
             raise AdapterScanError(f"cannot read SKILL.md: {error}") from error
 
@@ -94,6 +111,10 @@ class AgentSkillAdapter:
         if metadata_details or metadata_content:
             digest.update(b"agents/openai.yaml\0")
             digest.update(metadata_content)
+            try:
+                metadata_content.decode("utf-8")
+            except UnicodeError:
+                details.append("invalid_openai_metadata:UnicodeError")
         for dependency in _local_dependencies(body):
             normalized = dependency.as_posix()
             candidate = (skill_directory / dependency).resolve()
@@ -110,6 +131,11 @@ class AgentSkillAdapter:
                 content = candidate.read_bytes()
             except OSError as error:
                 details.append(f"unreadable_dependency:{normalized}:{type(error).__name__}")
+                continue
+            try:
+                content.decode("utf-8")
+            except UnicodeError:
+                details.append(f"undecodable_dependency:{normalized}")
                 continue
             digest.update(normalized.encode())
             digest.update(b"\0")
@@ -151,6 +177,38 @@ class AgentSkillAdapter:
             if skill_file.is_relative_to(resolved_root) and direct_child:
                 return root
         raise AdapterScanError(f"locator is outside configured roots: {skill_file}")
+
+
+def skill_bundle_files(skill_file: Path) -> SkillBundle:
+    """Return the exact safe text bundle for a verified SKILL.md source."""
+    resolved = skill_file.resolve()
+    if resolved.name != "SKILL.md" or not resolved.is_file():
+        raise ValueError("Skill source must be an existing SKILL.md file")
+    adapter = AgentSkillAdapter(
+        roots=(SkillRoot(resolved.parent.parent, CapabilityScope.USER),)
+    )
+    result = adapter.scan(AdapterDiscovery(locator=str(resolved)))
+    if not result.verification.verified:
+        details = ", ".join(result.verification.details)
+        raise ValueError(f"Skill bundle is unverified: {details}")
+
+    files: list[SkillBundleFile] = []
+    with resolved.open("r", encoding="utf-8", newline="") as handle:
+        skill_text = handle.read()
+    _, body = _parse_frontmatter(skill_text)
+    files.append(SkillBundleFile(Path("SKILL.md"), skill_text))
+    metadata_path = resolved.parent / "agents/openai.yaml"
+    if metadata_path.is_file():
+        with metadata_path.open("r", encoding="utf-8", newline="") as handle:
+            files.append(SkillBundleFile(Path("agents/openai.yaml"), handle.read()))
+    for dependency in _local_dependencies(body):
+        candidate = (resolved.parent / dependency).resolve()
+        with candidate.open("r", encoding="utf-8", newline="") as handle:
+            files.append(SkillBundleFile(dependency, handle.read()))
+    return SkillBundle(
+        files=tuple(sorted(files, key=lambda item: item.relative_path.as_posix())),
+        content_digest=result.manifest.content_digest,
+    )
 
 
 def _parse_frontmatter(text: str) -> tuple[dict[str, str], str]:

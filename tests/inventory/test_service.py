@@ -99,6 +99,47 @@ def test_duplicate_capability_ids_are_excluded_with_explicit_diagnostic() -> Non
     assert diagnostic.adapter_ids == ("adapter-a", "adapter-b")
 
 
+def test_identical_project_capability_shadows_user_copy() -> None:
+    project = manifest("shared")
+    user = project.model_copy(
+        update={"scope": CapabilityScope.USER, "source": "fake://user/shared"}
+    )
+    FakeAdapter.discoveries = {
+        "project": result(project),
+        "user": result(user),
+    }
+
+    inventory = InventoryService().scan(
+        [FakeAdapter("agent-skill", ("user", "project"))]
+    )
+
+    assert len(inventory.capabilities) == 1
+    assert inventory.capabilities[0].manifest.scope is CapabilityScope.PROJECT
+    assert inventory.diagnostics == ()
+
+
+def test_different_project_and_user_capabilities_remain_a_conflict() -> None:
+    project = manifest("shared")
+    user = project.model_copy(
+        update={
+            "scope": CapabilityScope.USER,
+            "source": "fake://user/shared",
+            "content_digest": "changed-digest",
+        }
+    )
+    FakeAdapter.discoveries = {
+        "project": result(project),
+        "user": result(user),
+    }
+
+    inventory = InventoryService().scan(
+        [FakeAdapter("agent-skill", ("project", "user"))]
+    )
+
+    assert inventory.capabilities == ()
+    assert inventory.diagnostics[0].code == "duplicate_capability_id"
+
+
 def test_broken_adapter_is_isolated_from_successful_scan() -> None:
     class BrokenAdapter:
         adapter_id = "broken"

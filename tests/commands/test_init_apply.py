@@ -130,6 +130,43 @@ def test_init_applies_complete_configuration_preserves_user_content_and_is_idemp
     assert json.loads(second.stdout)["applied_paths"] == []
 
 
+def test_init_binds_selected_user_skill_and_repeat_apply_is_idempotent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    (root / "pyproject.toml").write_text("[project]\nname='demo'\n", encoding="utf-8")
+    home = tmp_path / "home"
+    skill = home / ".agents/skills/formatter"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text(
+        "---\nname: formatter\ndescription: quality.gates\n---\nInstructions\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("CODEX_HOME", str(home / ".codex"))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    unrelated = root / ".agents/skills/user-notes.txt"
+    unrelated.parent.mkdir(parents=True)
+    unrelated.write_text("keep me\n", encoding="utf-8")
+    answer_path = answers(tmp_path)
+
+    first = invoke(root, answer_path, run_id="bind-one")
+
+    assert first.exit_code == 0, first.output
+    bound = root / ".agents/skills/formatter/SKILL.md"
+    assert bound.is_file(), first.output
+    assert bound.read_text(encoding="utf-8").startswith("---\nname: formatter")
+    assert unrelated.read_text(encoding="utf-8") == "keep me\n"
+    before = project_files(root)
+
+    second = invoke(root, answer_path, run_id="bind-two")
+
+    assert second.exit_code == 0, second.output
+    assert json.loads(second.stdout)["applied_paths"] == []
+    assert project_files(root) == before
+
+
 def test_project_changeset_preserves_explicit_empty_requirements(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

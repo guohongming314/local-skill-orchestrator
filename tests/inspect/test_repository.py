@@ -78,3 +78,22 @@ def test_repeated_scans_are_identical_until_source_changes(tmp_path: Path) -> No
 
     assert first == second
     assert first.source_digest != changed.source_digest
+
+
+def test_agent_skills_do_not_change_business_source_digest(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    application = source / "main.py"
+    application.write_text("print(1)\n", encoding="utf-8")
+    before = inspect_repository(source)
+    skill = source / ".agents/skills/formatter/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("skill version one\n", encoding="utf-8")
+    with_skill = inspect_repository(source)
+    skill.write_text("skill version two\n", encoding="utf-8")
+    changed_skill = inspect_repository(source)
+    application.write_text("print(2)\n", encoding="utf-8")
+    changed_source = inspect_repository(source)
+
+    assert before.source_digest == with_skill.source_digest == changed_skill.source_digest
+    assert changed_source.source_digest != changed_skill.source_digest

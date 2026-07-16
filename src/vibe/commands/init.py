@@ -29,6 +29,10 @@ from vibe.materialize.changeset import (
     render_dry_run,
 )
 from vibe.materialize.ownership import FileOwnership
+from vibe.materialize.skill_binding import (
+    build_skill_binding_proposals,
+    normalize_bound_skill_inventory,
+)
 from vibe.materialize.templates import render_project_configuration
 from vibe.materialize.writer import ApplyFailure, ConcurrentChangeError, apply_changeset
 from vibe.models.blueprint import Blueprint
@@ -314,6 +318,8 @@ def _project_changeset(
         inventory = plan.inventory
         resolution = plan.resolution
         requirements = plan.requirements
+    source_inventory = inventory
+    resolution, inventory = normalize_bound_skill_inventory(root, resolution, inventory)
     rendered = render_project_configuration(
         blueprint, resolution, inventory, requirements=requirements
     )
@@ -359,6 +365,7 @@ def _project_changeset(
         )
         for path, content in rendered_files.items()
     ]
+    proposals.extend(build_skill_binding_proposals(root, resolution, source_inventory))
     proposals.extend(
         ChangeProposal(
             path=path,
