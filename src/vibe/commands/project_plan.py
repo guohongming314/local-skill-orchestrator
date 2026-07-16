@@ -108,12 +108,8 @@ class _ProjectMarkerAdapter:
         )
         return AdapterScanResult(
             manifest=manifest,
-            provenance=AdapterProvenance(
-                adapter_id=self.adapter_id, locator=spec.locator
-            ),
-            verification=AdapterVerification(
-                verified=True, details=(f"marker:{spec.locator}",)
-            ),
+            provenance=AdapterProvenance(adapter_id=self.adapter_id, locator=spec.locator),
+            verification=AdapterVerification(verified=True, details=(f"marker:{spec.locator}",)),
         )
 
 
@@ -190,16 +186,14 @@ def _project_inventory(root: Path) -> InventoryResult:
         skills,
         _ProjectMarkerAdapter(root),
         CodexPluginAdapter(roots=(plugins_root,)),
-        CodexHookAdapter(roots=(plugins_root,)),
+        CodexHookAdapter(roots=(plugins_root,), project_root=root),
     ]
     config = codex_home / "config.toml"
     if config.is_file():
         cli_specs = tuple(
             replace(spec, scope=CapabilityScope.USER) for spec in _default_cli_specs()
         )
-        adapters.extend(
-            (CliToolAdapter(specs=cli_specs), CodexMcpAdapter(config=config))
-        )
+        adapters.extend((CliToolAdapter(specs=cli_specs), CodexMcpAdapter(config=config)))
     return InventoryService().scan(adapters)
 
 
@@ -263,9 +257,7 @@ def _load_rejections(root: Path) -> tuple[str, ...]:
         return ()
     payload = json.loads(path.read_text(encoding="utf-8-sig"))
     values = payload.get("capabilities", ())
-    if not isinstance(values, list) or not all(
-        isinstance(item, str) and item for item in values
-    ):
+    if not isinstance(values, list) or not all(isinstance(item, str) and item for item in values):
         raise ValueError(".ai-project/rejections.json capabilities must be strings")
     return tuple(sorted(set(values)))
 
@@ -287,9 +279,7 @@ def _with_scale_facts(repository: RepositorySnapshot) -> RepositorySnapshot:
     is_monorepo = node_workspaces or bool(workspace_markers) or manifest_count >= 3
     size = "large" if is_monorepo and manifest_count >= 3 else "small"
     retained = tuple(
-        fact
-        for fact in repository.facts
-        if fact.key not in {"is_monorepo", "repository_size"}
+        fact for fact in repository.facts if fact.key not in {"is_monorepo", "repository_size"}
     )
     facts = (
         *retained,
@@ -306,6 +296,4 @@ def _with_scale_facts(repository: RepositorySnapshot) -> RepositorySnapshot:
             sources=(f"package manifests: {manifest_count}",),
         ),
     )
-    return repository.model_copy(
-        update={"facts": tuple(sorted(facts, key=lambda item: item.key))}
-    )
+    return repository.model_copy(update={"facts": tuple(sorted(facts, key=lambda item: item.key))})

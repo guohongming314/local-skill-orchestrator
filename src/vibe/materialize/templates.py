@@ -14,6 +14,7 @@ from vibe.materialize.capability_manager import (
     render_capability_manager_skill,
 )
 from vibe.materialize.codex_metadata import render_capability_manager_metadata
+from vibe.materialize.project_hooks import ProjectHookPolicy, render_project_hooks
 from vibe.models.base import VersionedModel
 from vibe.models.blueprint import Blueprint
 from vibe.models.capability import CapabilityManifest
@@ -37,9 +38,9 @@ class RenderedProject:
         return {item.path: item.content for item in self.files}
 
     def snapshot_bytes(self) -> bytes:
-        return "".join(
-            f"=== {item.path} ===\n{item.content}" for item in self.files
-        ).encode("utf-8")
+        return "".join(f"=== {item.path} ===\n{item.content}" for item in self.files).encode(
+            "utf-8"
+        )
 
 
 class CapabilityLockEntry(BaseModel):
@@ -57,6 +58,12 @@ class CapabilityLockEntry(BaseModel):
     digest_verified: bool | None = None
     permission_level: str | None = None
     codex_skill: CodexSkillMetadata | None = None
+    hook_approved: bool | None = None
+    hook_approval_provenance: str | None = None
+    hook_trust_digest: str | None = None
+    hook_events: tuple[str, ...] | None = None
+    hook_permissions: tuple[str, ...] | None = None
+    hook_command: str | None = None
 
 
 class CapabilityLock(VersionedModel):
@@ -107,6 +114,7 @@ def render_project_configuration(
     inventory: InventoryResult,
     *,
     requirements: tuple[AbstractCapabilityRequirement, ...],
+    hook_policy: ProjectHookPolicy | None = None,
 ) -> RenderedProject:
     """Render all project configuration in memory without touching the target project."""
     if resolution_plan.inventory_digest != inventory.inventory_digest:
@@ -114,19 +122,43 @@ def render_project_configuration(
 
     manifests = {item.manifest.capability_id: item.manifest for item in inventory.capabilities}
     selected = _selected_manifests(resolution_plan, manifests)
+    hook_render = render_project_hooks(hook_policy) if hook_policy is not None else None
+    hook_lock = (
+        CapabilityLockEntry(
+            provider_id="hook.project",
+            kind="hook",
+            scope="project",
+            source=".codex/hooks.json",
+            content_digest=hook_render.content_digest,
+            hook_approved=hook_policy.approved,
+            hook_approval_provenance=hook_policy.approval_provenance,
+            hook_trust_digest=hook_policy.trust_digest,
+            hook_events=tuple(sorted(set(hook_policy.events))),
+            hook_permissions=tuple(sorted(set(hook_policy.permissions))),
+            hook_command=hook_policy.command,
+        )
+        if hook_policy is not None
+        and hook_policy.approved
+        and hook_render is not None
+        and hook_render.content_digest is not None
+        else None
+    )
     lock = CapabilityLock(
         inventory_digest=inventory.inventory_digest,
-        providers=tuple(
-            CapabilityLockEntry(
-                provider_id=manifest.capability_id,
-                kind=manifest.kind.value,
-                scope=manifest.scope.value,
-                source=manifest.source,
-                version=manifest.version,
-                content_digest=manifest.content_digest,
-                codex_skill=manifest.codex_skill,
-            )
-            for manifest in selected
+        providers=(
+            *tuple(
+                CapabilityLockEntry(
+                    provider_id=manifest.capability_id,
+                    kind=manifest.kind.value,
+                    scope=manifest.scope.value,
+                    source=manifest.source,
+                    version=manifest.version,
+                    content_digest=manifest.content_digest,
+                    codex_skill=manifest.codex_skill,
+                )
+                for manifest in selected
+            ),
+            *((hook_lock,) if hook_lock is not None else ()),
         ),
     )
     capabilities = RenderedCapabilities(
@@ -144,11 +176,7 @@ def render_project_configuration(
         risk_level=blueprint.risk_level.value,
         target_platforms=tuple(sorted(blueprint.target_platforms)),
         permissions=tuple(
-            sorted(
-                permission.value
-                for manifest in selected
-                for permission in manifest.permissions
-            )
+            sorted(permission.value for manifest in selected for permission in manifest.permissions)
         ),
     )
     workflows = ProjectWorkflows(
@@ -177,9 +205,7 @@ def render_project_configuration(
         )
     )
 
-    capability_references = render_capability_manager_references(
-        resolution_plan, inventory
-    )
+    capability_references = render_capability_manager_references(resolution_plan, inventory)
     skill_root = ".agents/skills/project-capability-manager"
     files = {
         ".ai-project/blueprint.yaml": _yaml(blueprint.model_dump(mode="json")),
@@ -196,10 +222,12 @@ def render_project_configuration(
         ".ai-project/capability-usage.yaml": _yaml(usage.model_dump(mode="json")),
         f"{skill_root}/SKILL.md": render_capability_manager_skill(blueprint),
         f"{skill_root}/agents/openai.yaml": render_capability_manager_metadata(),
-        **{
-            f"{skill_root}/{path}": content
-            for path, content in capability_references.items()
-        },
+        **{f"{skill_root}/{path}": content for path, content in capability_references.items()},
+        **(
+            {item.path: item.content for item in hook_render.files}
+            if hook_render is not None
+            else {}
+        ),
     }
     return RenderedProject(tuple(RenderedFile(path, files[path]) for path in sorted(files)))
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shlex
 import shutil
 import sqlite3
 from collections.abc import Callable
@@ -112,8 +113,7 @@ class SchemaVersionCheck:
                         summary="Artifact schema version cannot be migrated by this release.",
                         evidence=(artifact.relative_path, str(error)),
                         remediation=(
-                            "Upgrade vibe or restore an artifact with a supported "
-                            "schema version."
+                            "Upgrade vibe or restore an artifact with a supported schema version."
                         ),
                     )
                 )
@@ -148,7 +148,7 @@ class LockedProviderCheck:
                 remediation="Restore the pinned provider or review and regenerate the lockfile.",
             )
             for provider in lock.providers
-            if provider.provider_id not in available
+            if provider.provider_id not in available and provider.provider_id != "hook.project"
         )
 
 
@@ -258,6 +258,85 @@ class PermissionDeltaCheck:
         return tuple(findings)
 
 
+class ProjectHookGovernanceCheck:
+    """Verify project-local Hooks still match their explicit approval record."""
+
+    def check(self, context: DoctorContext) -> tuple[DoctorFinding, ...]:
+        lock = _load(context.root, ".ai-project/capabilities.lock", CapabilityLock)
+        if lock is None:
+            return ()
+        provider = next(
+            (item for item in lock.providers if item.provider_id == "hook.project"), None
+        )
+        if provider is None:
+            return ()
+        findings: list[DoctorFinding] = []
+        path = context.root / provider.source
+        if not path.is_file():
+            findings.append(self._finding("hook.file-missing", "Approved Hook file is missing."))
+            return tuple(findings)
+        try:
+            raw = path.read_bytes()
+            payload = json.loads(raw)
+        except (OSError, json.JSONDecodeError, UnicodeError):
+            return (self._finding("hook.digest-drift", "Approved Hook definition was changed."),)
+        if hashlib.sha256(raw).hexdigest() != provider.content_digest:
+            findings.append(
+                self._finding("hook.digest-drift", "Approved Hook definition was changed.")
+            )
+        if not provider.hook_approved:
+            findings.append(
+                self._finding(
+                    "hook.project-untrusted",
+                    "Project-local Hooks are not trusted for this project.",
+                )
+            )
+        if not provider.hook_approval_provenance:
+            findings.append(
+                self._finding(
+                    "hook.approval-missing",
+                    "Project Hook approval provenance is absent.",
+                )
+            )
+        if not provider.hook_trust_digest:
+            findings.append(
+                self._finding("hook.trust-missing", "Project Hook trust provenance is absent.")
+            )
+        actual_permissions = _hook_permissions(payload)
+        approved_permissions = set(provider.hook_permissions or ())
+        widened = sorted(actual_permissions - approved_permissions)
+        if widened:
+            findings.append(
+                self._finding(
+                    "hook.permission-widened",
+                    "Project Hook permissions exceed the approved set.",
+                    *widened,
+                )
+            )
+        if provider.hook_command:
+            script = _project_script_path(context.root, provider.hook_command)
+            if script is not None and not script.is_file():
+                findings.append(
+                    self._finding(
+                        "hook.command-missing",
+                        "Approved Hook command script is missing.",
+                        str(script.relative_to(context.root)),
+                    )
+                )
+        return tuple(findings)
+
+    @staticmethod
+    def _finding(code: str, summary: str, *evidence: str) -> DoctorFinding:
+        return DoctorFinding(
+            code=code,
+            severity=Severity.ERROR,
+            summary=summary,
+            evidence=evidence or (".codex/hooks.json",),
+            remediation="Restore the approved definition or renew project Hook trust.",
+            classification=DriftClassification.SECURITY,
+        )
+
+
 class ConversationRecoveryCheck:
     """Report interview checkpoints that cannot be cleanly resumed or retired."""
 
@@ -335,11 +414,7 @@ class OutcomeInsightsCheck:
         findings: list[DoctorFinding] = []
         lock = _load(context.root, ".ai-project/capabilities.lock", CapabilityLock)
         if len(outcomes) >= _UNUSED_OUTCOME_THRESHOLD and lock is not None:
-            used = {
-                capability
-                for record in outcomes
-                for capability in record.capabilities_used
-            }
+            used = {capability for record in outcomes for capability in record.capabilities_used}
             evidence_tasks = tuple(record.task_id for record in outcomes)
             findings.extend(
                 DoctorFinding(
@@ -480,9 +555,7 @@ class OrganizationPolicyCheck:
         if policy is None:
             return ()
         lock = _load(context.root, ".ai-project/capabilities.lock", CapabilityLock)
-        capabilities = _load(
-            context.root, ".ai-project/capabilities.yaml", RenderedCapabilities
-        )
+        capabilities = _load(context.root, ".ai-project/capabilities.yaml", RenderedCapabilities)
         if lock is None or capabilities is None:
             return ()
         violations: list[str] = []
@@ -505,9 +578,7 @@ class OrganizationPolicyCheck:
                 for permission in project_policy.permissions
                 if permission not in {item.value for item in policy.allowed_permissions}
             )
-        resolved_requirements = {
-            str(item.get("requirement")) for item in capabilities.resolutions
-        }
+        resolved_requirements = {str(item.get("requirement")) for item in capabilities.resolutions}
         packs_root = Path(__file__).resolve().parents[3] / "practice-packs"
         for pack_id in sorted(policy.mandatory_practice_packs):
             pack_path = packs_root / pack_id / "pack.yaml"
@@ -540,6 +611,7 @@ DEFAULT_CHECKS: tuple[DoctorCheck, ...] = (
     InstalledCapabilityDriftCheck(),
     CommandAvailabilityCheck(),
     PermissionDeltaCheck(),
+    ProjectHookGovernanceCheck(),
     OrganizationPolicyCheck(),
     ConversationRecoveryCheck(),
     OutcomeInsightsCheck(),
@@ -568,3 +640,31 @@ def _load(root: Path, relative: str, model: type[VersionedModel]) -> Any | None:
         return model.model_validate(payload)
     except (OSError, UnicodeError, yaml.YAMLError, ValidationError, ValueError):
         return None
+
+
+def _hook_permissions(payload: Any) -> set[str]:
+    if not isinstance(payload, dict) or not isinstance(payload.get("hooks"), dict):
+        return set()
+    permissions: set[str] = set()
+    for entries in payload["hooks"].values():
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict) or not isinstance(entry.get("permissions"), list):
+                continue
+            permissions.update(str(item) for item in entry["permissions"])
+    return permissions
+
+
+def _project_script_path(root: Path, command: str) -> Path | None:
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        return None
+    for part in parts[1:]:
+        if part.startswith("-"):
+            continue
+        if "/" in part or part.endswith((".py", ".sh", ".js", ".ts")):
+            candidate = (root / part).resolve()
+            return candidate if candidate.is_relative_to(root) else None
+    return None

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -13,6 +14,7 @@ from vibe.inventory.adapters.base import (
     AdapterVerification,
 )
 from vibe.inventory.service import InventoryResult
+from vibe.materialize.project_hooks import ProjectHookPolicy
 from vibe.materialize.templates import render_project_configuration
 from vibe.models.blueprint import Blueprint, LifecycleStage
 from vibe.models.capability import (
@@ -55,7 +57,12 @@ def inventory(
     )
 
 
-def write_configuration(root: Path, current: InventoryResult) -> None:
+def write_configuration(
+    root: Path,
+    current: InventoryResult,
+    *,
+    hook_policy: ProjectHookPolicy | None = None,
+) -> None:
     blueprint = Blueprint(
         project_name="doctor-fixture",
         goal="Check project health",
@@ -90,7 +97,10 @@ def write_configuration(root: Path, current: InventoryResult) -> None:
                     verification=("Run the selected test provider.",),
                 ),
             ),
-        ).as_dict().items()
+            hook_policy=hook_policy,
+        )
+        .as_dict()
+        .items()
     ):
         target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -98,6 +108,7 @@ def write_configuration(root: Path, current: InventoryResult) -> None:
 
 
 pytestmark = pytest.mark.validation
+
 
 def test_healthy_configuration_reports_success(tmp_path: Path) -> None:
     current = inventory()
@@ -269,3 +280,115 @@ mandatory_practice_packs: [base-engineering]
     assert finding.classification.value == "blocking"
     assert "cli.pytest" in finding.evidence
     assert "base-engineering" in finding.evidence
+
+
+def _write_hook_configuration(tmp_path: Path, *, policy: ProjectHookPolicy) -> None:
+    current = inventory()
+    write_configuration(tmp_path, current, hook_policy=policy)
+
+
+def _approved_hook_policy(**updates: object) -> ProjectHookPolicy:
+    values: dict[str, object] = {
+        "events": ("PreToolUse", "Stop"),
+        "command": "python3 .ai-project/hooks/governance.py",
+        "permissions": ("execute-command",),
+        "approved": True,
+        "approval_provenance": "review:hook-1",
+        "trust_digest": "sha256:trusted-state",
+    }
+    values.update(updates)
+    return ProjectHookPolicy(**values)
+
+
+def test_doctor_accepts_healthy_approved_project_hook(tmp_path: Path) -> None:
+    _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
+    script = tmp_path / ".ai-project" / "hooks" / "governance.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("# approved hook\n", encoding="utf-8")
+
+    report = run_health_checks(tmp_path, inventory(), lambda command: command)
+
+    assert not any(item.code.startswith("hook.") for item in report.findings)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "code"),
+    (
+        ("missing", "hook.file-missing"),
+        ("tampered", "hook.digest-drift"),
+        ("missing-script", "hook.command-missing"),
+    ),
+)
+def test_doctor_reports_project_hook_security_drift(
+    tmp_path: Path, mutation: str, code: str
+) -> None:
+    _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
+    script = tmp_path / ".ai-project" / "hooks" / "governance.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("# approved hook\n", encoding="utf-8")
+    if mutation == "missing":
+        (tmp_path / ".codex" / "hooks.json").unlink()
+    elif mutation == "tampered":
+        (tmp_path / ".codex" / "hooks.json").write_text("{}\n", encoding="utf-8")
+    else:
+        script.unlink()
+
+    finding = next(
+        item
+        for item in run_health_checks(tmp_path, inventory(), lambda command: command).findings
+        if item.code == code
+    )
+
+    assert finding.severity is Severity.ERROR
+    assert finding.classification is not None
+    assert finding.classification.value == "security"
+
+
+@pytest.mark.parametrize(
+    ("updates", "code"),
+    (
+        ({"approval_provenance": None}, "hook.approval-missing"),
+        ({"trust_digest": None}, "hook.trust-missing"),
+    ),
+)
+def test_doctor_reports_missing_hook_approval_or_trust(
+    tmp_path: Path, updates: dict[str, object], code: str
+) -> None:
+    _write_hook_configuration(tmp_path, policy=_approved_hook_policy(**updates))
+
+    finding = next(
+        item for item in run_health_checks(tmp_path, inventory()).findings if item.code == code
+    )
+
+    assert finding.classification is not None
+    assert finding.classification.value == "security"
+
+
+def test_doctor_reports_widened_hook_permissions(tmp_path: Path) -> None:
+    _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
+    path = tmp_path / ".codex" / "hooks.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["hooks"]["Stop"][0]["permissions"].append("network")
+    path.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+
+    codes = {item.code: item for item in run_health_checks(tmp_path, inventory()).findings}
+
+    assert codes["hook.permission-widened"].classification.value == "security"
+
+
+def test_doctor_reports_untrusted_project_hook_state(tmp_path: Path) -> None:
+    _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
+    lock_path = tmp_path / ".ai-project" / "capabilities.lock"
+    payload = yaml.safe_load(lock_path.read_text(encoding="utf-8"))
+    hook = next(item for item in payload["providers"] if item["provider_id"] == "hook.project")
+    hook["hook_approved"] = False
+    lock_path.write_text(yaml.safe_dump(payload, sort_keys=True), encoding="utf-8")
+
+    finding = next(
+        item
+        for item in run_health_checks(tmp_path, inventory()).findings
+        if item.code == "hook.project-untrusted"
+    )
+
+    assert finding.classification is not None
+    assert finding.classification.value == "security"

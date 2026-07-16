@@ -29,9 +29,7 @@ from vibe.persistence.repositories import (
 capabilities_app = typer.Typer(help="Inspect normalized local capabilities.")
 
 ConfigOption = Annotated[Path, typer.Option("--config", exists=True, dir_okay=False)]
-PluginsOption = Annotated[
-    Path, typer.Option("--plugins-root", exists=True, file_okay=False)
-]
+PluginsOption = Annotated[Path, typer.Option("--plugins-root", exists=True, file_okay=False)]
 DatabaseOption = Annotated[Path | None, typer.Option("--database")]
 JsonOption = Annotated[bool, typer.Option("--json")]
 ProjectOption = Annotated[Path | None, typer.Option("--project", file_okay=False)]
@@ -139,7 +137,7 @@ def _scan_and_persist(
             CliToolAdapter(specs=_default_cli_specs()),
             CodexMcpAdapter(config=config),
             CodexPluginAdapter(roots=(plugins_root,)),
-            CodexHookAdapter(roots=(plugins_root,)),
+            CodexHookAdapter(roots=(plugins_root,), project_root=project_root),
         ]
     )
     database_path = (database or default_database_path()).resolve()
@@ -224,7 +222,6 @@ def _emit(payload: Mapping[str, Any], json_output: bool) -> None:
         typer.echo(json.dumps(payload, sort_keys=True, separators=(",", ":")))
         return
     typer.echo(json.dumps(payload, indent=2, sort_keys=True))
-
 
 
 def _default_cli_specs() -> tuple[CliToolSpec, ...]:
