@@ -121,7 +121,7 @@ class AgentSkillAdapter:
             if _secret_like(dependency):
                 details.append(f"secret_dependency_skipped:{normalized}")
                 continue
-            if dependency_path.is_symlink():
+            if _has_symlink_component(skill_directory, dependency):
                 details.append(f"unsafe_symlink_dependency:{normalized}")
                 continue
             candidate = dependency_path.resolve()
@@ -202,10 +202,14 @@ def skill_bundle_files(skill_file: Path) -> SkillBundle:
     _, body = _parse_frontmatter(skill_text)
     files.append(SkillBundleFile(Path("SKILL.md"), skill_text))
     metadata_path = resolved.parent / "agents/openai.yaml"
+    if _has_symlink_component(resolved.parent, Path("agents/openai.yaml")):
+        raise ValueError("unsafe_symlink_metadata:agents/openai.yaml")
     if metadata_path.is_file():
         with metadata_path.open("r", encoding="utf-8", newline="") as handle:
             files.append(SkillBundleFile(Path("agents/openai.yaml"), handle.read()))
     for dependency in _local_dependencies(body):
+        if _has_symlink_component(resolved.parent, dependency):
+            raise ValueError(f"unsafe_symlink_dependency:{dependency.as_posix()}")
         candidate = (resolved.parent / dependency).resolve()
         with candidate.open("r", encoding="utf-8", newline="") as handle:
             files.append(SkillBundleFile(dependency, handle.read()))
@@ -236,7 +240,7 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
 def _openai_metadata(skill_directory: Path) -> tuple[CodexSkillMetadata, list[str], bytes]:
     relative_path = Path("agents/openai.yaml")
     metadata_path = skill_directory / relative_path
-    if metadata_path.is_symlink():
+    if _has_symlink_component(skill_directory, relative_path):
         return CodexSkillMetadata(), ["unsafe_symlink_metadata:agents/openai.yaml"], b""
     try:
         resolved_path = metadata_path.resolve()
@@ -379,3 +383,15 @@ def _secret_like(path: Path) -> bool:
         or Path(part).suffix.lower() in _SECRET_SUFFIXES
         for part in path.parts
     )
+
+
+def _has_symlink_component(root: Path, relative: Path) -> bool:
+    """Return whether any existing path component below root is a symlink."""
+    candidate = root
+    for part in relative.parts:
+        candidate /= part
+        if candidate.is_symlink():
+            return True
+        if not candidate.exists():
+            return False
+    return False

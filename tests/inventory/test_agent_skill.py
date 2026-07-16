@@ -252,6 +252,65 @@ def test_in_tree_symlink_openai_metadata_is_unverified_and_never_read(
         skill_bundle_files(skill / "SKILL.md")
 
 
+def test_symlinked_dependency_directory_is_unverified_and_never_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    roots = tmp_path / "skills"
+    skill = write_skill(
+        roots,
+        "linked-directory",
+        "name: linked-directory\ndescription: Linked directory",
+        "Read [the guide](references/guide.md).",
+    )
+    real_references = skill / "real-references"
+    real_references.mkdir()
+    target = real_references / "guide.md"
+    target.write_text("never read", encoding="utf-8")
+    (skill / "references").symlink_to(real_references, target_is_directory=True)
+    original_read_bytes = Path.read_bytes
+
+    def guarded_read_bytes(path: Path) -> bytes:
+        if path == target:
+            raise AssertionError("dependency below symlinked directory was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", guarded_read_bytes)
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.USER),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert not result.verification.verified
+    assert "unsafe_symlink_dependency:references/guide.md" in result.verification.details
+
+
+def test_symlinked_agents_directory_is_unverified_and_never_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    roots = tmp_path / "skills"
+    skill = write_skill(
+        roots, "linked-agents", "name: linked-agents\ndescription: Linked agents"
+    )
+    real_agents = skill / "real-agents"
+    real_agents.mkdir()
+    target = real_agents / "openai.yaml"
+    target.write_text("policy: {}\n", encoding="utf-8")
+    (skill / "agents").symlink_to(real_agents, target_is_directory=True)
+    original_read_bytes = Path.read_bytes
+
+    def guarded_read_bytes(path: Path) -> bytes:
+        if path == target:
+            raise AssertionError("metadata below symlinked directory was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", guarded_read_bytes)
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.USER),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert not result.verification.verified
+    assert "unsafe_symlink_metadata:agents/openai.yaml" in result.verification.details
+
+
 def test_absent_openai_metadata_uses_codex_defaults(tmp_path: Path) -> None:
     roots = tmp_path / "skills"
     write_skill(roots, "defaults", "name: defaults\ndescription: Default metadata")
@@ -326,7 +385,7 @@ def test_openai_metadata_symlink_outside_skill_directory_is_not_read(
 
     assert outside_metadata.resolve() not in opened
     assert not result.verification.verified
-    assert "invalid_openai_metadata:ValueError" in result.verification.details
+    assert "unsafe_symlink_metadata:agents/openai.yaml" in result.verification.details
 
 
 def test_malformed_frontmatter_is_reported_without_hiding_valid_skill(tmp_path: Path) -> None:
