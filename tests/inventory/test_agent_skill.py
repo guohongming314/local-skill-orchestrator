@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from vibe.inventory.adapters.agent_skill import AgentSkillAdapter, SkillRoot
+from vibe.inventory.adapters.agent_skill import AgentSkillAdapter, SkillRoot, skill_bundle_files
 from vibe.inventory.adapters.base import AdapterScanError
 from vibe.inventory.service import InventoryService
 from vibe.models.capability import CapabilityKind, CapabilityScope, Permission
@@ -187,6 +187,69 @@ def test_openai_metadata_content_changes_manifest_digest(tmp_path: Path) -> None
     second = adapter.scan(adapter.discover()[0])
 
     assert first.manifest.content_digest != second.manifest.content_digest
+
+
+def test_in_tree_symlink_dependency_is_unverified_and_never_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    roots = tmp_path / "skills"
+    skill = write_skill(
+        roots,
+        "linked",
+        "name: linked\ndescription: Linked dependency",
+        "Read [the guide](references/guide.md).",
+    )
+    references = skill / "references"
+    references.mkdir()
+    target = references / "real-guide.md"
+    target.write_text("do not read through symlink", encoding="utf-8")
+    link = references / "guide.md"
+    link.symlink_to(target)
+    original_read_bytes = Path.read_bytes
+
+    def guarded_read_bytes(path: Path) -> bytes:
+        if path in {link, target}:
+            raise AssertionError("symlink dependency target was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", guarded_read_bytes)
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.USER),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert not result.verification.verified
+    assert "unsafe_symlink_dependency:references/guide.md" in result.verification.details
+    with pytest.raises(ValueError, match="unsafe_symlink_dependency"):
+        skill_bundle_files(skill / "SKILL.md")
+
+
+def test_in_tree_symlink_openai_metadata_is_unverified_and_never_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    roots = tmp_path / "skills"
+    skill = write_skill(roots, "linked", "name: linked\ndescription: Linked metadata")
+    agents = skill / "agents"
+    agents.mkdir()
+    target = skill / "metadata.yaml"
+    target.write_text("policy: {}\n", encoding="utf-8")
+    link = agents / "openai.yaml"
+    link.symlink_to(target)
+    original_read_bytes = Path.read_bytes
+
+    def guarded_read_bytes(path: Path) -> bytes:
+        if path in {link, target}:
+            raise AssertionError("symlink metadata target was read")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", guarded_read_bytes)
+    adapter = AgentSkillAdapter(roots=(SkillRoot(roots, CapabilityScope.USER),))
+
+    result = adapter.scan(adapter.discover()[0])
+
+    assert not result.verification.verified
+    assert "unsafe_symlink_metadata:agents/openai.yaml" in result.verification.details
+    with pytest.raises(ValueError, match="unsafe_symlink_metadata"):
+        skill_bundle_files(skill / "SKILL.md")
 
 
 def test_absent_openai_metadata_uses_codex_defaults(tmp_path: Path) -> None:

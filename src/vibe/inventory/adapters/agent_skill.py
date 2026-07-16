@@ -117,10 +117,14 @@ class AgentSkillAdapter:
                 details.append("invalid_openai_metadata:UnicodeError")
         for dependency in _local_dependencies(body):
             normalized = dependency.as_posix()
-            candidate = (skill_directory / dependency).resolve()
+            dependency_path = skill_directory / dependency
             if _secret_like(dependency):
                 details.append(f"secret_dependency_skipped:{normalized}")
                 continue
+            if dependency_path.is_symlink():
+                details.append(f"unsafe_symlink_dependency:{normalized}")
+                continue
+            candidate = dependency_path.resolve()
             if not candidate.is_relative_to(skill_directory):
                 details.append(f"unsafe_dependency_skipped:{normalized}")
                 continue
@@ -232,6 +236,8 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
 def _openai_metadata(skill_directory: Path) -> tuple[CodexSkillMetadata, list[str], bytes]:
     relative_path = Path("agents/openai.yaml")
     metadata_path = skill_directory / relative_path
+    if metadata_path.is_symlink():
+        return CodexSkillMetadata(), ["unsafe_symlink_metadata:agents/openai.yaml"], b""
     try:
         resolved_path = metadata_path.resolve()
     except OSError as error:
