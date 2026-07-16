@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from typer.core import TyperGroup
 from typer.main import get_command
 from typer.testing import CliRunner
 
@@ -120,6 +121,7 @@ def test_each_documented_governance_command_uses_options_from_cli_help(
 
 def test_documented_internal_hook_policy_option_is_registered_on_init() -> None:
     root = get_command(app)
+    assert isinstance(root, TyperGroup)
     init = root.commands["init"]
 
     assert any("--hook-policy-file" in parameter.opts for parameter in init.params)
