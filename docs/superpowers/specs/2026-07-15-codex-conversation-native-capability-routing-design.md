@@ -1,9 +1,17 @@
 # Codex 原生能力选择与项目能力治理设计
 
 **日期：** 2026-07-15  
-**状态：** 修订后待用户复核
+**状态：** 已获用户批准，进入实施
 **仓库：** `local-skill-orchestrator`  
 **替代方向：** 以 CLI 或自研 Router 接管 Codex 任务分类、Skill 选择和任务执行
+
+## Approval record
+
+Approved by the user in the Codex conversation on 2026-07-15
+(Asia/Shanghai). The approved scope is Codex-native Skill selection with Vibe
+responsible for project initialization and capability governance; an external
+task runner is not the normal task path. The user subsequently approved the
+implementation plan and its execution.
 
 ## 摘要
 

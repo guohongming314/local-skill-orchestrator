@@ -71,9 +71,9 @@ complete validation round.
 The prior `E17-1` through `E17-7` row set is not redefined in this round. The
 user-approved conversation-native design replaced it with the five native
 expectations plus consolidated governance and quality expectations above.
-Decision evidence is
+Decision evidence is the `Approval record` in
 `docs/superpowers/specs/2026-07-15-codex-conversation-native-capability-routing-design.md`
-at commit `e42168b` and
+(the design revision was introduced at commit `e42168b`) and
 `docs/superpowers/plans/2026-07-15-codex-native-capability-governance-implementation-plan.md`
 at commit `8dc150d`. JSON records one mapping for each prior stable ID.
 
