@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -290,7 +289,8 @@ def _write_hook_configuration(tmp_path: Path, *, policy: ProjectHookPolicy) -> N
 def _approved_hook_policy(**updates: object) -> ProjectHookPolicy:
     values: dict[str, object] = {
         "events": ("PreToolUse", "Stop"),
-        "command": "python3 .ai-project/hooks/governance.py",
+        "script_path": ".ai-project/hooks/governance.py",
+        "script_content": "# approved hook\n",
         "permissions": ("execute-command",),
         "approved": True,
         "approval_provenance": "review:hook-1",
@@ -301,9 +301,6 @@ def _approved_hook_policy(**updates: object) -> ProjectHookPolicy:
 
 def test_doctor_accepts_healthy_approved_project_hook(tmp_path: Path) -> None:
     _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
-    script = tmp_path / ".ai-project" / "hooks" / "governance.py"
-    script.parent.mkdir(parents=True)
-    script.write_text("# approved hook\n", encoding="utf-8")
 
     report = run_health_checks(tmp_path, inventory(), lambda command: command)
 
@@ -315,7 +312,8 @@ def test_doctor_accepts_healthy_approved_project_hook(tmp_path: Path) -> None:
     (
         ("missing", "hook.file-missing"),
         ("tampered", "hook.digest-drift"),
-        ("missing-script", "hook.command-missing"),
+        ("missing-script", "hook.script-missing"),
+        ("tampered-script", "hook.script-drift"),
     ),
 )
 def test_doctor_reports_project_hook_security_drift(
@@ -323,14 +321,14 @@ def test_doctor_reports_project_hook_security_drift(
 ) -> None:
     _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
     script = tmp_path / ".ai-project" / "hooks" / "governance.py"
-    script.parent.mkdir(parents=True)
-    script.write_text("# approved hook\n", encoding="utf-8")
     if mutation == "missing":
         (tmp_path / ".codex" / "hooks.json").unlink()
     elif mutation == "tampered":
         (tmp_path / ".codex" / "hooks.json").write_text("{}\n", encoding="utf-8")
-    else:
+    elif mutation == "missing-script":
         script.unlink()
+    else:
+        script.write_text("# tampered hook\n", encoding="utf-8")
 
     finding = next(
         item
@@ -370,10 +368,11 @@ def test_doctor_reports_missing_hook_approval_or_trust(
 
 def test_doctor_reports_widened_hook_permissions(tmp_path: Path) -> None:
     _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
-    path = tmp_path / ".codex" / "hooks.json"
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    payload["hooks"]["Stop"][0]["permissions"].append("network")
-    path.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+    path = tmp_path / ".ai-project" / "capabilities.lock"
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    hook = next(item for item in payload["providers"] if item["provider_id"] == "hook.project")
+    hook["hook_permissions"] = []
+    path.write_text(yaml.safe_dump(payload, sort_keys=True), encoding="utf-8")
 
     codes = {item.code: item for item in run_health_checks(tmp_path, inventory()).findings}
 
@@ -429,15 +428,17 @@ def test_doctor_binds_hook_trust_digest_to_actual_content(tmp_path: Path) -> Non
     assert "hook.trust-drift" in codes
 
 
-def test_doctor_checks_direct_script_command(tmp_path: Path) -> None:
-    _write_hook_configuration(
-        tmp_path,
-        policy=_approved_hook_policy(command="./hooks/governance.py"),
-    )
+def test_doctor_rejects_noncanonical_hook_source(tmp_path: Path) -> None:
+    _write_hook_configuration(tmp_path, policy=_approved_hook_policy())
+    lock_path = tmp_path / ".ai-project" / "capabilities.lock"
+    payload = yaml.safe_load(lock_path.read_text(encoding="utf-8"))
+    hook = next(item for item in payload["providers"] if item["provider_id"] == "hook.project")
+    hook["source"] = ".ai-project/hooks/governance.py"
+    lock_path.write_text(yaml.safe_dump(payload, sort_keys=True), encoding="utf-8")
 
     codes = {item.code for item in run_health_checks(tmp_path, inventory()).findings}
 
-    assert "hook.command-missing" in codes
+    assert "hook.source-invalid" in codes
 
 
 def test_doctor_rejects_symlinked_script_outside_project(tmp_path: Path) -> None:
@@ -445,9 +446,9 @@ def test_doctor_rejects_symlinked_script_outside_project(tmp_path: Path) -> None
     outside = tmp_path.parent / "outside-hook.py"
     outside.write_text("# outside\n", encoding="utf-8")
     script = tmp_path / ".ai-project" / "hooks" / "governance.py"
-    script.parent.mkdir(parents=True)
+    script.unlink()
     script.symlink_to(outside)
 
     codes = {item.code for item in run_health_checks(tmp_path, inventory()).findings}
 
-    assert "hook.command-invalid" in codes
+    assert "hook.script-invalid" in codes

@@ -63,7 +63,8 @@ class CapabilityLockEntry(BaseModel):
     hook_trust_digest: str | None = None
     hook_events: tuple[str, ...] | None = None
     hook_permissions: tuple[str, ...] | None = None
-    hook_command: str | None = None
+    hook_script_path: str | None = None
+    hook_script_digest: str | None = None
 
 
 class CapabilityLock(VersionedModel):
@@ -132,10 +133,11 @@ def render_project_configuration(
             content_digest=hook_render.content_digest,
             hook_approved=hook_policy.approved,
             hook_approval_provenance=hook_policy.approval_provenance,
-            hook_trust_digest=hook_render.content_digest,
+            hook_trust_digest=hook_render.trust_digest,
             hook_events=tuple(sorted(set(hook_policy.events))),
             hook_permissions=tuple(sorted(set(hook_policy.permissions))),
-            hook_command=hook_policy.command,
+            hook_script_path=hook_policy.script_path,
+            hook_script_digest=hook_render.script_digest,
         )
         if hook_policy is not None
         and hook_policy.approved

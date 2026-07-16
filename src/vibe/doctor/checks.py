@@ -17,7 +17,7 @@ from pydantic import ValidationError
 from vibe.doctor.drift import DriftClassification
 from vibe.doctor.report import DoctorFinding, DoctorReport, Severity, aggregate_findings
 from vibe.inventory.service import InventoryResult
-from vibe.materialize.project_hooks import command_project_paths
+from vibe.materialize.project_hooks import combined_hook_trust_digest
 from vibe.materialize.templates import (
     CapabilityLock,
     CapabilityUsage,
@@ -290,7 +290,14 @@ class ProjectHookGovernanceCheck:
                 else ()
             )
         findings: list[DoctorFinding] = []
-        path = context.root / provider.source
+        if provider.source != ".codex/hooks.json":
+            findings.append(
+                self._finding(
+                    "hook.source-invalid",
+                    "Project Hook lock source is not canonical.",
+                )
+            )
+        path = context.root / ".codex" / "hooks.json"
         if not path.is_file():
             findings.append(self._finding("hook.file-missing", "Approved Hook file is missing."))
             return tuple(findings)
@@ -321,15 +328,6 @@ class ProjectHookGovernanceCheck:
             findings.append(
                 self._finding("hook.trust-missing", "Project Hook trust provenance is absent.")
             )
-        elif provider.hook_trust_digest != provider.content_digest or (
-            hashlib.sha256(raw).hexdigest() != provider.hook_trust_digest
-        ):
-            findings.append(
-                self._finding(
-                    "hook.trust-drift",
-                    "Project Hook trust is not bound to the current definition.",
-                )
-            )
         actual_permissions = _hook_permissions(payload)
         approved_permissions = set(provider.hook_permissions or ())
         widened = sorted(actual_permissions - approved_permissions)
@@ -341,23 +339,52 @@ class ProjectHookGovernanceCheck:
                     *widened,
                 )
             )
-        if provider.hook_command:
-            script, contained = _project_script_path(context.root, provider.hook_command)
-            if not contained:
+        script_bytes: bytes | None = None
+        if provider.hook_script_path:
+            script = context.root / provider.hook_script_path
+            resolved = script.resolve()
+            if not resolved.is_relative_to(context.root.resolve()):
                 findings.append(
                     self._finding(
-                        "hook.command-invalid",
-                        "Approved Hook command escapes the project root.",
+                        "hook.script-invalid",
+                        "Managed Hook script escapes the project root.",
                     )
                 )
-            elif script is not None and not script.is_file():
+            elif not script.is_file():
                 findings.append(
                     self._finding(
-                        "hook.command-missing",
-                        "Approved Hook command script is missing.",
-                        str(script.relative_to(context.root)),
+                        "hook.script-missing",
+                        "Managed Hook script is missing.",
+                        provider.hook_script_path,
                     )
                 )
+            else:
+                script_bytes = script.read_bytes()
+                if hashlib.sha256(script_bytes).hexdigest() != provider.hook_script_digest:
+                    findings.append(
+                        self._finding(
+                            "hook.script-drift",
+                            "Managed Hook script no longer matches its approved digest.",
+                            provider.hook_script_path,
+                        )
+                    )
+        else:
+            findings.append(
+                self._finding("hook.script-missing", "Managed Hook script is not locked.")
+            )
+        if (
+            provider.hook_trust_digest
+            and provider.hook_script_path
+            and script_bytes is not None
+            and provider.hook_trust_digest
+            != combined_hook_trust_digest(raw, provider.hook_script_path, script_bytes)
+        ):
+            findings.append(
+                self._finding(
+                    "hook.trust-drift",
+                    "Project Hook trust is not bound to the current managed artifacts.",
+                )
+            )
         return tuple(findings)
 
     @staticmethod
@@ -685,20 +712,12 @@ def _hook_permissions(payload: Any) -> set[str]:
         if not isinstance(entries, list):
             continue
         for entry in entries:
-            if not isinstance(entry, dict) or not isinstance(entry.get("permissions"), list):
+            if not isinstance(entry, dict):
                 continue
-            permissions.update(str(item) for item in entry["permissions"])
+            handlers = entry.get("hooks")
+            if isinstance(handlers, list) and any(
+                isinstance(handler, dict) and handler.get("type") == "command"
+                for handler in handlers
+            ):
+                permissions.add("execute-command")
     return permissions
-
-
-def _project_script_path(root: Path, command: str) -> tuple[Path | None, bool]:
-    try:
-        paths = command_project_paths(command)
-    except ValueError:
-        return None, False
-    scripts = tuple(path for path in paths if str(path).endswith((".py", ".sh", ".js", ".ts")))
-    if not scripts:
-        return None, True
-    candidate = root / str(scripts[0])
-    resolved = candidate.resolve()
-    return resolved, resolved.is_relative_to(root.resolve())

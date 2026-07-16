@@ -1,12 +1,11 @@
-"""Approval-gated rendering for trusted project-local Codex Hooks."""
+"""Approval-gated rendering for managed project-local Codex Hooks."""
 
 from __future__ import annotations
 
 import hashlib
 import json
-import shlex
+import re
 from dataclasses import dataclass
-from pathlib import PurePosixPath
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -19,33 +18,33 @@ ProjectHookEvent = Literal[
     "Stop",
 ]
 
+_SCRIPT_PATH = re.compile(r"^\.ai-project/hooks/[A-Za-z0-9][A-Za-z0-9._-]*\.py$")
+
 
 class ProjectHookPolicy(BaseModel):
-    """Explicit approval and trust record for one project hook command."""
+    """Explicit approval for one managed project hook script."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
     events: tuple[ProjectHookEvent, ...] = Field(min_length=1)
-    command: str = Field(min_length=1)
+    script_path: str = Field(min_length=1)
+    script_content: str = Field(min_length=1)
     permissions: tuple[str, ...] = ("execute-command",)
     approved: bool = False
     approval_provenance: str | None = None
+
+    @field_validator("script_path")
+    @classmethod
+    def managed_script_path(cls, value: str) -> str:
+        if not _SCRIPT_PATH.fullmatch(value):
+            raise ValueError("Hook script must be a normalized .ai-project/hooks/*.py path")
+        return value
 
     @model_validator(mode="after")
     def approved_policy_has_provenance(self) -> ProjectHookPolicy:
         if self.approved and not (self.approval_provenance or "").strip():
             raise ValueError("approved Hook policy requires approval provenance")
         return self
-
-    @field_validator("command")
-    @classmethod
-    def command_paths_stay_in_project(cls, command: str) -> str:
-        if not command.strip():
-            raise ValueError("hook command must not be empty")
-        for path in command_project_paths(command):
-            if path.is_absolute() or ".." in path.parts:
-                raise ValueError("hook command paths must stay within the project")
-        return command
 
 
 @dataclass(frozen=True, order=True)
@@ -58,41 +57,45 @@ class HookRenderedFile:
 class RenderedProjectHooks:
     files: tuple[HookRenderedFile, ...]
     content_digest: str | None = None
+    script_digest: str | None = None
+    trust_digest: str | None = None
 
 
 def render_project_hooks(policy: ProjectHookPolicy) -> RenderedProjectHooks:
-    """Render exact project Hook configuration only after explicit approval."""
+    """Render canonical Hook metadata and its managed script after approval."""
     if not policy.approved:
         return RenderedProjectHooks(files=())
-    entry = {
-        "hooks": [{"command": policy.command, "type": "command"}],
-        "permissions": sorted(set(policy.permissions)),
-    }
+    command = _managed_command(policy.script_path)
+    entry = {"hooks": [{"command": command, "type": "command"}]}
     payload = {"hooks": {event: [entry] for event in sorted(set(policy.events))}}
-    content = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    hooks_content = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    hooks_digest = hashlib.sha256(hooks_content.encode("utf-8")).hexdigest()
+    script_digest = hashlib.sha256(policy.script_content.encode("utf-8")).hexdigest()
+    trust_digest = combined_hook_trust_digest(
+        hooks_content.encode("utf-8"),
+        policy.script_path,
+        policy.script_content.encode("utf-8"),
+    )
     return RenderedProjectHooks(
-        files=(HookRenderedFile(path=".codex/hooks.json", content=content),),
-        content_digest=hashlib.sha256(content.encode("utf-8")).hexdigest(),
+        files=(
+            HookRenderedFile(path=policy.script_path, content=policy.script_content),
+            HookRenderedFile(path=".codex/hooks.json", content=hooks_content),
+        ),
+        content_digest=hooks_digest,
+        script_digest=script_digest,
+        trust_digest=trust_digest,
     )
 
 
-def command_project_paths(command: str) -> tuple[PurePosixPath, ...]:
-    """Return path-like command tokens, including values embedded in options."""
-    try:
-        parts = shlex.split(command)
-    except ValueError as error:
-        raise ValueError("hook command must be valid shell words") from error
-    if not parts:
-        raise ValueError("hook command must not be empty")
-    candidates: list[str] = []
-    for index, part in enumerate(parts):
-        candidate = part.split("=", 1)[1] if part.startswith("-") and "=" in part else part
-        if candidate.startswith("-"):
-            continue
-        if (
-            "/" in candidate
-            or candidate.startswith(".")
-            or (index > 0 and candidate.endswith((".py", ".sh", ".js", ".ts")))
-        ):
-            candidates.append(candidate)
-    return tuple(PurePosixPath(item) for item in candidates)
+def combined_hook_trust_digest(hooks_bytes: bytes, script_path: str, script_bytes: bytes) -> str:
+    digest = hashlib.sha256()
+    digest.update(hooks_bytes)
+    digest.update(b"\0")
+    digest.update(script_path.encode("utf-8"))
+    digest.update(b"\0")
+    digest.update(script_bytes)
+    return digest.hexdigest()
+
+
+def _managed_command(script_path: str) -> str:
+    return f'python3 "$(git rev-parse --show-toplevel)/{script_path}"'

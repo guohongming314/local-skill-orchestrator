@@ -12,144 +12,101 @@ from vibe.materialize.project_hooks import ProjectHookPolicy, render_project_hoo
 from vibe.materialize.templates import CapabilityLock, render_project_configuration
 
 
-def test_approved_policy_renders_only_explicit_events_deterministically() -> None:
-    policy = ProjectHookPolicy(
-        events=("Stop", "PreToolUse"),
-        command="python3 .ai-project/hooks/governance.py",
-        permissions=("execute-command",),
-        approved=True,
-        approval_provenance="review:change-42",
+def policy(**updates: object) -> ProjectHookPolicy:
+    values: dict[str, object] = {
+        "events": ("Stop", "PreToolUse"),
+        "script_path": ".ai-project/hooks/governance.py",
+        "script_content": "print('governance')\n",
+        "permissions": ("execute-command",),
+        "approved": True,
+        "approval_provenance": "review:change-42",
+    }
+    values.update(updates)
+    return ProjectHookPolicy(**values)
+
+
+def test_approved_policy_renders_exact_events_script_and_fixed_command() -> None:
+    rendered = render_project_hooks(policy())
+    files = {item.path: item.content for item in rendered.files}
+
+    assert tuple(item.path for item in rendered.files) == (
+        ".ai-project/hooks/governance.py",
+        ".codex/hooks.json",
     )
-
-    rendered = render_project_hooks(policy)
-
-    assert tuple(item.path for item in rendered.files) == (".codex/hooks.json",)
-    content = rendered.files[0].content
-    assert json.loads(content) == {
+    assert files[".ai-project/hooks/governance.py"] == "print('governance')\n"
+    command = 'python3 "$(git rev-parse --show-toplevel)/.ai-project/hooks/governance.py"'
+    assert json.loads(files[".codex/hooks.json"]) == {
         "hooks": {
-            "PreToolUse": [
-                {
-                    "hooks": [
-                        {
-                            "command": "python3 .ai-project/hooks/governance.py",
-                            "type": "command",
-                        }
-                    ],
-                    "permissions": ["execute-command"],
-                }
-            ],
-            "Stop": [
-                {
-                    "hooks": [
-                        {
-                            "command": "python3 .ai-project/hooks/governance.py",
-                            "type": "command",
-                        }
-                    ],
-                    "permissions": ["execute-command"],
-                }
-            ],
+            "PreToolUse": [{"hooks": [{"command": command, "type": "command"}]}],
+            "Stop": [{"hooks": [{"command": command, "type": "command"}]}],
         }
     }
-    assert "UserPromptSubmit" not in content
-    assert rendered.content_digest == hashlib.sha256(content.encode()).hexdigest()
+    assert "permissions" not in files[".codex/hooks.json"]
+    assert "UserPromptSubmit" not in files[".codex/hooks.json"]
 
 
-def test_unapproved_policy_renders_no_hook_configuration() -> None:
-    rendered = render_project_hooks(ProjectHookPolicy(events=("Stop",), command="python3 hook.py"))
-
+def test_unapproved_policy_renders_no_files() -> None:
+    rendered = render_project_hooks(policy(approved=False, approval_provenance=None))
     assert rendered.files == ()
     assert rendered.content_digest is None
+    assert rendered.script_digest is None
+    assert rendered.trust_digest is None
 
 
-def test_hook_digest_changes_with_definition() -> None:
-    first = render_project_hooks(
-        ProjectHookPolicy(
-            events=("Stop",),
-            command="python3 hook.py",
-            approved=True,
-            approval_provenance="review:first",
-        )
-    )
-    second = render_project_hooks(
-        ProjectHookPolicy(
-            events=("PreToolUse",),
-            command="python3 hook.py",
-            approved=True,
-            approval_provenance="review:second",
-        )
-    )
+def test_json_script_and_combined_trust_digests_change_with_definition() -> None:
+    first = render_project_hooks(policy())
+    event_change = render_project_hooks(policy(events=("Stop",)))
+    script_change = render_project_hooks(policy(script_content="print('changed')\n"))
 
-    assert first.content_digest != second.content_digest
+    assert first.content_digest != event_change.content_digest
+    assert first.script_digest == event_change.script_digest
+    assert first.script_digest != script_change.script_digest
+    assert len({first.trust_digest, event_change.trust_digest, script_change.trust_digest}) == 3
 
 
 @pytest.mark.parametrize(
-    "command",
+    "script_path",
     (
-        "python3 ../hook.py",
-        "python3 /tmp/hook.py",
-        "./../hook.py",
+        "../hook.py",
+        "/tmp/hook.py",
+        ".ai-project/other/hook.py",
+        ".ai-project/hooks/hook.sh",
+        ".ai-project/hooks/../evil.py",
+        ".ai-project/hooks/bad name.py",
     ),
 )
-def test_hook_command_rejects_paths_outside_project(command: str) -> None:
+def test_policy_rejects_unmanaged_script_paths(script_path: str) -> None:
     with pytest.raises(ValidationError):
-        ProjectHookPolicy(
-            events=("Stop",),
-            command=command,
-            approved=True,
-            approval_provenance="review:path",
-        )
+        policy(script_path=script_path)
 
 
-def test_hook_policy_rejects_unknown_events_and_extra_fields() -> None:
+def test_policy_is_strict_requires_provenance_and_rejects_shell_command_input() -> None:
     with pytest.raises(ValidationError):
-        ProjectHookPolicy(events=("SessionStart",), command="python3 hook.py")
+        policy(events=["Stop"])
     with pytest.raises(ValidationError):
-        ProjectHookPolicy(events=("Stop",), command="python3 hook.py", semantic_router=True)
+        policy(approved=1)
+    with pytest.raises(ValidationError):
+        policy(approval_provenance=None)
+    with pytest.raises(ValidationError):
+        policy(command="sh -c 'evil'")
+    with pytest.raises(ValidationError):
+        policy(events=("SessionStart",))
 
 
-def test_hook_policy_is_strict_and_requires_approval_provenance() -> None:
-    with pytest.raises(ValidationError):
-        ProjectHookPolicy(events=["Stop"], command="python3 hook.py")
-    with pytest.raises(ValidationError):
-        ProjectHookPolicy(events=("Stop",), command="python3 hook.py", approved=1)
-    with pytest.raises(ValidationError):
-        ProjectHookPolicy(events=("Stop",), command="python3 hook.py", approved=True)
-
-
-def test_project_configuration_records_approved_hook_trust_in_lock() -> None:
+def test_project_configuration_records_both_artifact_digests_and_combined_trust() -> None:
     blueprint, plan, inventory = inputs()
-    policy = ProjectHookPolicy(
-        events=("PermissionRequest", "Stop"),
-        command="python3 .ai-project/hooks/governance.py",
-        permissions=("execute-command", "read-project"),
-        approved=True,
-        approval_provenance="review:security-17",
-    )
-
     rendered = render_project_configuration(
-        blueprint, plan, inventory, requirements=requirements(), hook_policy=policy
+        blueprint, plan, inventory, requirements=requirements(), hook_policy=policy()
     )
     files = rendered.as_dict()
     lock = CapabilityLock.model_validate(yaml.safe_load(files[".ai-project/capabilities.lock"]))
     hook = next(item for item in lock.providers if item.provider_id == "hook.project")
 
-    assert ".codex/hooks.json" in files
-    assert hook.content_digest == hashlib.sha256(files[".codex/hooks.json"].encode()).hexdigest()
-    assert hook.hook_approved is True
-    assert hook.hook_approval_provenance == "review:security-17"
-    assert hook.hook_trust_digest == hook.content_digest
-    assert hook.hook_events == ("PermissionRequest", "Stop")
-    assert hook.hook_permissions == ("execute-command", "read-project")
-
-
-@pytest.mark.parametrize(
-    "command",
-    (
-        "python3 --output=/tmp/evil hook.py",
-        "python3 --config=../../outside hook.py",
-    ),
-)
-def test_hook_command_rejects_escaped_option_values(command: str) -> None:
-    with pytest.raises(ValidationError):
-        ProjectHookPolicy(events=("Stop",), command=command)
+    assert hook.source == ".codex/hooks.json"
+    assert hook.hook_script_path == ".ai-project/hooks/governance.py"
+    assert hook.content_digest == hashlib.sha256(files[hook.source].encode()).hexdigest()
+    assert (
+        hook.hook_script_digest == hashlib.sha256(files[hook.hook_script_path].encode()).hexdigest()
+    )
+    assert hook.hook_trust_digest not in {hook.content_digest, hook.hook_script_digest}
+    assert hook.hook_permissions == ("execute-command",)
