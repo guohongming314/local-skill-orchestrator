@@ -1,25 +1,26 @@
 ---
 name: bootstrap-skill
-description: Bootstrap or refresh project-local AI development configuration with local-skill-orchestrator. Use when Codex needs to inspect a repository, discover verified local capabilities, preview and apply `vibe init`, diagnose configuration drift, or explain the boundary between Skill guidance and deterministic CLI policy.
+description: Bootstrap or refresh project-local Codex capabilities by inspecting a repository, identifying capability gaps, previewing governed changes, applying approved configuration, and verifying project health.
 ---
 
 # Local Skill Orchestrator bootstrap
 
-Use the Skill as procedural guidance. The CLI owns deterministic inventory, risk classification, capability resolution, permission calculation, rendering, and change application.
+The user stays in the current Codex conversation. Use deterministic project capability tools internally while keeping the discussion focused on the project's needs, evidence, decisions, and results. The internal `vibe` executable must be available; if it is unavailable, stop and explain the prerequisite without inventing configuration by hand. Do not ask the user to run `vibe` commands. Do not start another Codex process.
 
-## Workflow
+## Conversation workflow
 
-1. Confirm the `vibe` command is available. If it is missing, stop and explain how to install the Python package; do not invent project configuration by hand.
-2. Run `vibe inspect --path <project>` and summarize repository evidence and diagnostics.
-3. Run `vibe init --dry-run --path <project>` and review decisions, requested permissions, gaps, conflicts, and proposed files.
-4. Obtain the approval required by the CLI. Do not bypass approval, rewrite generated policy, or treat memory as authoritative evidence.
-5. Run `vibe init --path <project>` only after approval. Preserve cancellation and resume state if execution is interrupted.
-6. Run `vibe doctor --path <project>` and report actionable health or drift findings.
+1. Inspect and model the repository through the internal deterministic interfaces. Treat repository files and current project state as evidence; do not make the user repeat facts that can be established there.
+2. Ask only repository-unknown high-impact questions. Limit questions to choices that materially change project scope, capability selection, trust, or permissions.
+3. Present the abstract capability needs and gaps in ordinary language. Explain what the project needs, what verified project or user capabilities already satisfy, and what remains unresolved before discussing implementation mechanics.
+4. Preview the proposed project-local configuration, including selected capabilities, requested permissions, conflicts, remote candidates, and files that would change. Obtain explicit approval for project-local installation or permission changes before applying them.
+5. Apply approved changes through the internal deterministic interfaces. Preserve cancellation and resumable state if work is interrupted, and never broaden an approval implicitly.
+6. Run the internal Doctor verification and report actionable health, drift, or unresolved gap findings in the conversation.
+7. Tell the user that future ordinary tasks remain in Codex and use Codex-native Skill discovery; this bootstrap workflow configures capabilities and does not become a second task-execution path.
 
-## Safety boundary
+## Governance boundary
 
-- Let the CLI own deterministic policy and generated file contents.
-- Use this Skill only to sequence commands, explain evidence, and request decisions.
-- Do not bypass approval or broaden permissions to make resolution succeed.
-- Do not execute discovered Skills, MCP servers, or commands during inventory.
-- Prefer a new dry run when repository scope, Git HEAD, phase, provider content, or user goals change.
+- Inventory never executes discovered capabilities. Inspection reads and verifies metadata and content only.
+- Do not bypass approval, policy, risk classification, or permission calculation. Deterministic interfaces own generated policy and file contents.
+- Remote discovery begins only after a capability gap is established and approved. Discovery results are candidates, not installation authority, and installation still requires the applicable approval and verification.
+- Project-local installation is the default. Broader scope requires an explicit, justified decision.
+- Treat remembered context as advisory rather than repository evidence. Recompute the preview when repository scope, Git HEAD, provider content, user goals, or permission requirements change.

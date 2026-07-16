@@ -1,6 +1,6 @@
 interface:
   display_name: "Local Skill Orchestrator"
   short_description: "Bootstrap verified project AI capabilities"
-  default_prompt: "Use $bootstrap-skill to inspect this repository, preview its project AI configuration, and apply it safely."
+  default_prompt: "Use $bootstrap-skill to initialize this repository's project-local Codex capabilities safely in the current conversation."
 policy:
   allow_implicit_invocation: true

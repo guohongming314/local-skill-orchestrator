@@ -16,6 +16,7 @@ ROOT = Path(__file__).parents[2]
 
 pytestmark = pytest.mark.validation
 
+
 def _scan(skill_root: Path, scope: CapabilityScope = CapabilityScope.USER) -> AdapterScanResult:
     adapter = AgentSkillAdapter(roots=(SkillRoot(skill_root.parent, scope),))
     discoveries = adapter.discover()
@@ -29,18 +30,53 @@ def test_bootstrap_skill_and_openai_metadata_are_structurally_valid() -> None:
 
     assert result.manifest.capability_id == "skill.bootstrap-skill"
     assert result.verification.verified
+    assert "dependency:agents/openai.yaml" in result.verification.details
     metadata = yaml.safe_load((skill_root / "agents/openai.yaml").read_text(encoding="utf-8"))
+    assert set(metadata) == {"interface", "policy"}
     assert metadata["interface"]["display_name"] == "Local Skill Orchestrator"
-    assert "$bootstrap-skill" in metadata["interface"]["default_prompt"]
+    default_prompt = metadata["interface"]["default_prompt"]
+    assert "$bootstrap-skill" in default_prompt
+    assert "conversation" in default_prompt
+    assert metadata["policy"]["allow_implicit_invocation"] is True
 
 
-def test_bootstrap_skill_keeps_guidance_separate_from_cli_policy() -> None:
+def test_bootstrap_skill_keeps_cli_internal_to_the_codex_workflow() -> None:
     document = (ROOT / "bootstrap-skill/SKILL.md").read_text(encoding="utf-8")
 
-    for command in ("vibe inspect", "vibe init --dry-run", "vibe init", "vibe doctor"):
-        assert command in document
-    assert "CLI owns deterministic" in document
+    for statement in (
+        "The user stays in the current Codex conversation",
+        "Use deterministic project capability tools internally",
+        "The internal `vibe` executable must be available",
+        "Do not ask the user to run `vibe` commands",
+        "Do not start another Codex process",
+        "Ask only repository-unknown high-impact questions",
+        "abstract capability needs and gaps",
+        "project-local installation or permission changes",
+        "Codex-native Skill discovery",
+    ):
+        assert statement in document
+
+    for user_facing_command in (
+        "Run `vibe inspect",
+        "Run `vibe init",
+        "Run `vibe doctor",
+        "Run vibe inspect",
+        "Run vibe init",
+        "Run vibe doctor",
+    ):
+        assert user_facing_command not in document
+
+
+def test_bootstrap_skill_preserves_capability_governance_boundaries() -> None:
+    document = (ROOT / "bootstrap-skill/SKILL.md").read_text(encoding="utf-8")
+
+    assert "Inventory never executes discovered capabilities" in document
     assert "Do not bypass approval" in document
+    assert (
+        "Remote discovery begins only after a capability gap is established and approved"
+        in document
+    )
+    assert "Project-local installation is the default" in document
 
 
 def test_generated_project_skill_still_passes_structural_validation(tmp_path: Path) -> None:
