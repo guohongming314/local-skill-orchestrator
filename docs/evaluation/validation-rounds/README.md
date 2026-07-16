@@ -3,9 +3,12 @@
 This directory is the release record for E17 validation. Reports are immutable,
 versioned pairs named `round-NNNN.md` and `round-NNNN.json`; the largest filename
 is the latest round. The Markdown file is the reviewed human record and the JSON
-file is the CI-checkable equivalent. Both contain exactly one row for each of
-#141's seven user expectations, a `PASS` or `FAIL`, and links to evidence such as
-a test run, real-environment smoke result, or evaluation report.
+file is the CI-checkable equivalent. Both contain exactly one row for each
+validation round's seven reviewed release expectations, a `PASS` or `FAIL`, and
+links to evidence such as exact pytest node IDs, a real-environment smoke
+result, or an evaluation report. A required smoke that cannot reach the
+behavior under test is `FAIL`, not inferred from an automated host fixture; its
+blocker must be recorded with an open remediation.
 
 ## JSON schema (version 1)
 
