@@ -1,0 +1,17 @@
+schema_version: '1'
+pack_id: production-release
+name: Production Release
+description: Production release recovery practices
+priority: 70
+match:
+  all_of:
+    - field: lifecycle_stage
+      operator: equals
+      value: production
+requirements:
+  - requirement_id: release-rollback
+    capability: release.rollback
+    strength: required
+    rationale: Restore the previous working release when production deployment fails
+    verification:
+      - Verify the production rollback procedure

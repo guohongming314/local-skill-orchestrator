@@ -369,3 +369,40 @@ def test_remote_discovery_disabled_preserves_existing_gap_payload() -> None:
     assert resolve_local_capabilities(*args).model_dump(mode="json") == (
         resolve_local_capabilities(*args, remote_candidates=()).model_dump(mode="json")
     )
+
+
+def test_unmet_e18_pack_requirements_resolve_to_gaps() -> None:
+    from vibe.practices.evaluator import evaluate_practice_packs
+    from vibe.practices.loader import load_practice_packs
+
+    packs = load_practice_packs(Path(__file__).parents[2] / "practice-packs")
+    production = blueprint(lifecycle=LifecycleStage.PRODUCTION)
+    large_repo = repository(monorepo=True, size="large").model_copy(
+        update={"is_empty": True}
+    )
+    requirements = evaluate_practice_packs(packs, production, large_repo)
+
+    plan = resolve_local_capabilities(
+        requirements,
+        inventory(),
+        production,
+        large_repo,
+    )
+
+    statuses = {
+        item.requirement: item.status
+        for item in plan.resolutions
+        if item.requirement
+        in {
+            "git.recovery",
+            "code.relationship-analysis",
+            "project.continuity-memory",
+            "release.rollback",
+        }
+    }
+    assert statuses == {
+        "git.recovery": ResolutionStatus.GAP,
+        "code.relationship-analysis": ResolutionStatus.GAP,
+        "project.continuity-memory": ResolutionStatus.GAP,
+        "release.rollback": ResolutionStatus.GAP,
+    }

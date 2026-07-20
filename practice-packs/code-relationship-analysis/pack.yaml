@@ -1,0 +1,20 @@
+schema_version: '1'
+pack_id: code-relationship-analysis
+name: Code Relationship Analysis
+description: Cross-package relationship analysis for large monorepositories
+priority: 60
+match:
+  all_of:
+    - field: is_monorepo
+      operator: equals
+      value: 'true'
+    - field: repository_size
+      operator: equals
+      value: large
+requirements:
+  - requirement_id: code-relationship-analysis
+    capability: code.relationship-analysis
+    strength: recommended
+    rationale: Trace relationships across large monorepos before making changes
+    verification:
+      - Verify affected symbols and cross-package call paths

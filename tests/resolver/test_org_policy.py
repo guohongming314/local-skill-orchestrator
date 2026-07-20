@@ -274,5 +274,6 @@ def test_mandatory_org_practice_pack_adds_its_requirements(tmp_path: Path) -> No
     assert {item.requirement for item in plan.resolutions} == {
         "repository.exploration",
         "quality.gates",
+        "git.recovery",
     }
     assert all("base-engineering" in item.reason for item in plan.resolutions)

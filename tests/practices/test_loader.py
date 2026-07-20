@@ -13,8 +13,11 @@ EXPECTED_PACK_IDS = {
     "backend-api",
     "base-engineering",
     "cli-tool",
+    "code-relationship-analysis",
     "database-backed",
     "open-source-library",
+    "production-release",
+    "project-continuity-memory",
     "security-sensitive",
     "web-application",
 }

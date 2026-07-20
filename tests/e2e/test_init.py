@@ -91,6 +91,8 @@ def test_blank_dry_run_reports_decisions_without_writing_project(tmp_path: Path)
     assert payload["applied_paths"] == []
     assert payload["inventory"]["capability_ids"] == []
     assert [item["requirement"] for item in payload["decisions"]] == [
+        "git.recovery",
+        "project.continuity-memory",
         "quality.gates",
         "repository.exploration",
     ]
@@ -224,6 +226,8 @@ def test_conflicts_and_user_rejection_are_explicit_and_safe(tmp_path: Path) -> N
     decisions = json.loads(rejection.stdout)["decisions"]
     assert [item["requirement"] for item in decisions] == [
         "automation.release",
+        "git.recovery",
+        "project.continuity-memory",
         "quality.gates",
         "repository.exploration",
     ]
