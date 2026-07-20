@@ -1,0 +1,21 @@
+schema_version: '1'
+pack_id: project-continuity-memory
+name: Project Continuity Memory
+description: Durable project context for work spanning multiple sessions
+priority: 40
+match:
+  all_of:
+    - field: project_name
+      operator: exists
+      value: true
+  none_of:
+    - field: lifecycle_stage
+      operator: equals
+      value: exploration
+requirements:
+  - requirement_id: project-continuity-memory
+    capability: project.continuity-memory
+    strength: recommended
+    rationale: Preserve project context across development sessions
+    verification:
+      - Verify durable project decisions can be recovered in a later session

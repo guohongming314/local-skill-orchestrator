@@ -8,6 +8,7 @@ from vibe.models.blueprint import Blueprint, LifecycleStage
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
 from vibe.models.risk import RiskLevel
 from vibe.practices.evaluator import PracticeConflictError, evaluate_practice_packs
+from vibe.practices.loader import load_practice_packs
 from vibe.practices.models import PracticePack, RequirementStrength
 from vibe.resolver.requirements import RequirementOverride
 
@@ -181,3 +182,52 @@ def test_pack_conflicts_raise_with_actionable_provenance() -> None:
     assert "first" in message
     assert "second" in message
     assert "cannot be combined safely" in message
+
+
+def test_e18_requirements_follow_project_signals() -> None:
+    packs = load_practice_packs(Path(__file__).parents[2] / "practice-packs")
+    large_repo = snapshot(
+        fact("is_monorepo", "true"),
+        fact("repository_size", "large"),
+    )
+    production = blueprint().model_copy(
+        update={"lifecycle_stage": LifecycleStage.PRODUCTION}
+    )
+
+    requirements = {
+        item.capability: item
+        for item in evaluate_practice_packs(packs, production, large_repo)
+    }
+
+    assert requirements["git.recovery"].strength is RequirementStrength.REQUIRED
+    assert (
+        requirements["code.relationship-analysis"].strength
+        is RequirementStrength.RECOMMENDED
+    )
+    assert (
+        requirements["project.continuity-memory"].strength
+        is RequirementStrength.RECOMMENDED
+    )
+    assert requirements["release.rollback"].strength is RequirementStrength.REQUIRED
+
+
+def test_e18_conditional_requirements_remain_unmatched() -> None:
+    packs = load_practice_packs(Path(__file__).parents[2] / "practice-packs")
+    small_repo = snapshot(
+        fact("is_monorepo", "false"),
+        fact("repository_size", "small"),
+    )
+    exploration = blueprint().model_copy(
+        update={"lifecycle_stage": LifecycleStage.EXPLORATION}
+    )
+
+    capabilities = {
+        item.capability
+        for item in evaluate_practice_packs(packs, exploration, small_repo)
+    }
+
+    assert "git.recovery" in capabilities
+    assert "code.relationship-analysis" not in capabilities
+    assert "project.continuity-memory" not in capabilities
+    assert "release.rollback" not in capabilities
+    assert {"repository.exploration", "quality.gates"} <= capabilities

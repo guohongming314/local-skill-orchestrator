@@ -21,3 +21,9 @@ requirements:
     rationale: Run project quality gates before completion
     verification:
       - Run focused and full test suites
+  - requirement_id: git-recovery
+    capability: git.recovery
+    strength: required
+    rationale: Preserve a recoverable history for every project change
+    verification:
+      - Verify changes can be restored or reverted with Git
