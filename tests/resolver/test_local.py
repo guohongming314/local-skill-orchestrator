@@ -406,3 +406,109 @@ def test_unmet_e18_pack_requirements_resolve_to_gaps() -> None:
         "project.continuity-memory": ResolutionStatus.GAP,
         "release.rollback": ResolutionStatus.GAP,
     }
+
+
+@pytest.mark.parametrize(
+    ("capability", "provider", "permissions"),
+    [
+        ("code.relationship-analysis", "codegraph", (Permission.READ_PROJECT,)),
+        (
+            "project.continuity-memory",
+            "claude-mem",
+            (Permission.READ_PROJECT, Permission.WRITE_PROJECT),
+        ),
+        (
+            "git.recovery",
+            "git",
+            (Permission.READ_PROJECT, Permission.WRITE_PROJECT, Permission.EXECUTE_COMMAND),
+        ),
+        (
+            "release.rollback",
+            "deployment-rollback",
+            (Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+        ),
+        (
+            "ai.evaluation",
+            "promptfoo",
+            (Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+        ),
+        (
+            "security.threat-model",
+            "threat-modeling",
+            (Permission.READ_PROJECT,),
+        ),
+        (
+            "database.migration-testing",
+            "alembic",
+            (Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+        ),
+        (
+            "api.contract-testing",
+            "schemathesis",
+            (Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+        ),
+        (
+            "security.secret-scan",
+            "gitleaks",
+            (Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+        ),
+        (
+            "accessibility.review",
+            "axe-core",
+            (Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+        ),
+    ],
+)
+def test_seeded_gap_domains_return_ranked_recommendations(
+    capability: str,
+    provider: str,
+    permissions: tuple[Permission, ...],
+) -> None:
+    plan = resolve_local_capabilities(
+        (requirement(capability),),
+        inventory(),
+        blueprint(),
+        repository(monorepo=True, size="large"),
+    )
+
+    gap = plan.resolutions[0]
+    assert gap.status is ResolutionStatus.GAP
+    assert gap.recommendation is not None
+    assert gap.recommendation.candidates[0].provider == provider
+    assert gap.recommendation.candidates[0].permissions == permissions
+    assert gap.recommendation.candidates[0].strength is RequirementStrength.RECOMMENDED
+    assert gap.recommendation.candidates[0].why
+
+
+def test_unseeded_gap_domain_explicitly_has_no_recommendation() -> None:
+    plan = resolve_local_capabilities(
+        (requirement("quality.gates"),),
+        inventory(),
+        blueprint(),
+        repository(monorepo=False, size="small"),
+    )
+
+    gap = plan.resolutions[0]
+    assert gap.status is ResolutionStatus.GAP
+    assert gap.recommendation is None
+
+
+def test_gap_recommendations_ignore_remote_candidates_for_other_domains() -> None:
+    browser_remote = remote_candidate(
+        "browser-only",
+        kind=RemoteCapabilityKind.CLI_TOOL,
+        permission_level=PermissionLevel.L2,
+        permissions=("read-project", "execute-command"),
+    )
+
+    plan = resolve_local_capabilities(
+        (requirement("git.recovery"),),
+        inventory(),
+        blueprint(),
+        repository(monorepo=False, size="small"),
+        remote_candidates=(browser_remote,),
+    )
+
+    gap = plan.resolutions[0]
+    assert gap.recommendation is not None
+    assert [item.provider for item in gap.recommendation.candidates] == ["git"]
