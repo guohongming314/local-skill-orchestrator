@@ -277,17 +277,8 @@ def _blueprint_digest(blueprint: Blueprint) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
-def _gap_recommendation(
-    requirement: AbstractCapabilityRequirement,
-    blueprint: Blueprint,
-    remote_candidates: tuple[RemoteCandidate, ...],
-    remote_evidence: Mapping[str, CandidateEvidence],
-    rejected_remote_candidates: frozenset[str],
-    policy: ResolverPolicy,
-) -> CapabilityRecommendation | None:
-    if requirement.capability != "browser.validation":
-        return None
-    local_candidates: tuple[RecommendationCandidate, ...] = (
+_LOCAL_GAP_RECOMMENDATIONS: dict[str, tuple[RecommendationCandidate, ...]] = {
+    "browser.validation": (
         RecommendationCandidate(
             kind=CapabilityKind.CLI_TOOL,
             provider="playwright",
@@ -309,7 +300,152 @@ def _gap_recommendation(
             why="Use this browser MCP only for interactive browser control.",
             strength=RequirementStrength.OPTIONAL,
         ),
-    )
+    ),
+    "code.relationship-analysis": (
+        RecommendationCandidate(
+            kind=CapabilityKind.CLI_TOOL,
+            provider="codegraph",
+            permissions=(Permission.READ_PROJECT,),
+            why=(
+                "Prefer read-only deterministic graph analysis for repeatable "
+                "cross-package relationship tracing."
+            ),
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+    "project.continuity-memory": (
+        RecommendationCandidate(
+            kind=CapabilityKind.MCP,
+            provider="claude-mem",
+            permissions=(Permission.READ_PROJECT, Permission.WRITE_PROJECT),
+            why=(
+                "Use persistent project memory only for durable cross-session context; "
+                "keep stored context scoped to the project."
+            ),
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+    "git.recovery": (
+        RecommendationCandidate(
+            kind=CapabilityKind.CLI_TOOL,
+            provider="git",
+            permissions=(
+                Permission.READ_PROJECT,
+                Permission.WRITE_PROJECT,
+                Permission.EXECUTE_COMMAND,
+            ),
+            why=(
+                "Prefer the deterministic local Git CLI for inspecting history and "
+                "performing explicit restore or revert operations."
+            ),
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+    "release.rollback": (
+        RecommendationCandidate(
+            kind=CapabilityKind.SKILL,
+            provider="deployment-rollback",
+            permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+            why=(
+                "Prefer a project-scoped rollback workflow that executes the declared "
+                "deployment recovery procedure without broad network access."
+            ),
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+    "ai.evaluation": (
+        RecommendationCandidate(
+            kind=CapabilityKind.CLI_TOOL,
+            provider="promptfoo",
+            permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+            why="Prefer deterministic local evaluation scenarios before interactive review.",
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+    "security.threat-model": (
+        RecommendationCandidate(
+            kind=CapabilityKind.SKILL,
+            provider="threat-modeling",
+            permissions=(Permission.READ_PROJECT,),
+            why="Prefer a read-only structured threat-model review of project trust boundaries.",
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+    "database.migration-testing": (
+        RecommendationCandidate(
+            kind=CapabilityKind.CLI_TOOL,
+            provider="alembic",
+            permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+            why=(
+                "Use a deterministic migration CLI to exercise upgrade and rollback paths; "
+                "choose the project-native equivalent when Alembic is not applicable."
+            ),
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+    "api.contract-testing": (
+        RecommendationCandidate(
+            kind=CapabilityKind.CLI_TOOL,
+            provider="schemathesis",
+            permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+            why="Prefer deterministic schema-driven API contract checks.",
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+    "security.secret-scan": (
+        RecommendationCandidate(
+            kind=CapabilityKind.CLI_TOOL,
+            provider="gitleaks",
+            permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+            why="Prefer a local deterministic secret scan before any networked review.",
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+    "accessibility.review": (
+        RecommendationCandidate(
+            kind=CapabilityKind.CLI_TOOL,
+            provider="axe-core",
+            permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+            why="Prefer deterministic automated accessibility checks before manual review.",
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+}
+
+# These abstract domains intentionally have no universal provider recommendation: their
+# correct implementation is project-specific, so naming a default would be misleading.
+_NO_DEFAULT_RECOMMENDATIONS = frozenset(
+    {
+        "ai.prompt-review",
+        "cli.help-review",
+        "cli.integration-testing",
+        "database.transaction-review",
+        "observability.validation",
+        "public-api.compatibility",
+        "quality.gates",
+        "release.documentation",
+        "repository.exploration",
+    }
+)
+
+
+def _gap_recommendation(
+    requirement: AbstractCapabilityRequirement,
+    blueprint: Blueprint,
+    remote_candidates: tuple[RemoteCandidate, ...],
+    remote_evidence: Mapping[str, CandidateEvidence],
+    rejected_remote_candidates: frozenset[str],
+    policy: ResolverPolicy,
+) -> CapabilityRecommendation | None:
+    local_candidates = _LOCAL_GAP_RECOMMENDATIONS.get(requirement.capability)
+    if local_candidates is None:
+        # Known project-specific domains and unknown future domains deliberately keep
+        # a bare GAP until a defensible default candidate is authored.
+        assert (
+            requirement.capability in _NO_DEFAULT_RECOMMENDATIONS
+            or requirement.capability not in _LOCAL_GAP_RECOMMENDATIONS
+        )
+        return None
     candidates: tuple[RecommendationCandidate, ...]
     if not remote_candidates:
         candidates = local_candidates
@@ -317,7 +453,8 @@ def _gap_recommendation(
         rejected_names = {
             candidate.name
             for candidate in remote_candidates
-            if candidate.candidate_ref in rejected_remote_candidates
+            if requirement.capability in candidate.provides
+            and candidate.candidate_ref in rejected_remote_candidates
         }
         local_candidates = tuple(
             item for item in local_candidates if item.provider not in rejected_names
@@ -325,7 +462,8 @@ def _gap_recommendation(
         eligible = tuple(
             candidate
             for candidate in remote_candidates
-            if candidate.candidate_ref not in rejected_remote_candidates
+            if requirement.capability in candidate.provides
+            and candidate.candidate_ref not in rejected_remote_candidates
             and remote_org_filter_reason(candidate, policy) is None
         )
         ranked = tuple(
