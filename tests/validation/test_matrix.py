@@ -59,6 +59,7 @@ ROOT = Path(__file__).parents[2]
 MATRIX = ROOT / "docs/evaluation/acceptance-matrix.md"
 EXPECTED_IDS = {
     *(f"E{epic}-EXIT" for epic in range(11, 17)),
+    "E18-EXIT",
     *(f"DESIGN-{index:02d}" for index in range(1, 13)),
     "CROSS-01",
     "CROSS-02",

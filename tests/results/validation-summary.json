@@ -51,6 +51,14 @@
       ]
     },
     {
+      "expectation": "All four newly modeled capability domains select present local providers or report explained ranked gaps.",
+      "id": "E18-EXIT",
+      "tests": [
+        "tests/e2e/test_capability_domains.py::test_e18_domains_select_present_local_providers",
+        "tests/e2e/test_capability_domains.py::test_e18_domains_report_ranked_gaps_without_providers"
+      ]
+    },
+    {
       "expectation": "The same Blueprint resolves to a reproducible capability set.",
       "id": "DESIGN-01",
       "tests": [
