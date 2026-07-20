@@ -16,13 +16,15 @@ pytestmark = pytest.mark.validation
 runner = CliRunner()
 
 
-def _answers(tmp_path: Path, name: str) -> Path:
+def _answers(
+    tmp_path: Path, name: str, *, lifecycle_stage: str = "active-development"
+) -> Path:
     path = tmp_path / f"{name}-answers.json"
     path.write_text(
         json.dumps(
             {
                 "goal": "Build a blank web application",
-                "lifecycle_stage": "active-development",
+                "lifecycle_stage": lifecycle_stage,
                 "risk_level": "medium",
                 "project_type": "web-application",
                 "preferences": {"project_type": "web-application"},
@@ -40,6 +42,7 @@ def _init(
     run_id: str,
     remote_discovery: bool,
     dry_run: bool = True,
+    lifecycle_stage: str = "active-development",
 ) -> Any:
     arguments = [
         "init",
@@ -50,7 +53,7 @@ def _init(
         "--checkpoints",
         str(tmp_path / f"{run_id}.sqlite3"),
         "--answers",
-        str(_answers(tmp_path, run_id)),
+        str(_answers(tmp_path, run_id, lifecycle_stage=lifecycle_stage)),
         "--confirm",
         "--json",
     ]
@@ -61,12 +64,18 @@ def _init(
     return runner.invoke(app, arguments)
 
 
-def _browser_resolution(payload: dict[str, Any]) -> dict[str, Any]:
+def _capability_resolution(
+    payload: dict[str, Any], capability: str
+) -> dict[str, Any]:
     return next(
         item
         for item in payload["resolution"]["resolutions"]
-        if item["requirement"] == "browser.validation" and item["status"] in {"gap", "selected"}
+        if item["requirement"] == capability and item["status"] in {"gap", "selected"}
     )
+
+
+def _browser_resolution(payload: dict[str, Any]) -> dict[str, Any]:
+    return _capability_resolution(payload, "browser.validation")
 
 
 def _tree(root: Path) -> dict[str, bytes]:
@@ -243,3 +252,51 @@ def test_disabling_discovery_reproduces_e11_recommendations(tmp_path: Path) -> N
         "playwright",
         "chrome-devtools",
     ]
+
+
+def test_non_browser_remote_candidate_reaches_gap_recommendation(tmp_path: Path) -> None:
+    built = build_scenario("blank-web-remote", tmp_path / "non-browser")
+    candidates_path = built.root / ".ai-project/remote-candidates.json"
+    payload = json.loads(candidates_path.read_text(encoding="utf-8"))
+    remote = dict(payload["candidates"][0])
+    remote.update(
+        {
+            "candidate_ref": "registry:cli-tool/release-safety@1.0.0",
+            "name": "release-safety",
+            "provides": ["release.rollback"],
+            "version": "1.0.0",
+        }
+    )
+    remote["provenance"] = dict(remote["provenance"])
+    remote["provenance"]["source"] = remote["candidate_ref"]
+    payload["candidates"].append(remote)
+    payload["evidence"][remote["candidate_ref"]] = {
+        "adoption": 250,
+        "maintenance": 90,
+        "platforms": ["codex"],
+        "project_fact_matches": ["lifecycle_stage:production"],
+        "scan_flags": [],
+    }
+    candidates_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = _init(
+        built.root,
+        tmp_path,
+        run_id="remote-non-browser",
+        remote_discovery=True,
+        lifecycle_stage="production",
+    )
+
+    assert result.exit_code == 0, result.output
+    resolution = _capability_resolution(
+        json.loads(result.stdout), "release.rollback"
+    )
+    assert resolution["status"] == "gap"
+    assert [
+        item["provider"] for item in resolution["recommendation"]["candidates"]
+    ] == ["deployment-rollback", "release-safety"]
+    remote_recommendation = resolution["recommendation"]["candidates"][1]
+    assert remote_recommendation["permission_level"] == "L1"
+    assert "fit=" in remote_recommendation["why"]
+    assert "trust=" in remote_recommendation["why"]
+    assert "risk=" in remote_recommendation["why"]
