@@ -286,13 +286,14 @@ def remote_candidate(
     kind: RemoteCapabilityKind,
     permission_level: PermissionLevel,
     permissions: tuple[str, ...],
+    provides: tuple[str, ...] = ("browser.validation",),
 ) -> RemoteCandidate:
     digest = "sha256:" + hashlib.sha256(name.encode()).hexdigest()
     return RemoteCandidate(
         candidate_ref=f"registry:{name}@1.0.0",
         name=name,
         kind=kind,
-        provides=("browser.validation",),
+        provides=provides,
         version="1.0.0",
         digest=digest,
         publisher=f"{name} publisher",
@@ -512,3 +513,40 @@ def test_gap_recommendations_ignore_remote_candidates_for_other_domains() -> Non
     gap = plan.resolutions[0]
     assert gap.recommendation is not None
     assert [item.provider for item in gap.recommendation.candidates] == ["git"]
+
+
+def test_non_browser_gap_ranks_matching_remote_candidate_with_local_default() -> None:
+    remote = remote_candidate(
+        "relationship-inspector",
+        kind=RemoteCapabilityKind.CLI_TOOL,
+        permission_level=PermissionLevel.L1,
+        permissions=("read-project",),
+        provides=("code.relationship-analysis",),
+    )
+
+    plan = resolve_local_capabilities(
+        (requirement("code.relationship-analysis"),),
+        inventory(),
+        blueprint(),
+        repository(monorepo=True, size="large"),
+        remote_candidates=(remote,),
+        remote_evidence={
+            remote.candidate_ref: CandidateEvidence(
+                platforms=("codex",), maintenance=90, scan_flags=()
+            )
+        },
+    )
+
+    gap = plan.resolutions[0]
+    assert gap.status is ResolutionStatus.GAP
+    assert gap.recommendation is not None
+    assert [item.provider for item in gap.recommendation.candidates] == [
+        "codegraph",
+        "relationship-inspector",
+    ]
+    candidate = gap.recommendation.candidates[1]
+    assert candidate.permission_level == "L1"
+    assert candidate.fit_score is not None
+    assert candidate.trust_score is not None
+    assert candidate.risk_score is not None
+    assert "Remote candidate" in candidate.why
