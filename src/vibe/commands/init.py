@@ -18,7 +18,7 @@ from vibe.commands.inspect import _complete_snapshot
 from vibe.commands.project_plan import build_project_plan, scan_project_inventory
 from vibe.conversation.interview import InterviewInput, InterviewQuestion, build_interview
 from vibe.conversation.prompts import QUESTION_ORDER
-from vibe.conversation.runner import ConversationRunner
+from vibe.conversation.runner import ConversationRunner, permission_decisions_from_payload
 from vibe.conversation.structured_result import StructuredProjectResult, ValueSource
 from vibe.inventory.service import InventoryResult, inventory_digest
 from vibe.materialize.agents_md import merge_agents_md
@@ -764,6 +764,7 @@ def _build_structured(
         "constraints": answers.get("constraints", ()),
         "preferences": answers.get("preferences", {}),
         "repository_digest": snapshot.source_digest,
+        "decisions": permission_decisions_from_payload(answers.get("permissions")),
     }
     blueprint = Blueprint.model_validate(blueprint_payload)
     confirmed_fields = set(answers) & set(Blueprint.model_fields)

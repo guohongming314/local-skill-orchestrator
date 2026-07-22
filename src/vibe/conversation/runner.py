@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable, Sequence
 
 import anyio
@@ -24,6 +25,16 @@ from vibe.conversation.structured_result import (
     apply_revision,
     lock_decisions,
 )
+from vibe.models.decisions import (
+    AuthorizationState,
+    DecisionProvenance,
+    DecisionSource,
+    NetworkDecision,
+    NetworkPolicy,
+    PermissionDecision,
+    ProjectDecisions,
+    TriState,
+)
 from vibe.models.repository import RepositorySnapshot
 from vibe.workflows.checkpoints import SqliteCheckpointStore
 
@@ -35,6 +46,23 @@ _QUESTION_FIELDS = {
     "risk.tolerance": "risk_level",
 }
 _ACCEPT_DEFAULT = {"accept", "accept default", "use default"}
+_PERMISSION_QUESTIONS = {
+    "permissions.write_project": "write_project",
+    "permissions.execute_command": "execute_command",
+    "permissions.network": "network_policy",
+}
+_ENGLISH_DENY = re.compile(
+    r"\b(?:no|deny|denied|disallow|forbid|forbidden|never|cannot|can't)\b|"
+    r"\b(?:do|does)\s+not\b|\bdon't\b|\bnot\s+(?:allowed|permitted|okay|ok)\b"
+)
+_ENGLISH_ALLOW = re.compile(
+    r"\b(?:yes|allow|allowed|permit|permitted|approve|approved|okay|ok)\b|"
+    r"\byou\s+may\b"
+)
+_ENGLISH_READONLY = re.compile(r"\bread[ -]?only\b")
+_CHINESE_DENY = ("不允许", "不可以", "不能", "禁止", "不要", "拒绝", "否")
+_CHINESE_ALLOW = ("允许", "可以", "同意", "批准", "是")
+_CHINESE_READONLY = ("只读", "仅限读取", "仅可读取")
 
 
 class ConversationRunner:
@@ -249,7 +277,13 @@ def _reconcile_answers(
             if question_id in _QUESTION_FIELDS
         }
     )
-    reconciled = unlocked.model_copy(update={"field_provenance": field_provenance})
+    decisions = _permission_decisions_from_interview(
+        unlocked.blueprint.decisions, answers, provenance
+    )
+    blueprint = unlocked.blueprint.model_copy(update={"decisions": decisions})
+    reconciled = unlocked.model_copy(
+        update={"blueprint": blueprint, "field_provenance": field_provenance}
+    )
     lock_fields = tuple(_QUESTION_FIELDS[item] for item in sorted(locked_questions))
     if lock_fields:
         reconciled = lock_decisions(reconciled, *lock_fields)
@@ -257,6 +291,99 @@ def _reconcile_answers(
     return reconciled.model_copy(
         update={"locked_decisions": reconciled.locked_decisions | model_locks}
     )
+
+
+def _permission_decisions_from_interview(
+    model_decisions: ProjectDecisions,
+    answers: dict[str, str],
+    provenance: dict[str, FieldProvenance],
+) -> ProjectDecisions:
+    defaults = ProjectDecisions()
+    decisions = model_decisions.model_copy(
+        update={
+            "write_project": defaults.write_project,
+            "execute_command": defaults.execute_command,
+            "network_policy": defaults.network_policy,
+            "discovery_approval": AuthorizationState.NOT_REQUESTED,
+        }
+    )
+    updates: dict[str, PermissionDecision | NetworkDecision] = {}
+    for question_id, field in _PERMISSION_QUESTIONS.items():
+        if question_id not in answers:
+            continue
+        source = DecisionSource(provenance[question_id].value)
+        decision_provenance = DecisionProvenance(source=source, reference=question_id)
+        if field == "network_policy":
+            updates[field] = NetworkDecision(
+                value=_parse_network_answer(answers[question_id]),
+                provenance=decision_provenance,
+            )
+        else:
+            updates[field] = PermissionDecision(
+                value=_parse_permission_answer(answers[question_id]),
+                provenance=decision_provenance,
+            )
+    return decisions.model_copy(update=updates)
+
+
+def permission_decisions_from_payload(payload: object) -> ProjectDecisions:
+    """Build deterministic typed decisions from an answer-file permissions object."""
+    if payload is None:
+        return ProjectDecisions()
+    if not isinstance(payload, dict):
+        raise ValueError("answers permissions must be a JSON object")
+    updates: dict[str, PermissionDecision | NetworkDecision] = {}
+    for field in ("write_project", "execute_command", "network_policy"):
+        if field not in payload:
+            continue
+        reference = f"permissions.{field}"
+        decision_provenance = DecisionProvenance(
+            source=DecisionSource.USER_RESPONSE,
+            reference=reference,
+        )
+        if field == "network_policy":
+            updates[field] = NetworkDecision(
+                value=NetworkPolicy(payload[field]), provenance=decision_provenance
+            )
+        else:
+            updates[field] = PermissionDecision(
+                value=TriState(payload[field]), provenance=decision_provenance
+            )
+    return ProjectDecisions().model_copy(update=updates)
+
+
+def _parse_permission_answer(answer: str) -> TriState:
+    denied, allowed = _permission_signals(answer)
+    if denied == allowed:
+        return TriState.UNKNOWN
+    return TriState.DENIED if denied else TriState.ALLOWED
+
+
+def _parse_network_answer(answer: str) -> NetworkPolicy:
+    normalized = answer.casefold().strip()
+    denied, allowed = _permission_signals(normalized)
+    readonly = bool(_ENGLISH_READONLY.search(normalized)) or any(
+        phrase in normalized for phrase in _CHINESE_READONLY
+    )
+    if denied:
+        return NetworkPolicy.UNKNOWN if allowed else NetworkPolicy.DENIED
+    if readonly:
+        return NetworkPolicy.ALLOWED_READONLY
+    return NetworkPolicy.ALLOWED if allowed else NetworkPolicy.UNKNOWN
+
+
+def _permission_signals(answer: str) -> tuple[bool, bool]:
+    normalized = answer.casefold().strip()
+    denied = bool(_ENGLISH_DENY.search(normalized)) or any(
+        phrase in normalized for phrase in _CHINESE_DENY
+    )
+    positive_text = _ENGLISH_DENY.sub(" ", normalized)
+    for phrase in _CHINESE_DENY:
+        positive_text = positive_text.replace(phrase, " ")
+    allowed = bool(_ENGLISH_ALLOW.search(positive_text)) or any(
+        phrase in positive_text for phrase in _CHINESE_ALLOW
+    )
+    return denied, allowed
 
 
 def _context_prompt(repository: RepositorySnapshot, interview: InterviewResult) -> str:

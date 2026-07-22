@@ -6,9 +6,69 @@ from pathlib import Path
 from typer.testing import CliRunner, Result
 
 from vibe.cli import app
+from vibe.commands.init import _build_structured
 from vibe.models.blueprint import Blueprint
+from vibe.models.decisions import DecisionSource, NetworkPolicy, TriState
+from vibe.models.repository import RepositorySnapshot
 
 runner = CliRunner()
+
+
+def answer_snapshot(root: Path) -> RepositorySnapshot:
+    return RepositorySnapshot(
+        root=root,
+        source_digest="0123456789abcdef",
+        is_empty=False,
+    )
+
+
+def required_answers() -> dict[str, object]:
+    return {
+        "goal": "Ship safely",
+        "lifecycle_stage": "exploration",
+        "risk_level": "low",
+    }
+
+
+def test_build_structured_maps_answer_file_permissions(tmp_path: Path) -> None:
+    answers = required_answers()
+    answers["permissions"] = {
+        "write_project": "allowed",
+        "execute_command": "denied",
+        "network_policy": "allowed-readonly",
+    }
+
+    structured = _build_structured(answer_snapshot(tmp_path), answers)
+
+    decisions = structured.blueprint.decisions
+    assert decisions.write_project.value is TriState.ALLOWED
+    assert decisions.execute_command.value is TriState.DENIED
+    assert decisions.network_policy.value is NetworkPolicy.ALLOWED_READONLY
+    for field in ("write_project", "execute_command", "network_policy"):
+        decision = getattr(decisions, field)
+        assert decision.provenance.source is DecisionSource.USER_RESPONSE
+        assert decision.provenance.reference == f"permissions.{field}"
+
+
+def test_build_structured_preserves_unknown_and_omitted_permissions(tmp_path: Path) -> None:
+    answers = required_answers()
+    answers["permissions"] = {"write_project": "unknown"}
+
+    decisions = _build_structured(answer_snapshot(tmp_path), answers).blueprint.decisions
+
+    assert decisions.write_project.value is TriState.UNKNOWN
+    assert decisions.write_project.provenance.source is DecisionSource.USER_RESPONSE
+    assert decisions.execute_command.value is TriState.UNKNOWN
+    assert decisions.execute_command.provenance.source is DecisionSource.UNKNOWN
+    assert decisions.network_policy.value is NetworkPolicy.UNKNOWN
+
+
+def test_build_structured_remains_compatible_without_permissions(tmp_path: Path) -> None:
+    decisions = _build_structured(answer_snapshot(tmp_path), required_answers()).blueprint.decisions
+
+    assert decisions.write_project.value is TriState.UNKNOWN
+    assert decisions.execute_command.value is TriState.UNKNOWN
+    assert decisions.network_policy.value is NetworkPolicy.UNKNOWN
 
 
 def write_answers(path: Path, *, goal: str, lifecycle: str) -> Path:

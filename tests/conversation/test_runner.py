@@ -13,7 +13,21 @@ from vibe.conversation.interview import (
     InterviewResult,
     build_interview,
 )
-from vibe.conversation.runner import ConversationRunner
+from vibe.conversation.runner import ConversationRunner, _reconcile_answers
+from vibe.conversation.structured_result import (
+    FieldProvenance,
+    StructuredProjectResult,
+    ValueSource,
+)
+from vibe.models.blueprint import Blueprint
+from vibe.models.decisions import (
+    AuthorizationState,
+    DecisionSource,
+    NetworkPolicy,
+    PermissionDecision,
+    ProjectDecisions,
+    TriState,
+)
 from vibe.models.repository import (
     FactConfidence,
     RepositoryFact,
@@ -38,6 +52,101 @@ def app_command(mode: str, state: Path) -> tuple[str, ...]:
 
 def fallback(mode: str, invocation: Path) -> CodexExecFallback:
     return CodexExecFallback((sys.executable, str(FAKE_EXEC), mode, str(invocation)))
+
+
+def model_result(root: Path) -> StructuredProjectResult:
+    return StructuredProjectResult(
+        blueprint=Blueprint(
+            project_name="fixture",
+            goal="model goal",
+            lifecycle_stage="exploration",
+            risk_level="low",
+            repository_digest="0123456789abcdef",
+        ),
+        field_sources={
+            "project_name": ValueSource.INFERRED,
+            "goal": ValueSource.INFERRED,
+            "lifecycle_stage": ValueSource.INFERRED,
+            "risk_level": ValueSource.INFERRED,
+            "repository_digest": ValueSource.INFERRED,
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    ("question_id", "answer", "expected"),
+    (
+        ("permissions.write_project", "yes, you may change project files", TriState.ALLOWED),
+        ("permissions.write_project", "do not modify files", TriState.DENIED),
+        ("permissions.execute_command", "可以执行本地验证命令", TriState.ALLOWED),
+        ("permissions.execute_command", "不允许执行命令", TriState.DENIED),
+        ("permissions.execute_command", "notable commands may help", TriState.UNKNOWN),
+    ),
+)
+def test_reconcile_maps_permission_answers_conservatively(
+    tmp_path: Path, question_id: str, answer: str, expected: TriState
+) -> None:
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: answer},
+        {question_id: FieldProvenance.USER_RESPONSE},
+        set(),
+    )
+
+    decision = getattr(reconciled.blueprint.decisions, question_id.removeprefix("permissions."))
+    assert decision.value is expected
+    assert decision.provenance.source is DecisionSource.USER_RESPONSE
+    assert decision.provenance.reference == question_id
+
+
+@pytest.mark.parametrize(
+    ("answer", "expected"),
+    (
+        ("yes", NetworkPolicy.ALLOWED),
+        ("no network access", NetworkPolicy.DENIED),
+        ("read-only network access is okay", NetworkPolicy.ALLOWED_READONLY),
+        ("只允许只读网络访问", NetworkPolicy.ALLOWED_READONLY),
+        ("network access might be useful", NetworkPolicy.UNKNOWN),
+    ),
+)
+def test_reconcile_maps_network_without_granting_discovery(
+    tmp_path: Path, answer: str, expected: NetworkPolicy
+) -> None:
+    question_id = "permissions.network"
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: answer},
+        {question_id: FieldProvenance.RECOMMENDED_DEFAULT},
+        set(),
+    )
+
+    decision = reconciled.blueprint.decisions.network_policy
+    assert decision.value is expected
+    assert decision.provenance.source is DecisionSource.RECOMMENDED_DEFAULT
+    assert decision.provenance.reference == question_id
+    assert reconciled.blueprint.decisions.discovery_approval is AuthorizationState.NOT_REQUESTED
+
+
+def test_reconcile_without_network_answer_preserves_unknown_policy(tmp_path: Path) -> None:
+    result = model_result(tmp_path)
+    model_decisions = ProjectDecisions(
+        read_project=PermissionDecision(value=TriState.ALLOWED),
+        network_policy={"value": "allowed"},
+        discovery_approval=AuthorizationState.APPROVED,
+    )
+    result = result.model_copy(
+        update={
+            "blueprint": result.blueprint.model_copy(
+                update={"decisions": model_decisions}
+            )
+        }
+    )
+
+    reconciled = _reconcile_answers(result, {}, {}, set())
+
+    assert reconciled.blueprint.decisions.network_policy.value is NetworkPolicy.UNKNOWN
+    assert reconciled.blueprint.decisions.discovery_approval is AuthorizationState.NOT_REQUESTED
+    assert reconciled.blueprint.decisions.read_project.value is TriState.ALLOWED
 
 
 @pytest.mark.anyio
