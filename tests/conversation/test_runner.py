@@ -160,6 +160,32 @@ def test_reconcile_prioritizes_explicit_english_denial(
 @pytest.mark.parametrize(
     ("answer", "expected"),
     (
+        ("maybe read-only network access", NetworkPolicy.UNKNOWN),
+        ("read-only if I approve later", NetworkPolicy.UNKNOWN),
+        ("possibly read-only", NetworkPolicy.UNKNOWN),
+        ("可能只读", NetworkPolicy.UNKNOWN),
+        ("只读,如果之后批准", NetworkPolicy.UNKNOWN),
+        ("read-only network access", NetworkPolicy.ALLOWED_READONLY),
+        ("you may not use the network", NetworkPolicy.DENIED),
+    ),
+)
+def test_reconcile_classifies_network_uncertainty_before_readonly(
+    tmp_path: Path, answer: str, expected: NetworkPolicy
+) -> None:
+    question_id = "permissions.network"
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: answer},
+        {question_id: FieldProvenance.USER_RESPONSE},
+        set(),
+    )
+
+    assert reconciled.blueprint.decisions.network_policy.value is expected
+
+
+@pytest.mark.parametrize(
+    ("answer", "expected"),
+    (
         ("yes", NetworkPolicy.ALLOWED),
         ("no network access", NetworkPolicy.DENIED),
         ("read-only network access is okay", NetworkPolicy.ALLOWED_READONLY),

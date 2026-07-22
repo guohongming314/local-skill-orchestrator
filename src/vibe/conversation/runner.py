@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 
 import anyio
 
@@ -66,8 +67,26 @@ _ENGLISH_UNCERTAIN = re.compile(
 _ENGLISH_READONLY = re.compile(r"\bread[ -]?only\b")
 _CHINESE_DENY_PREFIXES = ("不允许", "不可以", "不能", "禁止", "不要", "拒绝")
 _CHINESE_ALLOW_PREFIXES = ("允许", "可以", "同意", "批准")
-_CHINESE_UNCERTAIN = ("是不是", "是否", "不是", "不太", "可能", "也许", "不确定", "看情况")
+_CHINESE_UNCERTAIN = (
+    "是不是",
+    "是否",
+    "不是",
+    "不太",
+    "可能",
+    "也许",
+    "不确定",
+    "看情况",
+    "如果",
+    "之后",
+)
 _CHINESE_READONLY_PREFIXES = ("只读", "只允许只读", "仅限读取", "仅可读取")
+
+
+@dataclass(frozen=True)
+class _PermissionClassification:
+    uncertain: bool = False
+    denied: bool = False
+    allowed: bool = False
 
 
 class ConversationRunner:
@@ -357,49 +376,46 @@ def permission_decisions_from_payload(payload: object) -> ProjectDecisions:
 
 
 def _parse_permission_answer(answer: str) -> TriState:
-    denied, allowed = _permission_signals(answer)
-    if denied == allowed:
+    classification = _classify_permission_answer(answer)
+    if classification.uncertain or classification.denied == classification.allowed:
         return TriState.UNKNOWN
-    return TriState.DENIED if denied else TriState.ALLOWED
+    return TriState.DENIED if classification.denied else TriState.ALLOWED
 
 
 def _parse_network_answer(answer: str) -> NetworkPolicy:
     normalized = answer.casefold().strip()
-    denied, allowed = _permission_signals(normalized)
+    classification = _classify_permission_answer(normalized)
+    if classification.uncertain:
+        return NetworkPolicy.UNKNOWN
     readonly = bool(_ENGLISH_READONLY.search(normalized)) or _starts_with_direct_chinese(
         normalized, _CHINESE_READONLY_PREFIXES
     )
-    if denied:
-        return NetworkPolicy.UNKNOWN if allowed else NetworkPolicy.DENIED
+    if classification.denied:
+        return NetworkPolicy.UNKNOWN if classification.allowed else NetworkPolicy.DENIED
     if readonly:
         return NetworkPolicy.ALLOWED_READONLY
-    return NetworkPolicy.ALLOWED if allowed else NetworkPolicy.UNKNOWN
+    return NetworkPolicy.ALLOWED if classification.allowed else NetworkPolicy.UNKNOWN
 
 
-def _permission_signals(answer: str) -> tuple[bool, bool]:
+def _classify_permission_answer(answer: str) -> _PermissionClassification:
     normalized = answer.casefold().strip()
     if _ENGLISH_UNCERTAIN.search(normalized):
-        return False, False
-    chinese_denied, chinese_allowed = _chinese_permission_signals(normalized)
+        return _PermissionClassification(uncertain=True)
+    compact = re.sub(
+        r"[\s\u3001\u3002\uff01\uff0c\uff1a\uff1b\uff1f,.!?;:]", "", normalized
+    )
+    if any(marker in compact for marker in _CHINESE_UNCERTAIN):
+        return _PermissionClassification(uncertain=True)
+    chinese_denied = compact == "否" or _starts_with_direct_chinese(
+        compact, _CHINESE_DENY_PREFIXES
+    )
+    chinese_allowed = compact in {"是", "是的"} or _starts_with_direct_chinese(
+        compact, _CHINESE_ALLOW_PREFIXES
+    )
     denied = bool(_ENGLISH_DENY.search(normalized)) or chinese_denied
     positive_text = _ENGLISH_DENY.sub(" ", normalized)
     allowed = bool(_ENGLISH_ALLOW.search(positive_text)) or chinese_allowed
-    return denied, allowed
-
-
-def _chinese_permission_signals(answer: str) -> tuple[bool, bool]:
-    compact = re.sub(
-        r"[\s\u3001\u3002\uff01\uff0c\uff1a\uff1b\uff1f,.!?;:]", "", answer
-    )
-    if not compact or any(marker in compact for marker in _CHINESE_UNCERTAIN):
-        return False, False
-    denied = compact == "否" or _starts_with_direct_chinese(
-        compact, _CHINESE_DENY_PREFIXES
-    )
-    allowed = compact in {"是", "是的"} or _starts_with_direct_chinese(
-        compact, _CHINESE_ALLOW_PREFIXES
-    )
-    return denied, allowed
+    return _PermissionClassification(denied=denied, allowed=allowed)
 
 
 def _starts_with_direct_chinese(answer: str, prefixes: tuple[str, ...]) -> bool:
