@@ -79,6 +79,26 @@ def test_bootstrap_skill_preserves_capability_governance_boundaries() -> None:
     assert "Project-local installation is the default" in document
 
 
+def test_bootstrap_skill_separates_discovery_from_installation_approval() -> None:
+    document = (ROOT / "bootstrap-skill/SKILL.md").read_text(encoding="utf-8")
+
+    for requirement in (
+        "static candidate leads",
+        "discovery approval",
+        "named remote sources",
+        "not-requested",
+        "source-unavailable",
+        "search-failed",
+        "no-results",
+        "all-filtered",
+        "candidates-found",
+        "Discovery approval never authorizes installation",
+        "separate installation approval",
+        "missing cache",
+    ):
+        assert requirement in document
+
+
 def test_generated_project_skill_still_passes_structural_validation(tmp_path: Path) -> None:
     blueprint, plan, inventory = inputs()
     rendered = render_project_configuration(
