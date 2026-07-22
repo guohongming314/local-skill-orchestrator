@@ -81,6 +81,10 @@ _ENGLISH_DIRECT_ALLOW = re.compile(
 _ENGLISH_DIRECT_READONLY = re.compile(
     r"read[ -]?only(?: network)? access(?: is (?:allowed|permitted|okay|ok))?"
 )
+_ENGLISH_DIRECT_RESTRICTED_NETWORK = re.compile(
+    r"(?:yes you may|you may) use (?:the )?network for read[ -]?only access|"
+    r"(?:yes you may|you may) access (?:the )?network(?: for)? read[ -]?only(?: access)?"
+)
 _CHINESE_PROHIBITION = ("不", "禁止", "拒绝", "否")
 _CHINESE_AFFIRMATIVE_TOKENS = {"是", "是的", "允许", "可以", "同意", "批准"}
 _CHINESE_DIRECT_ALLOW = re.compile(
@@ -419,8 +423,10 @@ def _parse_network_answer(answer: str) -> NetworkPolicy:
     classification = _classify_permission_answer(normalized)
     if classification.uncertain:
         return NetworkPolicy.UNKNOWN
-    readonly = _is_direct_english_readonly(normalized) or _is_direct_chinese_readonly(
-        normalized
+    readonly = (
+        _is_direct_english_readonly(normalized)
+        or _is_direct_restricted_network(normalized)
+        or _is_direct_chinese_readonly(normalized)
     )
     if classification.denied:
         return NetworkPolicy.UNKNOWN if classification.allowed else NetworkPolicy.DENIED
@@ -456,6 +462,12 @@ def _is_direct_english_allow(answer: str) -> bool:
 
 def _is_direct_english_readonly(answer: str) -> bool:
     return bool(_ENGLISH_DIRECT_READONLY.fullmatch(_normalize_english_response(answer)))
+
+
+def _is_direct_restricted_network(answer: str) -> bool:
+    return bool(
+        _ENGLISH_DIRECT_RESTRICTED_NETWORK.fullmatch(_normalize_english_response(answer))
+    )
 
 
 def _is_direct_chinese_readonly(answer: str) -> bool:

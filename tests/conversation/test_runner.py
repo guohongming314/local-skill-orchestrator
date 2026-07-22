@@ -293,6 +293,29 @@ def test_reconcile_requires_complete_chinese_readonly_phrases(
 @pytest.mark.parametrize(
     ("answer", "expected"),
     (
+        ("yes, you may use network for read-only access", NetworkPolicy.ALLOWED_READONLY),
+        ("you may access the network read-only", NetworkPolicy.ALLOWED_READONLY),
+        ("yes, you may use network", NetworkPolicy.ALLOWED),
+        ("you may access the network", NetworkPolicy.ALLOWED),
+    ),
+)
+def test_reconcile_preserves_direct_network_readonly_restrictions(
+    tmp_path: Path, answer: str, expected: NetworkPolicy
+) -> None:
+    question_id = "permissions.network"
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: answer},
+        {question_id: FieldProvenance.USER_RESPONSE},
+        set(),
+    )
+
+    assert reconciled.blueprint.decisions.network_policy.value is expected
+
+
+@pytest.mark.parametrize(
+    ("answer", "expected"),
+    (
         ("yes", NetworkPolicy.ALLOWED),
         ("no network access", NetworkPolicy.DENIED),
         ("read-only network access is okay", NetworkPolicy.ALLOWED_READONLY),
