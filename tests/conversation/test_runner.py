@@ -320,6 +320,35 @@ def test_reconcile_preserves_direct_network_readonly_restrictions(
 
 
 @pytest.mark.parametrize(
+    ("question_id", "answer"),
+    (
+        ("permissions.network", "you may execute commands"),
+        ("permissions.network", "yes, you may change project files"),
+        ("permissions.network", "allow the tool to read local files"),
+        ("permissions.write_project", "you may execute commands"),
+        ("permissions.write_project", "you may access the network"),
+        ("permissions.execute_command", "yes, you may change project files"),
+        ("permissions.execute_command", "you may access the network"),
+    ),
+)
+def test_reconcile_rejects_cross_field_permission_phrases(
+    tmp_path: Path, question_id: str, answer: str
+) -> None:
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: answer},
+        {question_id: FieldProvenance.USER_RESPONSE},
+        set(),
+    )
+
+    field = question_id.removeprefix("permissions.")
+    if field == "network":
+        assert reconciled.blueprint.decisions.network_policy.value is NetworkPolicy.UNKNOWN
+    else:
+        assert getattr(reconciled.blueprint.decisions, field).value is TriState.UNKNOWN
+
+
+@pytest.mark.parametrize(
     ("answer", "expected"),
     (
         ("yes", NetworkPolicy.ALLOWED),

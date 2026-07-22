@@ -72,22 +72,30 @@ _ENGLISH_AFFIRMATIVE_TOKENS = {
     "okay",
     "ok",
 }
-_ENGLISH_ACTION = r"(?:change|modify|write|execute|run|use|access|connect|read)\b"
-_ENGLISH_DIRECT_ALLOW = re.compile(
-    rf"(?:yes(?: you may)?|you may) {_ENGLISH_ACTION}.*|"
-    rf"(?:allow|permit|approve)(?: me| the tool| this)?(?: to)? {_ENGLISH_ACTION}.*|"
-    rf"(?:allowed|permitted|approved)(?: to)? {_ENGLISH_ACTION}.*"
-)
+_ENGLISH_FIELD_ACTIONS = {
+    "write_project": r"(?:change|modify|write(?: to)?) (?:the )?project files?\b",
+    "execute_command": r"(?:execute|run) (?:local )?(?:verification )?commands?\b",
+    "network_policy": r"(?:use|access|connect to) (?:the )?network\b",
+}
+_ENGLISH_DIRECT_ALLOW = {
+    field: re.compile(
+        rf"(?:yes(?: you may)?|you may) {action}.*|"
+        rf"(?:allow|permit|approve)(?: me| the tool| this)?(?: to)? {action}.*|"
+        rf"(?:allowed|permitted|approved)(?: to)? {action}.*"
+    )
+    for field, action in _ENGLISH_FIELD_ACTIONS.items()
+}
 _ENGLISH_DIRECT_READONLY = re.compile(
     r"read[ -]?only(?: network)? access(?: is (?:allowed|permitted|okay|ok))?"
 )
 _ENGLISH_READONLY_QUALIFIER = re.compile(r"\bread[ -]?only\b")
 _CHINESE_PROHIBITION = ("不", "禁止", "拒绝", "否")
 _CHINESE_AFFIRMATIVE_TOKENS = {"是", "是的", "允许", "可以", "同意", "批准"}
-_CHINESE_DIRECT_ALLOW = re.compile(
-    r"(?:允许|可以|同意|批准)(?:(?:修改|更改|写入)项目文件|"
-    r"执行(?:本地验证)?命令|使用网络(?:访问)?|访问网络)"
-)
+_CHINESE_DIRECT_ALLOW = {
+    "write_project": re.compile(r"(?:允许|可以|同意|批准)(?:修改|更改|写入)项目文件"),
+    "execute_command": re.compile(r"(?:允许|可以|同意|批准)执行(?:本地验证)?命令"),
+    "network_policy": re.compile(r"(?:允许|可以|同意|批准)(?:使用网络(?:访问)?|访问网络)"),
+}
 _CHINESE_UNCERTAIN = (
     "是不是",
     "是否",
@@ -376,7 +384,7 @@ def _permission_decisions_from_interview(
             )
         else:
             updates[field] = PermissionDecision(
-                value=_parse_permission_answer(answers[question_id]),
+                value=_parse_permission_answer(answers[question_id], field),
                 provenance=decision_provenance,
             )
     return decisions.model_copy(update=updates)
@@ -408,8 +416,8 @@ def permission_decisions_from_payload(payload: object) -> ProjectDecisions:
     return ProjectDecisions().model_copy(update=updates)
 
 
-def _parse_permission_answer(answer: str) -> TriState:
-    classification = _classify_permission_answer(answer)
+def _parse_permission_answer(answer: str, field: str) -> TriState:
+    classification = _classify_permission_answer(answer, field)
     if classification.uncertain or classification.denied == classification.allowed:
         return TriState.UNKNOWN
     return TriState.DENIED if classification.denied else TriState.ALLOWED
@@ -417,7 +425,7 @@ def _parse_permission_answer(answer: str) -> TriState:
 
 def _parse_network_answer(answer: str) -> NetworkPolicy:
     normalized = answer.casefold().strip()
-    classification = _classify_permission_answer(normalized)
+    classification = _classify_permission_answer(normalized, "network_policy")
     if classification.uncertain:
         return NetworkPolicy.UNKNOWN
     if classification.denied:
@@ -435,7 +443,7 @@ def _parse_network_answer(answer: str) -> NetworkPolicy:
     return NetworkPolicy.ALLOWED
 
 
-def _classify_permission_answer(answer: str) -> _PermissionClassification:
+def _classify_permission_answer(answer: str, field: str) -> _PermissionClassification:
     normalized = answer.casefold().strip()
     if _ENGLISH_UNCERTAIN.search(normalized):
         return _PermissionClassification(uncertain=True)
@@ -446,17 +454,17 @@ def _classify_permission_answer(answer: str) -> _PermissionClassification:
         return _PermissionClassification(uncertain=True)
     chinese_denied = any(marker in compact for marker in _CHINESE_PROHIBITION)
     chinese_allowed = compact in _CHINESE_AFFIRMATIVE_TOKENS or bool(
-        _CHINESE_DIRECT_ALLOW.fullmatch(compact)
+        _CHINESE_DIRECT_ALLOW[field].fullmatch(compact)
     )
     denied = bool(_ENGLISH_DENY.search(normalized)) or chinese_denied
-    allowed = _is_direct_english_allow(normalized) or chinese_allowed
+    allowed = _is_direct_english_allow(normalized, field) or chinese_allowed
     return _PermissionClassification(denied=denied, allowed=allowed)
 
 
-def _is_direct_english_allow(answer: str) -> bool:
+def _is_direct_english_allow(answer: str, field: str) -> bool:
     normalized = _normalize_english_response(answer)
     return normalized in _ENGLISH_AFFIRMATIVE_TOKENS or bool(
-        _ENGLISH_DIRECT_ALLOW.fullmatch(normalized)
+        _ENGLISH_DIRECT_ALLOW[field].fullmatch(normalized)
     )
 
 
