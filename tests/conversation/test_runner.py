@@ -295,6 +295,12 @@ def test_reconcile_requires_complete_chinese_readonly_phrases(
     (
         ("yes, you may use network for read-only access", NetworkPolicy.ALLOWED_READONLY),
         ("you may access the network read-only", NetworkPolicy.ALLOWED_READONLY),
+        ("allowed to access the network read-only", NetworkPolicy.ALLOWED_READONLY),
+        (
+            "permit the tool to access the network read-only",
+            NetworkPolicy.ALLOWED_READONLY,
+        ),
+        ("approve use network for read-only access", NetworkPolicy.ALLOWED_READONLY),
         ("yes, you may use network", NetworkPolicy.ALLOWED),
         ("you may access the network", NetworkPolicy.ALLOWED),
     ),
