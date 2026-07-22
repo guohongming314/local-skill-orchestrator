@@ -81,8 +81,12 @@ _ENGLISH_DIRECT_ALLOW = re.compile(
 _ENGLISH_DIRECT_READONLY = re.compile(
     r"read[ -]?only(?: network)? access(?: is (?:allowed|permitted|okay|ok))?"
 )
-_CHINESE_DENY_PREFIXES = ("不允许", "不可以", "不能", "禁止", "不要", "拒绝")
-_CHINESE_ALLOW_PREFIXES = ("允许", "可以", "同意", "批准")
+_CHINESE_PROHIBITION = ("不", "禁止", "拒绝", "否")
+_CHINESE_AFFIRMATIVE_TOKENS = {"是", "是的", "允许", "可以", "同意", "批准"}
+_CHINESE_DIRECT_ALLOW = re.compile(
+    r"(?:允许|可以|同意|批准)(?:(?:修改|更改|写入)项目文件|"
+    r"执行(?:本地验证)?命令|使用网络(?:访问)?|访问网络)"
+)
 _CHINESE_UNCERTAIN = (
     "是不是",
     "是否",
@@ -99,7 +103,15 @@ _CHINESE_UNCERTAIN = (
     "不支持",
     "无法",
 )
-_CHINESE_READONLY_PREFIXES = ("只读", "只允许只读", "仅限读取", "仅可读取")
+_CHINESE_READONLY_RESPONSES = {
+    "只读",
+    "只读网络访问",
+    "只允许只读网络访问",
+    "仅限读取",
+    "仅限读取网络访问",
+    "仅可读取",
+    "仅可读取网络访问",
+}
 
 
 @dataclass(frozen=True)
@@ -407,8 +419,8 @@ def _parse_network_answer(answer: str) -> NetworkPolicy:
     classification = _classify_permission_answer(normalized)
     if classification.uncertain:
         return NetworkPolicy.UNKNOWN
-    readonly = _is_direct_english_readonly(normalized) or _starts_with_direct_chinese(
-        normalized, _CHINESE_READONLY_PREFIXES
+    readonly = _is_direct_english_readonly(normalized) or _is_direct_chinese_readonly(
+        normalized
     )
     if classification.denied:
         return NetworkPolicy.UNKNOWN if classification.allowed else NetworkPolicy.DENIED
@@ -426,11 +438,9 @@ def _classify_permission_answer(answer: str) -> _PermissionClassification:
     )
     if any(marker in compact for marker in _CHINESE_UNCERTAIN):
         return _PermissionClassification(uncertain=True)
-    chinese_denied = compact == "否" or _starts_with_direct_chinese(
-        compact, _CHINESE_DENY_PREFIXES
-    )
-    chinese_allowed = compact in {"是", "是的"} or _starts_with_direct_chinese(
-        compact, _CHINESE_ALLOW_PREFIXES
+    chinese_denied = any(marker in compact for marker in _CHINESE_PROHIBITION)
+    chinese_allowed = compact in _CHINESE_AFFIRMATIVE_TOKENS or bool(
+        _CHINESE_DIRECT_ALLOW.fullmatch(compact)
     )
     denied = bool(_ENGLISH_DENY.search(normalized)) or chinese_denied
     allowed = _is_direct_english_allow(normalized) or chinese_allowed
@@ -448,12 +458,15 @@ def _is_direct_english_readonly(answer: str) -> bool:
     return bool(_ENGLISH_DIRECT_READONLY.fullmatch(_normalize_english_response(answer)))
 
 
+def _is_direct_chinese_readonly(answer: str) -> bool:
+    compact = re.sub(
+        r"[\s\u3001\u3002\uff01\uff0c\uff1a\uff1b\uff1f,.!?;:]", "", answer
+    )
+    return compact in _CHINESE_READONLY_RESPONSES
+
+
 def _normalize_english_response(answer: str) -> str:
     return " ".join(re.sub(r"[^\w'-]+", " ", answer.casefold()).split())
-
-
-def _starts_with_direct_chinese(answer: str, prefixes: tuple[str, ...]) -> bool:
-    return any(answer.startswith(prefix) for prefix in prefixes)
 
 
 def _context_prompt(repository: RepositorySnapshot, interview: InterviewResult) -> str:

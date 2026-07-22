@@ -245,6 +245,52 @@ def test_reconcile_never_grants_negated_or_unavailable_readonly(
 
 
 @pytest.mark.parametrize(
+    ("question_id", "answer", "expected"),
+    (
+        ("permissions.execute_command", "可以不执行命令", TriState.DENIED),
+        ("permissions.write_project", "允许不修改项目文件", TriState.DENIED),
+        ("permissions.execute_command", "可以禁止执行命令", TriState.DENIED),
+        ("permissions.write_project", "允许修改项目文件", TriState.ALLOWED),
+        ("permissions.execute_command", "可以执行命令", TriState.ALLOWED),
+    ),
+)
+def test_reconcile_requires_complete_chinese_permission_phrases(
+    tmp_path: Path, question_id: str, answer: str, expected: TriState
+) -> None:
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: answer},
+        {question_id: FieldProvenance.USER_RESPONSE},
+        set(),
+    )
+
+    field = question_id.removeprefix("permissions.")
+    assert getattr(reconciled.blueprint.decisions, field).value is expected
+
+
+@pytest.mark.parametrize(
+    ("answer", "expected"),
+    (
+        ("只读也不允许", NetworkPolicy.DENIED),
+        ("只读网络访问禁止", NetworkPolicy.DENIED),
+        ("只读网络访问", NetworkPolicy.ALLOWED_READONLY),
+    ),
+)
+def test_reconcile_requires_complete_chinese_readonly_phrases(
+    tmp_path: Path, answer: str, expected: NetworkPolicy
+) -> None:
+    question_id = "permissions.network"
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: answer},
+        {question_id: FieldProvenance.USER_RESPONSE},
+        set(),
+    )
+
+    assert reconciled.blueprint.decisions.network_policy.value is expected
+
+
+@pytest.mark.parametrize(
     ("answer", "expected"),
     (
         ("yes", NetworkPolicy.ALLOWED),
