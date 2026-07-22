@@ -130,18 +130,25 @@ def main() -> None:
         else:
             text_out = "acknowledged"
         item = {"id": f"item-{turn_count}", "type": "agentMessage", "text": text_out}
-        emit(
-            {
-                "method": "item/completed",
-                "params": {"threadId": thread_id, "turnId": turn_id, "item": item},
-            }
-        )
+        if not (mode == "missing-final-message" and "outputSchema" in params):
+            emit(
+                {
+                    "method": "item/completed",
+                    "params": {"threadId": thread_id, "turnId": turn_id, "item": item},
+                }
+            )
         emit(
             {
                 "method": "turn/completed",
                 "params": {
                     "threadId": thread_id,
-                    "turn": {**turn, "status": "completed", "items": [item]},
+                    "turn": {
+                        **turn,
+                        "status": "completed",
+                        "items": []
+                        if mode == "missing-final-message" and "outputSchema" in params
+                        else [item],
+                    },
                 },
             }
         )

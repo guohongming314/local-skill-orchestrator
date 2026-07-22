@@ -7,7 +7,7 @@ from collections.abc import Callable, Sequence
 
 import anyio
 
-from vibe.codex.app_server import CodexAppServerClient, agent_message_text
+from vibe.codex.app_server import CodexAppServerClient, CodexProtocolError, agent_message_text
 from vibe.codex.approvals import ApprovalPolicy, decide_approval, parse_approval
 from vibe.codex.exec_fallback import (
     CodexExecFallback,
@@ -194,7 +194,7 @@ class ConversationRunner:
                 StructuredProjectResult,
                 source="app-server output",
             )
-        except StructuredResultError:
+        except (CodexProtocolError, StructuredResultError):
             result = await self._exec_fallback.run(
                 prompt=(
                     f"{prompt}\nReturn the final StructuredProjectResult as schema-valid JSON."

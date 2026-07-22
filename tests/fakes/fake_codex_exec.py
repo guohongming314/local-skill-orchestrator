@@ -18,11 +18,33 @@ def main() -> None:
     if mode == "crash":
         print("x" * 5000, file=sys.stderr)
         raise SystemExit(23)
-    output = (
-        {"summary": "fallback", "turn_count": 2}
-        if mode == "valid"
-        else {"summary": "", "turn_count": 0}
-    )
+    if mode == "structured-project":
+        output = {
+            "blueprint": {
+                "project_name": cwd.name,
+                "goal": "Fallback goal",
+                "lifecycle_stage": "active-development",
+                "risk_level": "medium",
+                "constraints": [],
+                "preferences": {},
+                "repository_digest": "0123456789abcdef",
+            },
+            "field_sources": {
+                "project_name": "inferred",
+                "goal": "inferred",
+                "lifecycle_stage": "inferred",
+                "risk_level": "inferred",
+                "constraints": "inferred",
+                "preferences": "inferred",
+                "repository_digest": "inferred",
+            },
+        }
+    else:
+        output = (
+            {"summary": "fallback", "turn_count": 2}
+            if mode == "valid"
+            else {"summary": "", "turn_count": 0}
+        )
     output_path.write_text(json.dumps(output))
 
 

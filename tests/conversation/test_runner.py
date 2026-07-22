@@ -93,6 +93,29 @@ async def test_malformed_app_output_uses_exec_fallback_once_then_fails_cleanly(
 
 
 @pytest.mark.anyio
+async def test_missing_final_agent_message_uses_exec_fallback(tmp_path: Path) -> None:
+    repository = snapshot(tmp_path)
+    interview = build_interview(
+        InterviewInput(repository=repository, unknowns=("project.goal",))
+    )
+    invocation = tmp_path / "exec.json"
+    runner = ConversationRunner(
+        app_server_command=app_command("missing-final-message", tmp_path / "server.json"),
+        exec_fallback=fallback("structured-project", invocation),
+    )
+
+    result = await runner.run(
+        repository=repository,
+        interview=interview,
+        ask_user=lambda _question: "User-confirmed goal",
+    )
+
+    assert invocation.exists()
+    assert result.blueprint.goal == "User-confirmed goal"
+    assert result.field_sources["goal"].value == "confirmed"
+
+
+@pytest.mark.anyio
 async def test_revision_updates_final_result_and_reasks_stale_dependents(
     tmp_path: Path,
 ) -> None:
