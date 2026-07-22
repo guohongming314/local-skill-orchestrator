@@ -26,7 +26,6 @@ from vibe.conversation.structured_result import (
     lock_decisions,
 )
 from vibe.models.decisions import (
-    AuthorizationState,
     DecisionProvenance,
     DecisionSource,
     NetworkDecision,
@@ -60,9 +59,10 @@ _ENGLISH_ALLOW = re.compile(
     r"\byou\s+may\b"
 )
 _ENGLISH_READONLY = re.compile(r"\bread[ -]?only\b")
-_CHINESE_DENY = ("不允许", "不可以", "不能", "禁止", "不要", "拒绝", "否")
-_CHINESE_ALLOW = ("允许", "可以", "同意", "批准", "是")
-_CHINESE_READONLY = ("只读", "仅限读取", "仅可读取")
+_CHINESE_DENY_PREFIXES = ("不允许", "不可以", "不能", "禁止", "不要", "拒绝")
+_CHINESE_ALLOW_PREFIXES = ("允许", "可以", "同意", "批准")
+_CHINESE_UNCERTAIN = ("是不是", "是否", "不是", "不太", "可能", "也许", "不确定", "看情况")
+_CHINESE_READONLY_PREFIXES = ("只读", "只允许只读", "仅限读取", "仅可读取")
 
 
 class ConversationRunner:
@@ -304,7 +304,6 @@ def _permission_decisions_from_interview(
             "write_project": defaults.write_project,
             "execute_command": defaults.execute_command,
             "network_policy": defaults.network_policy,
-            "discovery_approval": AuthorizationState.NOT_REQUESTED,
         }
     )
     updates: dict[str, PermissionDecision | NetworkDecision] = {}
@@ -362,8 +361,8 @@ def _parse_permission_answer(answer: str) -> TriState:
 def _parse_network_answer(answer: str) -> NetworkPolicy:
     normalized = answer.casefold().strip()
     denied, allowed = _permission_signals(normalized)
-    readonly = bool(_ENGLISH_READONLY.search(normalized)) or any(
-        phrase in normalized for phrase in _CHINESE_READONLY
+    readonly = bool(_ENGLISH_READONLY.search(normalized)) or _starts_with_direct_chinese(
+        normalized, _CHINESE_READONLY_PREFIXES
     )
     if denied:
         return NetworkPolicy.UNKNOWN if allowed else NetworkPolicy.DENIED
@@ -374,16 +373,30 @@ def _parse_network_answer(answer: str) -> NetworkPolicy:
 
 def _permission_signals(answer: str) -> tuple[bool, bool]:
     normalized = answer.casefold().strip()
-    denied = bool(_ENGLISH_DENY.search(normalized)) or any(
-        phrase in normalized for phrase in _CHINESE_DENY
-    )
+    chinese_denied, chinese_allowed = _chinese_permission_signals(normalized)
+    denied = bool(_ENGLISH_DENY.search(normalized)) or chinese_denied
     positive_text = _ENGLISH_DENY.sub(" ", normalized)
-    for phrase in _CHINESE_DENY:
-        positive_text = positive_text.replace(phrase, " ")
-    allowed = bool(_ENGLISH_ALLOW.search(positive_text)) or any(
-        phrase in positive_text for phrase in _CHINESE_ALLOW
+    allowed = bool(_ENGLISH_ALLOW.search(positive_text)) or chinese_allowed
+    return denied, allowed
+
+
+def _chinese_permission_signals(answer: str) -> tuple[bool, bool]:
+    compact = re.sub(
+        r"[\s\u3001\u3002\uff01\uff0c\uff1a\uff1b\uff1f,.!?;:]", "", answer
+    )
+    if not compact or any(marker in compact for marker in _CHINESE_UNCERTAIN):
+        return False, False
+    denied = compact == "否" or _starts_with_direct_chinese(
+        compact, _CHINESE_DENY_PREFIXES
+    )
+    allowed = compact in {"是", "是的"} or _starts_with_direct_chinese(
+        compact, _CHINESE_ALLOW_PREFIXES
     )
     return denied, allowed
+
+
+def _starts_with_direct_chinese(answer: str, prefixes: tuple[str, ...]) -> bool:
+    return any(answer.startswith(prefix) for prefix in prefixes)
 
 
 def _context_prompt(repository: RepositorySnapshot, interview: InterviewResult) -> str:

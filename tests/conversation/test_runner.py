@@ -80,6 +80,10 @@ def model_result(root: Path) -> StructuredProjectResult:
         ("permissions.write_project", "do not modify files", TriState.DENIED),
         ("permissions.execute_command", "可以执行本地验证命令", TriState.ALLOWED),
         ("permissions.execute_command", "不允许执行命令", TriState.DENIED),
+        ("permissions.execute_command", "禁止", TriState.DENIED),
+        ("permissions.execute_command", "这不是可以直接执行的事情", TriState.UNKNOWN),
+        ("permissions.execute_command", "不太可以执行命令", TriState.UNKNOWN),
+        ("permissions.execute_command", "是不是可以执行命令", TriState.UNKNOWN),
         ("permissions.execute_command", "notable commands may help", TriState.UNKNOWN),
     ),
 )
@@ -113,8 +117,20 @@ def test_reconcile_maps_network_without_granting_discovery(
     tmp_path: Path, answer: str, expected: NetworkPolicy
 ) -> None:
     question_id = "permissions.network"
+    result = model_result(tmp_path)
+    result = result.model_copy(
+        update={
+            "blueprint": result.blueprint.model_copy(
+                update={
+                    "decisions": ProjectDecisions(
+                        discovery_approval=AuthorizationState.APPROVED
+                    )
+                }
+            )
+        }
+    )
     reconciled = _reconcile_answers(
-        model_result(tmp_path),
+        result,
         {question_id: answer},
         {question_id: FieldProvenance.RECOMMENDED_DEFAULT},
         set(),
@@ -124,7 +140,7 @@ def test_reconcile_maps_network_without_granting_discovery(
     assert decision.value is expected
     assert decision.provenance.source is DecisionSource.RECOMMENDED_DEFAULT
     assert decision.provenance.reference == question_id
-    assert reconciled.blueprint.decisions.discovery_approval is AuthorizationState.NOT_REQUESTED
+    assert reconciled.blueprint.decisions.discovery_approval is AuthorizationState.APPROVED
 
 
 def test_reconcile_without_network_answer_preserves_unknown_policy(tmp_path: Path) -> None:
@@ -145,7 +161,7 @@ def test_reconcile_without_network_answer_preserves_unknown_policy(tmp_path: Pat
     reconciled = _reconcile_answers(result, {}, {}, set())
 
     assert reconciled.blueprint.decisions.network_policy.value is NetworkPolicy.UNKNOWN
-    assert reconciled.blueprint.decisions.discovery_approval is AuthorizationState.NOT_REQUESTED
+    assert reconciled.blueprint.decisions.discovery_approval is AuthorizationState.APPROVED
     assert reconciled.blueprint.decisions.read_project.value is TriState.ALLOWED
 
 
