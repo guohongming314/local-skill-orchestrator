@@ -458,6 +458,26 @@ def test_unmet_e18_pack_requirements_resolve_to_gaps() -> None:
             "axe-core",
             (Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
         ),
+        (
+            "repository.exploration",
+            "project-native-exploration",
+            (Permission.READ_PROJECT,),
+        ),
+        (
+            "quality.gates",
+            "project-native-quality",
+            (Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+        ),
+        (
+            "development.design",
+            "workflow-design",
+            (Permission.READ_PROJECT,),
+        ),
+        (
+            "code.optimization",
+            "project-native-analysis",
+            (Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+        ),
     ],
 )
 def test_seeded_gap_domains_return_ranked_recommendations(
@@ -477,13 +497,18 @@ def test_seeded_gap_domains_return_ranked_recommendations(
     assert gap.recommendation is not None
     assert gap.recommendation.candidates[0].provider == provider
     assert gap.recommendation.candidates[0].permissions == permissions
-    assert gap.recommendation.candidates[0].strength is RequirementStrength.RECOMMENDED
+    expected_strength = (
+        RequirementStrength.REQUIRED
+        if capability in {"repository.exploration", "quality.gates"}
+        else RequirementStrength.RECOMMENDED
+    )
+    assert gap.recommendation.candidates[0].strength is expected_strength
     assert gap.recommendation.candidates[0].why
 
 
-def test_unseeded_gap_domain_explicitly_has_no_recommendation() -> None:
+def test_unknown_gap_domain_explicitly_has_no_recommendation() -> None:
     plan = resolve_local_capabilities(
-        (requirement("quality.gates"),),
+        (requirement("unknown.future-domain"),),
         inventory(),
         blueprint(),
         repository(monorepo=False, size="small"),
@@ -492,6 +517,56 @@ def test_unseeded_gap_domain_explicitly_has_no_recommendation() -> None:
     gap = plan.resolutions[0]
     assert gap.status is ResolutionStatus.GAP
     assert gap.recommendation is None
+
+
+@pytest.mark.parametrize(
+    ("capability", "kind", "strength", "explanation"),
+    [
+        (
+            "repository.exploration",
+            CapabilityKind.SKILL,
+            RequirementStrength.REQUIRED,
+            "repository-native search",
+        ),
+        (
+            "quality.gates",
+            CapabilityKind.CLI_TOOL,
+            RequirementStrength.REQUIRED,
+            "existing formatter",
+        ),
+        (
+            "development.design",
+            CapabilityKind.SKILL,
+            RequirementStrength.RECOMMENDED,
+            "comparing approaches",
+        ),
+        (
+            "code.optimization",
+            CapabilityKind.SKILL,
+            RequirementStrength.RECOMMENDED,
+            "repository measurements",
+        ),
+    ],
+)
+def test_development_loop_gap_recommendations_are_actionable(
+    capability: str,
+    kind: CapabilityKind,
+    strength: RequirementStrength,
+    explanation: str,
+) -> None:
+    plan = resolve_local_capabilities(
+        (requirement(capability),),
+        inventory(),
+        blueprint(),
+        repository(monorepo=False, size="small"),
+    )
+
+    recommendation = plan.resolutions[0].recommendation
+    assert recommendation is not None
+    candidate = recommendation.candidates[0]
+    assert candidate.kind is kind
+    assert candidate.strength is strength
+    assert explanation in candidate.why
 
 
 def test_gap_recommendations_ignore_remote_candidates_for_other_domains() -> None:

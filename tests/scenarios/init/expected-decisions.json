@@ -9,6 +9,8 @@
       "gap",
       "gap",
       "gap",
+      "gap",
+      "gap",
       "gap"
     ]
   },
@@ -18,6 +20,8 @@
     ],
     "statuses": [
       "selected",
+      "gap",
+      "gap",
       "gap",
       "gap",
       "gap",
@@ -39,6 +43,8 @@
   "no-skill": {
     "capability_ids": [],
     "statuses": [
+      "gap",
+      "gap",
       "gap",
       "gap",
       "gap",

@@ -1,0 +1,23 @@
+schema_version: '1'
+pack_id: development-design
+name: Development Design
+description: Compare implementation approaches and produce a verifiable development plan
+priority: 70
+match:
+  any_of:
+    - field: lifecycle_stage
+      operator: equals
+      value: active-development
+    - field: lifecycle_stage
+      operator: equals
+      value: maintenance
+    - field: lifecycle_stage
+      operator: equals
+      value: production
+requirements:
+  - requirement_id: development-design
+    capability: development.design
+    strength: recommended
+    rationale: Compare viable approaches before implementation and produce a verifiable plan
+    verification:
+      - Verify the selected approach, trade-offs, implementation steps, and validation strategy

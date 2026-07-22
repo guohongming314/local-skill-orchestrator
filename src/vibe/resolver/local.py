@@ -412,6 +412,54 @@ _LOCAL_GAP_RECOMMENDATIONS: dict[str, tuple[RecommendationCandidate, ...]] = {
             strength=RequirementStrength.RECOMMENDED,
         ),
     ),
+    "repository.exploration": (
+        RecommendationCandidate(
+            kind=CapabilityKind.SKILL,
+            provider="project-native-exploration",
+            permissions=(Permission.READ_PROJECT,),
+            why=(
+                "Start with repository-native search, manifests, language metadata, "
+                "and local indexes before discovering additional tooling."
+            ),
+            strength=RequirementStrength.REQUIRED,
+        ),
+    ),
+    "quality.gates": (
+        RecommendationCandidate(
+            kind=CapabilityKind.CLI_TOOL,
+            provider="project-native-quality",
+            permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+            why=(
+                "Compose the existing formatter, linter, typechecker, tests, and "
+                "security checks before adding another product."
+            ),
+            strength=RequirementStrength.REQUIRED,
+        ),
+    ),
+    "development.design": (
+        RecommendationCandidate(
+            kind=CapabilityKind.SKILL,
+            provider="workflow-design",
+            permissions=(Permission.READ_PROJECT,),
+            why=(
+                "Discover an installed workflow for comparing approaches and producing "
+                "a verifiable implementation plan."
+            ),
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
+    "code.optimization": (
+        RecommendationCandidate(
+            kind=CapabilityKind.SKILL,
+            provider="project-native-analysis",
+            permissions=(Permission.READ_PROJECT, Permission.EXECUTE_COMMAND),
+            why=(
+                "Use language- and framework-aware analysis backed by repository "
+                "measurements; treat user-mentioned tools as discovery leads."
+            ),
+            strength=RequirementStrength.RECOMMENDED,
+        ),
+    ),
 }
 
 # These abstract domains intentionally have no universal provider recommendation: their
@@ -424,9 +472,7 @@ _NO_DEFAULT_RECOMMENDATIONS = frozenset(
         "database.transaction-review",
         "observability.validation",
         "public-api.compatibility",
-        "quality.gates",
         "release.documentation",
-        "repository.exploration",
     }
 )
 

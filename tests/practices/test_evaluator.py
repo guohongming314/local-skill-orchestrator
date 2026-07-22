@@ -231,3 +231,41 @@ def test_e18_conditional_requirements_remain_unmatched() -> None:
     assert "project.continuity-memory" not in capabilities
     assert "release.rollback" not in capabilities
     assert {"repository.exploration", "quality.gates"} <= capabilities
+
+
+@pytest.mark.parametrize(
+    "lifecycle",
+    [
+        LifecycleStage.ACTIVE_DEVELOPMENT,
+        LifecycleStage.MAINTENANCE,
+        LifecycleStage.PRODUCTION,
+    ],
+)
+def test_development_loop_requirements_match_active_project_lifecycles(
+    lifecycle: LifecycleStage,
+) -> None:
+    packs = load_practice_packs(Path(__file__).parents[2] / "practice-packs")
+    project = blueprint().model_copy(update={"lifecycle_stage": lifecycle})
+
+    requirements = {
+        item.capability: item
+        for item in evaluate_practice_packs(packs, project, snapshot())
+    }
+
+    assert requirements["development.design"].strength is RequirementStrength.RECOMMENDED
+    assert requirements["code.optimization"].strength is RequirementStrength.RECOMMENDED
+
+
+def test_development_loop_requirements_do_not_match_exploration() -> None:
+    packs = load_practice_packs(Path(__file__).parents[2] / "practice-packs")
+    project = blueprint().model_copy(
+        update={"lifecycle_stage": LifecycleStage.EXPLORATION}
+    )
+
+    capabilities = {
+        item.capability
+        for item in evaluate_practice_packs(packs, project, snapshot())
+    }
+
+    assert "development.design" not in capabilities
+    assert "code.optimization" not in capabilities

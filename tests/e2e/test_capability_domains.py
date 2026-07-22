@@ -28,14 +28,21 @@ _EXPECTED_GAP_PROVIDERS = {
     "release.rollback": ["deployment-rollback"],
 }
 
+_DEVELOPMENT_LOOP_DOMAINS = {
+    "repository.exploration",
+    "quality.gates",
+    "development.design",
+    "code.optimization",
+}
 
-def _answers(tmp_path: Path, name: str) -> Path:
+
+def _answers(tmp_path: Path, name: str, *, lifecycle: str = "production") -> Path:
     path = tmp_path / f"{name}-answers.json"
     path.write_text(
         json.dumps(
             {
                 "goal": "Validate production capability coverage",
-                "lifecycle_stage": "production",
+                "lifecycle_stage": lifecycle,
                 "risk_level": "medium",
             }
         ),
@@ -44,7 +51,13 @@ def _answers(tmp_path: Path, name: str) -> Path:
     return path
 
 
-def _init(root: Path, tmp_path: Path, run_id: str) -> dict[str, Any]:
+def _init(
+    root: Path,
+    tmp_path: Path,
+    run_id: str,
+    *,
+    lifecycle: str = "production",
+) -> dict[str, Any]:
     result = runner.invoke(
         app,
         [
@@ -56,7 +69,7 @@ def _init(root: Path, tmp_path: Path, run_id: str) -> dict[str, Any]:
             "--checkpoints",
             str(tmp_path / f"{run_id}.sqlite3"),
             "--answers",
-            str(_answers(tmp_path, run_id)),
+            str(_answers(tmp_path, run_id, lifecycle=lifecycle)),
             "--confirm",
             "--dry-run",
             "--json",
@@ -128,3 +141,24 @@ def test_e18_domains_report_ranked_gaps_without_providers(tmp_path: Path) -> Non
         candidates = resolution["recommendation"]["candidates"]
         assert [item["provider"] for item in candidates] == expected_providers
         assert all(item["permissions"] and item["why"] for item in candidates)
+
+
+def test_blank_active_web_project_exposes_actionable_development_loop(
+    tmp_path: Path,
+) -> None:
+    root = build_scenario("blank-web-no-browser", tmp_path / "development-loop").root
+
+    payload = _init(root, tmp_path, "development-loop", lifecycle="active-development")
+
+    resolutions = {
+        item["requirement"]: item
+        for item in payload["resolution"]["resolutions"]
+        if item["requirement"] in _DEVELOPMENT_LOOP_DOMAINS
+        and item["status"] in {"selected", "gap"}
+    }
+    assert set(resolutions) == _DEVELOPMENT_LOOP_DOMAINS
+    for resolution in resolutions.values():
+        if resolution["status"] == "gap":
+            recommendation = resolution["recommendation"]
+            assert recommendation is not None
+            assert recommendation["candidates"]
