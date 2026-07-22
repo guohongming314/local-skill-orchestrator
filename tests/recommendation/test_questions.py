@@ -1,4 +1,4 @@
-from vibe.recommendation.questions import RecommendationQuestionContext, adaptive_questions
+from vibe.recommendation import AdaptiveQuestion, RecommendationQuestionContext, adaptive_questions
 
 
 def context(
@@ -37,7 +37,7 @@ def test_memory_persistence_question_is_asked_outside_exploration() -> None:
     questions = adaptive_questions(
         context(
             requirements=("project.continuity-memory",),
-            repository_facts={"project.lifecycle": "existing"},
+            repository_facts={"lifecycle_stage": "existing"},
             unknown_decisions=frozenset({"memory.persistence"}),
         )
     )
@@ -51,7 +51,7 @@ def test_memory_persistence_question_is_omitted_during_exploration() -> None:
     questions = adaptive_questions(
         context(
             requirements=("project.continuity-memory",),
-            repository_facts={"project.lifecycle": "exploration"},
+            repository_facts={"lifecycle_stage": "exploration"},
             unknown_decisions=frozenset({"memory.persistence"}),
         )
     )
@@ -64,7 +64,7 @@ def test_known_decisions_and_irrelevant_conditions_are_not_asked() -> None:
         context(
             requirements=("browser.validation", "project.continuity-memory"),
             local_capabilities=("cli.playwright",),
-            repository_facts={"project.lifecycle": "existing"},
+            repository_facts={"lifecycle_stage": "existing"},
             unknown_decisions=frozenset(),
         )
     )
@@ -76,7 +76,7 @@ def test_adaptive_question_order_is_stable() -> None:
     selection_context = context(
         requirements=("project.continuity-memory", "browser.validation"),
         local_capabilities=("cli.playwright",),
-        repository_facts={"project.lifecycle": "existing"},
+        repository_facts={"lifecycle_stage": "existing"},
         unknown_decisions=frozenset(
             {"memory.persistence", "browser.interactive-debugging"}
         ),
@@ -90,3 +90,13 @@ def test_adaptive_question_order_is_stable() -> None:
         "browser.interactive-debugging",
         "memory.persistence",
     ]
+
+
+def test_recommendation_package_exports_public_question_api() -> None:
+    question = AdaptiveQuestion(
+        question_id="decision",
+        text="Question?",
+        impact="Changes the recommendation.",
+    )
+
+    assert question.question_id == "decision"

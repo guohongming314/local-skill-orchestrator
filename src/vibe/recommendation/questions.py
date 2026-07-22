@@ -45,7 +45,7 @@ def adaptive_questions(
 
     if (
         "project.continuity-memory" in context.requirements
-        and context.repository_facts.get("project.lifecycle") != "exploration"
+        and context.repository_facts.get("lifecycle_stage") != "exploration"
         and "memory.persistence" in context.unknown_decisions
     ):
         questions.append(
