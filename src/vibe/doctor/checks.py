@@ -38,6 +38,7 @@ from vibe.persistence.database import default_database_path
 from vibe.policy.org import load_org_policy
 from vibe.practices.calibration import CalibrationOutcome, pending_suggestions
 from vibe.practices.loader import load_practice_pack
+from vibe.practices.paths import bundled_practice_packs_root
 
 CommandResolver = Callable[[str], str | None]
 
@@ -641,7 +642,7 @@ class OrganizationPolicyCheck:
                 if permission not in {item.value for item in policy.allowed_permissions}
             )
         resolved_requirements = {str(item.get("requirement")) for item in capabilities.resolutions}
-        packs_root = Path(__file__).resolve().parents[3] / "practice-packs"
+        packs_root = bundled_practice_packs_root()
         for pack_id in sorted(policy.mandatory_practice_packs):
             pack_path = packs_root / pack_id / "pack.yaml"
             try:

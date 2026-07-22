@@ -19,6 +19,7 @@ from vibe.models.resolution import (
 from vibe.policy.org import load_org_policy
 from vibe.practices.loader import load_practice_pack
 from vibe.practices.models import RequirementStrength
+from vibe.practices.paths import bundled_practice_packs_root
 from vibe.remote.models import (
     CapabilityKind as RemoteCapabilityKind,
 )
@@ -109,9 +110,10 @@ def _with_mandatory_practice_packs(
     if org_policy is None or not org_policy.mandatory_practice_packs:
         return requirements
     by_capability = {item.capability: item for item in requirements}
-    packs_root = Path(__file__).resolve().parents[3] / "practice-packs"
     for pack_id in sorted(org_policy.mandatory_practice_packs):
-        pack = load_practice_pack(packs_root / pack_id / "pack.yaml")
+        pack = load_practice_pack(
+            bundled_practice_packs_root() / pack_id / "pack.yaml"
+        )
         for item in pack.requirements:
             existing = by_capability.get(item.capability)
             if existing is None:

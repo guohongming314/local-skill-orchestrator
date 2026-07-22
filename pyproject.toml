@@ -36,6 +36,9 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/vibe"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"practice-packs" = "vibe/practices/packs"
+
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]

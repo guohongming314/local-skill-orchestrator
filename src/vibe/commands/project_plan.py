@@ -36,6 +36,7 @@ from vibe.practices.calibration import load_confirmed_overrides
 from vibe.practices.evaluator import evaluate_practice_packs
 from vibe.practices.loader import load_practice_packs
 from vibe.practices.models import RequirementStrength
+from vibe.practices.paths import bundled_practice_packs_root
 from vibe.remote.models import RemoteCandidate
 from vibe.remote.scoring import CandidateEvidence
 from vibe.resolver.local import resolve_local_capabilities
@@ -210,9 +211,8 @@ def _requirements(
     blueprint: Blueprint,
     repository: RepositorySnapshot,
 ) -> tuple[AbstractCapabilityRequirement, ...]:
-    packs_root = Path(__file__).resolve().parents[3] / "practice-packs"
     pack_requirements = evaluate_practice_packs(
-        load_practice_packs(packs_root),
+        load_practice_packs(bundled_practice_packs_root()),
         blueprint,
         repository,
         overrides=load_confirmed_overrides(root),
