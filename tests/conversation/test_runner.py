@@ -104,6 +104,35 @@ def test_reconcile_maps_permission_answers_conservatively(
 
 
 @pytest.mark.parametrize(
+    "question_id",
+    (
+        "permissions.write_project",
+        "permissions.execute_command",
+        "permissions.network",
+    ),
+)
+@pytest.mark.parametrize(
+    "answer",
+    ("maybe yes", "possibly allowed", "you may, if I approve later"),
+)
+def test_reconcile_rejects_ambiguous_english_permission_answers(
+    tmp_path: Path, question_id: str, answer: str
+) -> None:
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: answer},
+        {question_id: FieldProvenance.USER_RESPONSE},
+        set(),
+    )
+
+    field = question_id.removeprefix("permissions.")
+    if field == "network":
+        assert reconciled.blueprint.decisions.network_policy.value is NetworkPolicy.UNKNOWN
+    else:
+        assert getattr(reconciled.blueprint.decisions, field).value is TriState.UNKNOWN
+
+
+@pytest.mark.parametrize(
     ("answer", "expected"),
     (
         ("yes", NetworkPolicy.ALLOWED),

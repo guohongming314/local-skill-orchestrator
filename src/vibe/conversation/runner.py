@@ -58,6 +58,10 @@ _ENGLISH_ALLOW = re.compile(
     r"\b(?:yes|allow|allowed|permit|permitted|approve|approved|okay|ok)\b|"
     r"\byou\s+may\b"
 )
+_ENGLISH_UNCERTAIN = re.compile(
+    r"\b(?:maybe|possibly|perhaps|might|could|later|eventually|unless|pending)\b|"
+    r"\bif\b|\bsubject\s+to\b"
+)
 _ENGLISH_READONLY = re.compile(r"\bread[ -]?only\b")
 _CHINESE_DENY_PREFIXES = ("不允许", "不可以", "不能", "禁止", "不要", "拒绝")
 _CHINESE_ALLOW_PREFIXES = ("允许", "可以", "同意", "批准")
@@ -373,6 +377,8 @@ def _parse_network_answer(answer: str) -> NetworkPolicy:
 
 def _permission_signals(answer: str) -> tuple[bool, bool]:
     normalized = answer.casefold().strip()
+    if _ENGLISH_UNCERTAIN.search(normalized):
+        return False, False
     chinese_denied, chinese_allowed = _chinese_permission_signals(normalized)
     denied = bool(_ENGLISH_DENY.search(normalized)) or chinese_denied
     positive_text = _ENGLISH_DENY.sub(" ", normalized)
