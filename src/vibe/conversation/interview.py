@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from vibe.conversation.prompts import PROMPTS, QUESTION_ORDER, PromptTemplate, goal_prompt
 from vibe.models.repository import FactConfidence, RepositorySnapshot
+from vibe.recommendation.questions import AdaptiveQuestion
 
 
 @dataclass(frozen=True)
@@ -16,6 +17,7 @@ class InterviewInput:
     conflicts: tuple[str, ...] = ()
     inventory_summary: tuple[str, ...] = ()
     preferences: Mapping[str, str] | None = None
+    adaptive_questions: tuple[AdaptiveQuestion, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -26,6 +28,7 @@ class InterviewQuestion:
     requires_explicit_confirmation: bool = False
     recommended_default: str | None = None
     recommendation_reason: str | None = None
+    impact: str | None = None
 
 
 @dataclass(frozen=True)
@@ -77,6 +80,16 @@ def build_interview(inputs: InterviewInput) -> InterviewResult:
                 recommendation_reason=recommendation_reason,
             )
         )
+
+    questions.extend(
+        InterviewQuestion(
+            question_id=question.question_id,
+            category="recommendation",
+            text=question.text,
+            impact=question.impact,
+        )
+        for question in inputs.adaptive_questions
+    )
 
     return InterviewResult(
         questions=tuple(questions),

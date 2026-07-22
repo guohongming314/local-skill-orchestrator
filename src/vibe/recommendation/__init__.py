@@ -1,0 +1,1 @@
+"""Pure capability recommendation helpers."""

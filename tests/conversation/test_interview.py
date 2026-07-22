@@ -2,6 +2,7 @@ from pathlib import Path
 
 from vibe.conversation.interview import InterviewInput, InterviewResult, build_interview
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
+from vibe.recommendation.questions import AdaptiveQuestion
 
 
 def snapshot(*, empty: bool, facts: tuple[RepositoryFact, ...] = ()) -> RepositorySnapshot:
@@ -187,3 +188,27 @@ def test_conflicting_project_type_is_reasked() -> None:
     )
 
     assert "project.type" in ids(result)
+
+
+def test_explicit_adaptive_questions_follow_repository_unknowns_with_impact() -> None:
+    result = build_interview(
+        InterviewInput(
+            repository=snapshot(empty=False),
+            unknowns=("risk.tolerance", "project.goal"),
+            adaptive_questions=(
+                AdaptiveQuestion(
+                    question_id="browser.interactive-debugging",
+                    text="Do you need interactive browser debugging?",
+                    impact="A yes changes the browser-control candidates.",
+                ),
+            ),
+        )
+    )
+
+    assert ids(result) == [
+        "project.goal",
+        "risk.tolerance",
+        "browser.interactive-debugging",
+    ]
+    assert result.questions[-1].category == "recommendation"
+    assert result.questions[-1].impact == "A yes changes the browser-control candidates."
