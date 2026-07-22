@@ -12,7 +12,12 @@ from vibe.conversation.structured_result import (
     lock_decisions,
     parse_structured_result,
 )
-from vibe.models.decisions import AuthorizationState, NetworkPolicy, TriState
+from vibe.models.decisions import (
+    AuthorizationState,
+    NetworkPolicy,
+    RuntimeNetwork,
+    TriState,
+)
 
 
 def valid_payload() -> dict[str, object]:
@@ -49,13 +54,20 @@ def test_valid_result_produces_blueprint_with_provenance() -> None:
 def test_existing_result_without_decisions_gets_unknown_defaults() -> None:
     result = parse_structured_result(valid_payload())
 
-    assert result.blueprint.decisions.write_project.value is TriState.UNKNOWN
-    assert result.blueprint.decisions.execute_command.value is TriState.UNKNOWN
-    assert result.blueprint.decisions.network_policy.value is NetworkPolicy.UNKNOWN
-    assert (
-        result.blueprint.decisions.discovery_approval
-        is AuthorizationState.NOT_REQUESTED
+    decisions = result.blueprint.decisions
+    permission_values = (
+        decisions.read_project.value,
+        decisions.write_project.value,
+        decisions.execute_command.value,
+        decisions.write_outside_project.value,
+        decisions.access_secrets.value,
     )
+
+    assert permission_values == (TriState.UNKNOWN,) * 5
+    assert decisions.network_policy.value is NetworkPolicy.UNKNOWN
+    assert decisions.discovery_approval is AuthorizationState.NOT_REQUESTED
+    assert decisions.artifact_fetch_approval is AuthorizationState.NOT_REQUESTED
+    assert decisions.candidate_runtime_network is RuntimeNetwork.UNKNOWN
 
 
 def test_invalid_result_repairs_once() -> None:

@@ -120,6 +120,53 @@ constraints:
   name: python
   schema_version: '1'
   value: '3.12'
+decisions:
+  access_secrets:
+    provenance:
+      reference: unresolved
+      schema_version: '1'
+      source: unknown
+    schema_version: '1'
+    value: unknown
+  artifact_fetch_approval: not-requested
+  candidate_runtime_network: unknown
+  discovery_approval: not-requested
+  execute_command:
+    provenance:
+      reference: unresolved
+      schema_version: '1'
+      source: unknown
+    schema_version: '1'
+    value: unknown
+  network_policy:
+    provenance:
+      reference: unresolved
+      schema_version: '1'
+      source: unknown
+    schema_version: '1'
+    value: unknown
+  read_project:
+    provenance:
+      reference: unresolved
+      schema_version: '1'
+      source: unknown
+    schema_version: '1'
+    value: unknown
+  schema_version: '1'
+  write_outside_project:
+    provenance:
+      reference: unresolved
+      schema_version: '1'
+      source: unknown
+    schema_version: '1'
+    value: unknown
+  write_project:
+    provenance:
+      reference: unresolved
+      schema_version: '1'
+      source: unknown
+    schema_version: '1'
+    value: unknown
 goal: Build a reliable command-line service
 lifecycle_stage: active-development
 preferences:
