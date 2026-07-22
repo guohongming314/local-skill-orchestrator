@@ -77,7 +77,9 @@ def model_result(root: Path) -> StructuredProjectResult:
     ("question_id", "answer", "expected"),
     (
         ("permissions.write_project", "yes, you may change project files", TriState.ALLOWED),
+        ("permissions.write_project", "allowed", TriState.ALLOWED),
         ("permissions.write_project", "do not modify files", TriState.DENIED),
+        ("permissions.execute_command", "you may execute commands", TriState.ALLOWED),
         ("permissions.execute_command", "可以执行本地验证命令", TriState.ALLOWED),
         ("permissions.execute_command", "不允许执行命令", TriState.DENIED),
         ("permissions.execute_command", "禁止", TriState.DENIED),
@@ -181,6 +183,65 @@ def test_reconcile_classifies_network_uncertainty_before_readonly(
     )
 
     assert reconciled.blueprint.decisions.network_policy.value is expected
+
+
+@pytest.mark.parametrize(
+    "question_id",
+    (
+        "permissions.write_project",
+        "permissions.execute_command",
+        "permissions.network",
+    ),
+)
+@pytest.mark.parametrize("answer", ("not approved", "not approve", "not permit"))
+def test_reconcile_never_grants_negated_english_affirmations(
+    tmp_path: Path, question_id: str, answer: str
+) -> None:
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: answer},
+        {question_id: FieldProvenance.USER_RESPONSE},
+        set(),
+    )
+
+    field = question_id.removeprefix("permissions.")
+    if field == "network":
+        assert reconciled.blueprint.decisions.network_policy.value is not NetworkPolicy.ALLOWED
+        assert (
+            reconciled.blueprint.decisions.network_policy.value
+            is not NetworkPolicy.ALLOWED_READONLY
+        )
+    else:
+        assert getattr(reconciled.blueprint.decisions, field).value is not TriState.ALLOWED
+
+
+@pytest.mark.parametrize(
+    "answer",
+    (
+        "not read-only",
+        "read-only is unavailable",
+        "不是只读",
+        "只读不可用",
+        "只读不行",
+        "只读不支持",
+        "不允许只读",
+    ),
+)
+def test_reconcile_never_grants_negated_or_unavailable_readonly(
+    tmp_path: Path, answer: str
+) -> None:
+    question_id = "permissions.network"
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: answer},
+        {question_id: FieldProvenance.USER_RESPONSE},
+        set(),
+    )
+
+    assert (
+        reconciled.blueprint.decisions.network_policy.value
+        is not NetworkPolicy.ALLOWED_READONLY
+    )
 
 
 @pytest.mark.parametrize(

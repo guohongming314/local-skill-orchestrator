@@ -52,19 +52,35 @@ _PERMISSION_QUESTIONS = {
     "permissions.network": "network_policy",
 }
 _ENGLISH_DENY = re.compile(
-    r"\b(?:no|deny|denied|disallow|forbid|forbidden|never|cannot|can't)\b|"
+    r"\b(?:no|not|deny|denied|disallow|forbid|forbidden|never|cannot|can't)\b|"
     r"\b(?:do|does)\s+not\b|\bdon't\b|\byou\s+may\s+not\b|"
-    r"\bnot\s+(?:allowed|permitted|okay|ok)\b"
-)
-_ENGLISH_ALLOW = re.compile(
-    r"\b(?:yes|allow|allowed|permit|permitted|approve|approved|okay|ok)\b|"
-    r"\byou\s+may\b"
+    r"\bnot\s+(?:allow(?:ed)?|permit(?:ted)?|approve(?:d)?|okay|ok|read[ -]?only)\b"
 )
 _ENGLISH_UNCERTAIN = re.compile(
-    r"\b(?:maybe|possibly|perhaps|might|could|later|eventually|unless|pending)\b|"
+    r"\b(?:maybe|possibly|perhaps|might|could|later|eventually|unless|pending|"
+    r"unavailable|unavailability)\b|"
     r"\bif\b|\bsubject\s+to\b"
 )
-_ENGLISH_READONLY = re.compile(r"\bread[ -]?only\b")
+_ENGLISH_AFFIRMATIVE_TOKENS = {
+    "yes",
+    "allow",
+    "allowed",
+    "permit",
+    "permitted",
+    "approve",
+    "approved",
+    "okay",
+    "ok",
+}
+_ENGLISH_ACTION = r"(?:change|modify|write|execute|run|use|access|connect|read)\b"
+_ENGLISH_DIRECT_ALLOW = re.compile(
+    rf"(?:yes(?: you may)?|you may) {_ENGLISH_ACTION}.*|"
+    rf"(?:allow|permit|approve)(?: me| the tool| this)?(?: to)? {_ENGLISH_ACTION}.*|"
+    rf"(?:allowed|permitted|approved)(?: to)? {_ENGLISH_ACTION}.*"
+)
+_ENGLISH_DIRECT_READONLY = re.compile(
+    r"read[ -]?only(?: network)? access(?: is (?:allowed|permitted|okay|ok))?"
+)
 _CHINESE_DENY_PREFIXES = ("不允许", "不可以", "不能", "禁止", "不要", "拒绝")
 _CHINESE_ALLOW_PREFIXES = ("允许", "可以", "同意", "批准")
 _CHINESE_UNCERTAIN = (
@@ -78,6 +94,10 @@ _CHINESE_UNCERTAIN = (
     "看情况",
     "如果",
     "之后",
+    "不可用",
+    "不行",
+    "不支持",
+    "无法",
 )
 _CHINESE_READONLY_PREFIXES = ("只读", "只允许只读", "仅限读取", "仅可读取")
 
@@ -387,7 +407,7 @@ def _parse_network_answer(answer: str) -> NetworkPolicy:
     classification = _classify_permission_answer(normalized)
     if classification.uncertain:
         return NetworkPolicy.UNKNOWN
-    readonly = bool(_ENGLISH_READONLY.search(normalized)) or _starts_with_direct_chinese(
+    readonly = _is_direct_english_readonly(normalized) or _starts_with_direct_chinese(
         normalized, _CHINESE_READONLY_PREFIXES
     )
     if classification.denied:
@@ -413,9 +433,23 @@ def _classify_permission_answer(answer: str) -> _PermissionClassification:
         compact, _CHINESE_ALLOW_PREFIXES
     )
     denied = bool(_ENGLISH_DENY.search(normalized)) or chinese_denied
-    positive_text = _ENGLISH_DENY.sub(" ", normalized)
-    allowed = bool(_ENGLISH_ALLOW.search(positive_text)) or chinese_allowed
+    allowed = _is_direct_english_allow(normalized) or chinese_allowed
     return _PermissionClassification(denied=denied, allowed=allowed)
+
+
+def _is_direct_english_allow(answer: str) -> bool:
+    normalized = _normalize_english_response(answer)
+    return normalized in _ENGLISH_AFFIRMATIVE_TOKENS or bool(
+        _ENGLISH_DIRECT_ALLOW.fullmatch(normalized)
+    )
+
+
+def _is_direct_english_readonly(answer: str) -> bool:
+    return bool(_ENGLISH_DIRECT_READONLY.fullmatch(_normalize_english_response(answer)))
+
+
+def _normalize_english_response(answer: str) -> str:
+    return " ".join(re.sub(r"[^\w'-]+", " ", answer.casefold()).split())
 
 
 def _starts_with_direct_chinese(answer: str, prefixes: tuple[str, ...]) -> bool:
