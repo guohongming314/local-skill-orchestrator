@@ -12,6 +12,7 @@ from vibe.conversation.structured_result import (
     lock_decisions,
     parse_structured_result,
 )
+from vibe.models.decisions import AuthorizationState, NetworkPolicy, TriState
 
 
 def valid_payload() -> dict[str, object]:
@@ -43,6 +44,18 @@ def test_valid_result_produces_blueprint_with_provenance() -> None:
     assert result.field_sources["project_name"] is ValueSource.INFERRED
     assert result.field_sources["goal"] is ValueSource.CONFIRMED
     assert result.locked_decisions == frozenset({"goal"})
+
+
+def test_existing_result_without_decisions_gets_unknown_defaults() -> None:
+    result = parse_structured_result(valid_payload())
+
+    assert result.blueprint.decisions.write_project.value is TriState.UNKNOWN
+    assert result.blueprint.decisions.execute_command.value is TriState.UNKNOWN
+    assert result.blueprint.decisions.network_policy.value is NetworkPolicy.UNKNOWN
+    assert (
+        result.blueprint.decisions.discovery_approval
+        is AuthorizationState.NOT_REQUESTED
+    )
 
 
 def test_invalid_result_repairs_once() -> None:

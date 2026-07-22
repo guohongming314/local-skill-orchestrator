@@ -3,6 +3,7 @@ from enum import StrEnum
 from pydantic import Field
 
 from vibe.models.base import VersionedModel
+from vibe.models.decisions import ProjectDecisions
 from vibe.models.risk import RiskLevel as RiskLevel
 
 
@@ -28,4 +29,4 @@ class Blueprint(VersionedModel):
     constraints: tuple[ProjectConstraint, ...] = ()
     preferences: dict[str, str | bool | int] = Field(default_factory=dict)
     repository_digest: str = Field(min_length=8)
-
+    decisions: ProjectDecisions = Field(default_factory=ProjectDecisions)
