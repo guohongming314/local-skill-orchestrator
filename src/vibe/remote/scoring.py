@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from math import log10
 from types import MappingProxyType
 
 from vibe.models.risk import RiskLevel
@@ -68,6 +69,9 @@ class RankedCandidate:
     trust: ExplainedScore
     risk: ExplainedScore
     adoption: int
+    maintenance: ExplainedScore = ExplainedScore(0, "maintenance=0")
+    popularity: ExplainedScore = ExplainedScore(0, "popularity=0")
+    total_score: int = 0
 
 
 _EMPTY_EVIDENCE: Mapping[str, CandidateEvidence] = MappingProxyType({})
@@ -95,6 +99,64 @@ def rank_candidates(
                 -item.trust.score,
                 item.risk.score,
                 -item.adoption,
+                item.candidate.candidate_ref,
+            ),
+        )
+    )
+
+
+def rank_multi_source_candidates(
+    candidates: tuple[RemoteCandidate, ...],
+    context: ScoringContext,
+    *,
+    evidence: Mapping[str, CandidateEvidence] = _EMPTY_EVIDENCE,
+) -> tuple[RankedCandidate, ...]:
+    """Rank eligible candidates with bounded fit, trust, safety, maintenance, and popularity."""
+    ranked: list[RankedCandidate] = []
+    for candidate in candidates:
+        item_evidence = evidence.get(candidate.candidate_ref, CandidateEvidence())
+        if _hard_filter_reason(candidate, context, item_evidence) is not None:
+            continue
+        base = _score_candidate(candidate, context, item_evidence)
+        maintenance_score = max(0, min(100, item_evidence.maintenance))
+        raw_popularity = max(
+            candidate.stars + candidate.adoption,
+            item_evidence.adoption,
+        )
+        popularity_score = min(100, round(log10(raw_popularity + 1) * 20))
+        total = round(
+            base.fit.score * 0.35
+            + base.trust.score * 0.25
+            + (100 - base.risk.score) * 0.20
+            + maintenance_score * 0.10
+            + popularity_score * 0.10
+        )
+        ranked.append(
+            RankedCandidate(
+                candidate=candidate,
+                fit=base.fit,
+                trust=base.trust,
+                risk=base.risk,
+                adoption=max(candidate.adoption, item_evidence.adoption),
+                maintenance=ExplainedScore(
+                    maintenance_score,
+                    f"maintenance={maintenance_score}",
+                ),
+                popularity=ExplainedScore(
+                    popularity_score,
+                    f"popularity={popularity_score} (raw={raw_popularity})",
+                ),
+                total_score=total,
+            )
+        )
+    return tuple(
+        sorted(
+            ranked,
+            key=lambda item: (
+                -item.total_score,
+                -item.fit.score,
+                -item.trust.score,
+                item.risk.score,
                 item.candidate.candidate_ref,
             ),
         )

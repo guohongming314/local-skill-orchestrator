@@ -1,12 +1,22 @@
 from __future__ import annotations
 
+from vibe.models.risk import RiskLevel
 from vibe.remote.discovery import (
+    DiscoveryService,
     DiscoveryStatus,
     SourceDiagnostic,
     SourceStatus,
     aggregate_discovery,
 )
-from vibe.remote.models import CapabilityKind, RemoteCandidate, SourceTier
+from vibe.remote.models import (
+    CapabilityKind,
+    PermissionLevel,
+    Provenance,
+    PublisherVerification,
+    RemoteCandidate,
+    SourceTier,
+)
+from vibe.remote.scoring import CandidateEvidence
 
 
 def candidate(name: str = "browser-tool") -> RemoteCandidate:
@@ -116,3 +126,95 @@ def test_eligible_candidates_produce_candidates_found() -> None:
 
     assert report.status is DiscoveryStatus.CANDIDATES_FOUND
     assert report.candidates == (item,)
+
+
+class StaticSource:
+    def __init__(self, source_id: str, result: SourceDiagnostic) -> None:
+        self.source_id = source_id
+        self._result = result
+
+    def search(self, _capability_id: str) -> SourceDiagnostic:
+        return self._result
+
+
+def test_service_deduplicates_cross_listed_repository() -> None:
+    github = candidate("browser").model_copy(
+        update={
+            "canonical_repository": "https://github.com/example/browser",
+            "stars": 5000,
+        }
+    )
+    skills = github.model_copy(
+        update={
+            "candidate_ref": "skills.sh:example/browser/browser",
+            "source_tier": SourceTier.VERIFIED_PUBLISHER,
+            "adoption": 20000,
+            "official": True,
+        }
+    )
+    service = DiscoveryService(
+        (
+            StaticSource(
+                "github",
+                diagnostic(
+                    "github", SourceStatus.SUCCESS, candidates=(github,), matched_count=1
+                ),
+            ),
+            StaticSource(
+                "skills.sh",
+                diagnostic(
+                    "skills.sh", SourceStatus.SUCCESS, candidates=(skills,), matched_count=1
+                ),
+            ),
+        )
+    )
+
+    report = service.discover(
+        "browser.validation",
+        approved=True,
+        risk_level=RiskLevel.MEDIUM,
+        evidence={github.candidate_ref: CandidateEvidence(maintenance=80)},
+    )
+
+    assert report.status is DiscoveryStatus.CANDIDATES_FOUND
+    assert len(report.candidates) == 1
+    assert report.candidates[0].adoption == 20000
+
+
+def test_service_filters_archived_and_l4_candidates_despite_popularity() -> None:
+    provenance = Provenance(
+        source="github",
+        digest="sha256:" + "a" * 64,
+        source_verified=False,
+        publisher_verified=False,
+        publisher_verification=PublisherVerification.UNVERIFIED,
+        digest_verified=True,
+        permission_level=PermissionLevel.L4,
+        reason="unsafe",
+    )
+    unsafe = candidate("popular-unsafe").model_copy(
+        update={"stars": 1_000_000, "provenance": provenance}
+    )
+    archived = candidate("archived").model_copy(
+        update={"stars": 900_000, "archived": True}
+    )
+    service = DiscoveryService(
+        (
+            StaticSource(
+                "github",
+                diagnostic(
+                    "github",
+                    SourceStatus.SUCCESS,
+                    candidates=(unsafe, archived),
+                    matched_count=2,
+                ),
+            ),
+        )
+    )
+
+    report = service.discover(
+        "browser.validation", approved=True, risk_level=RiskLevel.MEDIUM
+    )
+
+    assert report.status is DiscoveryStatus.ALL_FILTERED
+    assert report.candidates == ()

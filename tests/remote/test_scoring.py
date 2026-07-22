@@ -13,7 +13,12 @@ from vibe.remote.models import (
     RemoteCandidate,
     SourceTier,
 )
-from vibe.remote.scoring import CandidateEvidence, ScoringContext, rank_candidates
+from vibe.remote.scoring import (
+    CandidateEvidence,
+    ScoringContext,
+    rank_candidates,
+    rank_multi_source_candidates,
+)
 
 
 def candidate(
@@ -166,3 +171,31 @@ def test_tie_is_broken_by_adoption_deterministically() -> None:
         item.candidate.name
         for item in rank_candidates((adopted, first), context(), evidence=scoring_evidence)
     ] == expected
+
+
+def test_multi_source_popularity_is_bounded_and_cannot_overrule_trust() -> None:
+    popular = candidate(
+        "popular-community",
+        source_tier=SourceTier.COMMUNITY,
+        publisher_verified=False,
+    ).model_copy(update={"stars": 1_000_000, "adoption": 1_000_000})
+    trusted = candidate("trusted-official").model_copy(
+        update={"stars": 500, "adoption": 500, "official": True}
+    )
+
+    ranked = rank_multi_source_candidates(
+        (popular, trusted),
+        context(),
+        evidence={
+            popular.candidate_ref: CandidateEvidence(
+                platforms=("codex",), maintenance=20
+            ),
+            trusted.candidate_ref: CandidateEvidence(
+                platforms=("codex",), maintenance=90
+            ),
+        },
+    )
+
+    assert ranked[0].candidate.name == "trusted-official"
+    assert all(item.popularity.score <= 100 for item in ranked)
+    assert all(item.total_score <= 100 for item in ranked)
