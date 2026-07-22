@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -90,6 +91,15 @@ def build_interview(inputs: InterviewInput) -> InterviewResult:
         )
         for question in inputs.adaptive_questions
     )
+    duplicate_ids = sorted(
+        question_id
+        for question_id, count in Counter(
+            question.question_id for question in questions
+        ).items()
+        if count > 1
+    )
+    if duplicate_ids:
+        raise ValueError(f"duplicate interview question ids: {', '.join(duplicate_ids)}")
 
     return InterviewResult(
         questions=tuple(questions),

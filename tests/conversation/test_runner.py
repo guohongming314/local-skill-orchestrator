@@ -13,7 +13,7 @@ from vibe.conversation.interview import (
     InterviewResult,
     build_interview,
 )
-from vibe.conversation.runner import ConversationRunner, _reconcile_answers
+from vibe.conversation.runner import ConversationRunner, _context_prompt, _reconcile_answers
 from vibe.conversation.structured_result import (
     FieldProvenance,
     StructuredProjectResult,
@@ -71,6 +71,27 @@ def model_result(root: Path) -> StructuredProjectResult:
             "repository_digest": ValueSource.INFERRED,
         },
     )
+
+
+def test_context_prompt_serializes_question_impact(tmp_path: Path) -> None:
+    prompt = _context_prompt(
+        snapshot(tmp_path),
+        InterviewResult(
+            questions=(
+                InterviewQuestion(
+                    question_id="memory.persistence",
+                    category="recommendation",
+                    text="Should memory persist?",
+                    impact="Changes persistent candidates and their storage boundary.",
+                ),
+            ),
+            confirmed_fact_keys=(),
+            unresolved_keys=("memory.persistence",),
+        ),
+    )
+
+    question = json.loads(prompt)["questions"][0]
+    assert question["impact"] == "Changes persistent candidates and their storage boundary."
 
 
 @pytest.mark.parametrize(

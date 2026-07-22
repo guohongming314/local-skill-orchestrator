@@ -3,15 +3,63 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner, Result
 
 from vibe.cli import app
-from vibe.commands.init import _build_structured
+from vibe.commands.init import _ask_interview_question, _build_structured
+from vibe.conversation.interview import InterviewQuestion
 from vibe.models.blueprint import Blueprint
 from vibe.models.decisions import DecisionSource, NetworkPolicy, TriState
 from vibe.models.repository import RepositorySnapshot
 
 runner = CliRunner()
+
+
+def test_interview_prompt_displays_impact(monkeypatch: pytest.MonkeyPatch) -> None:
+    prompts: list[str] = []
+
+    def prompt_user(prompt: str) -> str:
+        prompts.append(prompt)
+        return "yes"
+
+    monkeypatch.setattr("vibe.commands.init.typer.prompt", prompt_user)
+
+    answer = _ask_interview_question(
+        InterviewQuestion(
+            question_id="memory.persistence",
+            category="recommendation",
+            text="Should memory persist?",
+            impact="Changes persistent candidates and their storage boundary.",
+        )
+    )
+
+    assert answer == "yes"
+    assert prompts == [
+        "Should memory persist? Impact: Changes persistent candidates and their storage boundary."
+    ]
+
+
+def test_interview_prompt_without_impact_is_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    prompts: list[str] = []
+
+    def prompt_user(prompt: str) -> str:
+        prompts.append(prompt)
+        return "low"
+
+    monkeypatch.setattr("vibe.commands.init.typer.prompt", prompt_user)
+
+    _ask_interview_question(
+        InterviewQuestion(
+            question_id="risk.tolerance",
+            category="risk",
+            text="What is the risk tolerance?",
+        )
+    )
+
+    assert prompts == ["What is the risk tolerance?"]
 
 
 def answer_snapshot(root: Path) -> RepositorySnapshot:

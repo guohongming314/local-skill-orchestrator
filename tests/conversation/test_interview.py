@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from vibe.conversation.interview import InterviewInput, InterviewResult, build_interview
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
 from vibe.recommendation.questions import AdaptiveQuestion
@@ -212,3 +214,36 @@ def test_explicit_adaptive_questions_follow_repository_unknowns_with_impact() ->
     ]
     assert result.questions[-1].category == "recommendation"
     assert result.questions[-1].impact == "A yes changes the browser-control candidates."
+
+
+def test_adaptive_question_cannot_collide_with_repository_question() -> None:
+    with pytest.raises(ValueError, match=r"risk\.tolerance"):
+        build_interview(
+            InterviewInput(
+                repository=snapshot(empty=False),
+                unknowns=("risk.tolerance",),
+                adaptive_questions=(
+                    AdaptiveQuestion(
+                        question_id="risk.tolerance",
+                        text="Duplicate question?",
+                        impact="This is a programming error.",
+                    ),
+                ),
+            )
+        )
+
+
+def test_adaptive_question_ids_must_be_unique() -> None:
+    duplicate = AdaptiveQuestion(
+        question_id="memory.persistence",
+        text="Should memory persist?",
+        impact="Changes persistence candidates.",
+    )
+
+    with pytest.raises(ValueError, match=r"memory\.persistence"):
+        build_interview(
+            InterviewInput(
+                repository=snapshot(empty=False),
+                adaptive_questions=(duplicate, duplicate),
+            )
+        )

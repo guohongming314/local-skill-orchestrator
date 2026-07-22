@@ -364,7 +364,10 @@ def _interview_unknowns(snapshot: RepositorySnapshot) -> tuple[str, ...]:
 
 
 def _ask_interview_question(question: InterviewQuestion) -> str:
-    return cast(str, typer.prompt(question.text))
+    prompt = question.text
+    if question.impact is not None:
+        prompt = f"{prompt} Impact: {question.impact}"
+    return cast(str, typer.prompt(prompt))
 
 
 def _project_changeset(
