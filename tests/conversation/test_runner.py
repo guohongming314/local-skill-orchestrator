@@ -94,6 +94,34 @@ def test_context_prompt_serializes_question_impact(tmp_path: Path) -> None:
     assert question["impact"] == "Changes persistent candidates and their storage boundary."
 
 
+def test_context_prompt_preserves_ordinary_question_payload_shape(tmp_path: Path) -> None:
+    prompt = _context_prompt(
+        snapshot(tmp_path),
+        InterviewResult(
+            questions=(
+                InterviewQuestion(
+                    question_id="risk.tolerance",
+                    category="risk",
+                    text="What is the risk tolerance?",
+                ),
+            ),
+            confirmed_fact_keys=(),
+            unresolved_keys=("risk.tolerance",),
+        ),
+    )
+
+    question = json.loads(prompt)["questions"][0]
+    assert set(question) == {
+        "id",
+        "text",
+        "category",
+        "requires_explicit_confirmation",
+        "recommended_default",
+        "recommendation_reason",
+    }
+    assert "impact" not in question
+
+
 @pytest.mark.parametrize(
     ("question_id", "answer", "expected"),
     (

@@ -500,7 +500,7 @@ def _context_prompt(repository: RepositorySnapshot, interview: InterviewResult) 
                     "requires_explicit_confirmation": question.requires_explicit_confirmation,
                     "recommended_default": question.recommended_default,
                     "recommendation_reason": question.recommendation_reason,
-                    "impact": question.impact,
+                    **({"impact": question.impact} if question.impact is not None else {}),
                 }
                 for question in interview.questions
             ],
