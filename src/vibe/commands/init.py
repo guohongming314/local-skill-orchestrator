@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
@@ -39,9 +40,25 @@ from vibe.materialize.templates import render_project_configuration
 from vibe.materialize.writer import ApplyFailure, ConcurrentChangeError, apply_changeset
 from vibe.models.blueprint import Blueprint
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
-from vibe.models.resolution import ResolutionPlan
+from vibe.models.resolution import ResolutionPlan, ResolutionStatus
+from vibe.remote.discovery import (
+    DiscoveryReport,
+    DiscoveryService,
+    DiscoverySource,
+    DiscoveryStatus,
+    SourceDiagnostic,
+    SourceStatus,
+    aggregate_discovery,
+)
+from vibe.remote.http import ReadOnlyHttpTransport
 from vibe.remote.models import RemoteCandidate
 from vibe.remote.scoring import CandidateEvidence
+from vibe.remote.sources import (
+    GitHubSource,
+    JsonCatalogSource,
+    McpRegistrySource,
+    SkillsShSource,
+)
 from vibe.resolver.requirements import AbstractCapabilityRequirement
 from vibe.workflows.checkpoints import CheckpointConflict, SqliteCheckpointStore
 from vibe.workflows.init_graph import InitializationGraph, InvalidTransition
@@ -68,6 +85,20 @@ def init_command(
     git_init: Annotated[bool, typer.Option("--git-init")] = False,
     remote_discovery: Annotated[
         bool, typer.Option("--remote-discovery")
+    ] = False,
+    remote_registry: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--remote-registry",
+            help="Approved organization Registry URL; repeat for multiple sources.",
+        ),
+    ] = None,
+    remote_offline: Annotated[
+        bool,
+        typer.Option(
+            "--remote-offline",
+            help="Use only the project remote-candidate cache; never access the network.",
+        ),
     ] = False,
     remote_decision: Annotated[
         list[str] | None, typer.Option("--remote-decision")
@@ -205,10 +236,22 @@ def init_command(
         discovery_enabled = remote_discovery or bool(
             structured.blueprint.preferences.get("remote_discovery", False)
         )
-        remote_candidates, remote_evidence = (
-            _load_remote_snapshot(root) if discovery_enabled else ((), {})
-        )
         suppressed_remote_candidates = frozenset(effective_remote_decisions)
+        base_plan = build_project_plan(
+            root,
+            structured.blueprint,
+            snapshot,
+            inventory=inventory,
+            rejected_remote_candidates=suppressed_remote_candidates,
+        )
+        remote_candidates, remote_evidence, discovery_reports = _discover_remote(
+            root,
+            base_plan.resolution,
+            structured.blueprint,
+            approved=discovery_enabled,
+            offline=remote_offline,
+            organization_registries=tuple(remote_registry or ()),
+        )
         project_plan = build_project_plan(
             root,
             structured.blueprint,
@@ -239,6 +282,9 @@ def init_command(
                 project_plan.inventory, project_plan.requirements, project_plan.resolution
             )
         )
+        review_payload["discovery"] = [
+            report.model_dump(mode="json") for report in discovery_reports
+        ]
         if checkpoint.stage is InitStage.REVIEW and not confirm:
             paused = workflow.pause(run_id)
             review_payload.update(status=paused.status.value, stage=paused.stage.value)
@@ -545,6 +591,132 @@ def _load_remote_snapshot(
         if isinstance(candidate_ref, str) and isinstance(item, dict)
     }
     return candidates, evidence
+
+
+def _discover_remote(
+    root: Path,
+    resolution: ResolutionPlan,
+    blueprint: Blueprint,
+    *,
+    approved: bool,
+    offline: bool,
+    organization_registries: tuple[str, ...],
+) -> tuple[
+    tuple[RemoteCandidate, ...],
+    dict[str, CandidateEvidence],
+    tuple[DiscoveryReport, ...],
+]:
+    gaps = tuple(
+        sorted(
+            {
+                item.requirement
+                for item in resolution.resolutions
+                if item.status is ResolutionStatus.GAP
+            }
+        )
+    )
+    if not approved:
+        reports = tuple(
+            aggregate_discovery(
+                requirement, approved=False, sources=(), diagnostics=()
+            )
+            for requirement in gaps
+        )
+        return (), {}, reports
+
+    snapshot_candidates, snapshot_evidence = _load_remote_snapshot(root)
+    if snapshot_candidates:
+        reports = tuple(
+            _cached_discovery_report(requirement, snapshot_candidates) for requirement in gaps
+        )
+        return snapshot_candidates, snapshot_evidence, reports
+    if offline:
+        reports = tuple(
+            DiscoveryReport(
+                requirement=requirement,
+                status=DiscoveryStatus.SOURCE_UNAVAILABLE,
+                attempted_sources=("project-cache",),
+                diagnostics=(
+                    SourceDiagnostic(
+                        source_id="project-cache",
+                        status=SourceStatus.UNAVAILABLE,
+                        message="no cached remote candidate snapshot",
+                    ),
+                ),
+            )
+            for requirement in gaps
+        )
+        return (), {}, reports
+
+    transport = ReadOnlyHttpTransport(
+        headers={"User-Agent": "local-skill-orchestrator/0.1.0"}
+    )
+    github_headers = {"User-Agent": "local-skill-orchestrator/0.1.0"}
+    github_token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if github_token:
+        github_headers["Authorization"] = f"Bearer {github_token}"
+    github_transport = ReadOnlyHttpTransport(headers=github_headers)
+    sources: list[DiscoverySource] = [
+        McpRegistrySource(transport=transport),
+        SkillsShSource(transport=transport),
+        GitHubSource(transport=github_transport),
+    ]
+    sources.extend(
+        JsonCatalogSource(
+            source_id=f"organization-registry-{index + 1}",
+            base_url=url,
+            transport=transport,
+        )
+        for index, url in enumerate(organization_registries)
+    )
+    service = DiscoveryService(tuple(sources))
+    live_reports: list[DiscoveryReport] = []
+    candidates: dict[str, RemoteCandidate] = {}
+    evidence: dict[str, CandidateEvidence] = {}
+    for requirement in gaps:
+        report = service.discover(
+            requirement,
+            approved=True,
+            risk_level=blueprint.risk_level,
+            target_platforms=blueprint.target_platforms,
+        )
+        live_reports.append(report)
+        for candidate in report.candidates:
+            candidates[candidate.candidate_ref] = candidate
+            evidence[candidate.candidate_ref] = CandidateEvidence(
+                maintenance=70 if candidate.official else 40,
+                adoption=max(candidate.adoption, candidate.stars),
+            )
+    return (
+        tuple(sorted(candidates.values(), key=lambda item: item.candidate_ref)),
+        evidence,
+        tuple(live_reports),
+    )
+
+
+def _cached_discovery_report(
+    requirement: str, candidates: tuple[RemoteCandidate, ...]
+) -> DiscoveryReport:
+    matching = tuple(
+        candidate for candidate in candidates if requirement in candidate.provides
+    )
+    diagnostic = SourceDiagnostic(
+        source_id="project-cache",
+        status=SourceStatus.CACHED,
+        candidates=matching,
+        matched_count=len(matching),
+    )
+    return DiscoveryReport(
+        requirement=requirement,
+        status=(
+            DiscoveryStatus.CANDIDATES_FOUND
+            if matching
+            else DiscoveryStatus.NO_RESULTS
+        ),
+        attempted_sources=("project-cache",),
+        diagnostics=(diagnostic,),
+        candidates=matching,
+    )
 
 
 def _decision_past_tense(decision: str) -> str:

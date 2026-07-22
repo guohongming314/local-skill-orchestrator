@@ -176,6 +176,93 @@ class JsonCatalogSource:
             return _failure(self.source_id, exc)
 
 
+class McpRegistrySource:
+    source_id = "mcp-registry"
+
+    def __init__(self, *, transport: SourceTransport) -> None:
+        self._transport = transport
+
+    def search(self, capability_id: str) -> SourceDiagnostic:
+        try:
+            payload = self._transport.get_json(
+                "https://registry.modelcontextprotocol.io/v0.1/servers",
+                params={"search": capability_id},
+            )
+            records = payload.get("servers", ())
+            if not isinstance(records, list):
+                raise SourceRequestError("MCP Registry response has no servers list")
+            candidates = tuple(
+                self._normalize(record, capability_id)
+                for record in records
+                if isinstance(record, Mapping)
+            )
+            return SourceDiagnostic(
+                source_id=self.source_id,
+                status=SourceStatus.SUCCESS,
+                candidates=candidates,
+                matched_count=len(records),
+            )
+        except Exception as exc:
+            return _failure(self.source_id, exc)
+
+    @staticmethod
+    def _normalize(record: Mapping[str, Any], capability_id: str) -> RemoteCandidate:
+        server_value = record.get("server", record)
+        if not isinstance(server_value, Mapping):
+            raise SourceRequestError("MCP Registry server record is malformed")
+        server = cast(Mapping[str, Any], server_value)
+        name = _required_text(server, "name")
+        version = _optional_text(server.get("version"))
+        repository_value = server.get("repository")
+        repository = (
+            _optional_text(repository_value.get("url"))
+            if isinstance(repository_value, Mapping)
+            else None
+        )
+        packages = server.get("packages", ())
+        package = packages[0] if isinstance(packages, list) and packages else {}
+        if not isinstance(package, Mapping):
+            package = {}
+        identifier = str(package.get("identifier") or name)
+        registry_type = str(package.get("registryType") or "registry")
+        package_version = _optional_text(package.get("version")) or version
+        candidate_ref = f"{registry_type}:{identifier}"
+        if package_version:
+            candidate_ref += f"@{package_version}"
+        metadata = record.get("_meta")
+        official_metadata = (
+            metadata.get("io.modelcontextprotocol.registry/official")
+            if isinstance(metadata, Mapping)
+            else None
+        )
+        official = isinstance(official_metadata, Mapping)
+        updated = (
+            _optional_text(official_metadata.get("updatedAt"))
+            if isinstance(official_metadata, Mapping)
+            else None
+        )
+        permissions: list[str] = []
+        transport = package.get("transport")
+        if isinstance(transport, Mapping) and transport.get("type") == "stdio":
+            permissions.append("execute-command")
+        if server.get("remotes"):
+            permissions.append("network")
+        return RemoteCandidate(
+            candidate_ref=candidate_ref,
+            name=name,
+            kind=CapabilityKind.MCP_SERVER,
+            provides=(capability_id,),
+            version=package_version,
+            publisher=name.split("/", 1)[0],
+            permissions_as_declared=tuple(permissions),
+            source_tier=SourceTier.OFFICIAL,
+            canonical_repository=repository,
+            description=_optional_text(server.get("description")),
+            last_activity=updated,
+            official=official,
+        )
+
+
 def _failure(source_id: str, error: Exception) -> SourceDiagnostic:
     status_code = getattr(error, "status_code", None)
     if status_code == 401:

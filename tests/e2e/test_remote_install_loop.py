@@ -60,7 +60,7 @@ def _init(
     if dry_run:
         arguments.append("--dry-run")
     if remote_discovery:
-        arguments.append("--remote-discovery")
+        arguments.extend(("--remote-discovery", "--remote-offline"))
     return runner.invoke(app, arguments)
 
 

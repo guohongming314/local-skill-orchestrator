@@ -569,6 +569,71 @@ def remote_snapshot(root: Path) -> None:
     )
 
 
+def test_init_reports_not_requested_instead_of_claiming_empty_search(tmp_path: Path) -> None:
+    root = tmp_path / "web-no-discovery"
+    root.mkdir()
+    answer_path = tmp_path / "web-no-discovery.json"
+    answer_path.write_text(
+        json.dumps(
+            {
+                "goal": "Build a web application",
+                "lifecycle_stage": "active-development",
+                "risk_level": "medium",
+                "project_type": "web-application",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = invoke(root, answer_path, run_id="not-requested", dry_run=True)
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    browser = next(
+        item
+        for item in payload["discovery"]
+        if item["requirement"] == "browser.validation"
+    )
+    assert browser["status"] == "not-requested"
+    assert browser["attempted_sources"] == []
+
+
+def test_legacy_remote_snapshot_is_reported_as_cached_discovery(tmp_path: Path) -> None:
+    root = tmp_path / "web-cached"
+    root.mkdir()
+    remote_snapshot(root)
+    answer_path = tmp_path / "web-cached.json"
+    answer_path.write_text(
+        json.dumps(
+            {
+                "goal": "Build a web application",
+                "lifecycle_stage": "active-development",
+                "risk_level": "medium",
+                "project_type": "web-application",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = invoke(
+        root,
+        answer_path,
+        run_id="cached-discovery",
+        dry_run=True,
+        extra_args=("--remote-discovery",),
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    browser = next(
+        item
+        for item in payload["discovery"]
+        if item["requirement"] == "browser.validation"
+    )
+    assert browser["status"] == "candidates-found"
+    assert browser["diagnostics"][0]["status"] == "cached"
+
+
 def test_remote_rejection_is_recorded_and_never_reappears_on_reinit(tmp_path: Path) -> None:
     root = tmp_path / "web-project"
     root.mkdir()

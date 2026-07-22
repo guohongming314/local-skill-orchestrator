@@ -10,6 +10,7 @@ from vibe.remote.discovery import SourceStatus
 from vibe.remote.sources import (
     GitHubSource,
     JsonCatalogSource,
+    McpRegistrySource,
     SkillsShSource,
     SourceRequestError,
 )
@@ -123,6 +124,50 @@ def test_json_catalog_source_supports_organization_registry() -> None:
 
     assert diagnostic.status is SourceStatus.SUCCESS
     assert diagnostic.candidates[0].candidate_ref == "org:browser@1"
+
+
+def test_mcp_registry_source_normalizes_official_server_records() -> None:
+    url = "https://registry.modelcontextprotocol.io/v0.1/servers"
+    transport = FixtureTransport(
+        json_payloads={
+            f"{url}?search=browser.validation": {
+                "servers": [
+                    {
+                        "server": {
+                            "name": "io.github.example/browser-mcp",
+                            "description": "Browser automation",
+                            "repository": {
+                                "url": "https://github.com/example/browser-mcp"
+                            },
+                            "version": "1.2.3",
+                            "packages": [
+                                {
+                                    "registryType": "npm",
+                                    "identifier": "browser-mcp",
+                                    "version": "1.2.3",
+                                    "transport": {"type": "stdio"},
+                                }
+                            ],
+                        },
+                        "_meta": {
+                            "io.modelcontextprotocol.registry/official": {
+                                "isLatest": True,
+                                "updatedAt": "2026-07-20T00:00:00Z",
+                            }
+                        },
+                    }
+                ]
+            }
+        }
+    )
+
+    diagnostic = McpRegistrySource(transport=transport).search("browser.validation")
+
+    assert diagnostic.status is SourceStatus.SUCCESS
+    item = diagnostic.candidates[0]
+    assert item.name == "io.github.example/browser-mcp"
+    assert item.official is True
+    assert item.canonical_repository == "https://github.com/example/browser-mcp"
 
 
 @pytest.mark.parametrize(
