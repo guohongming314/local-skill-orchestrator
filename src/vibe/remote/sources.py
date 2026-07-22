@@ -45,7 +45,9 @@ class GitHubSource:
             candidates = tuple(
                 self._normalize(record, capability_id)
                 for record in records
-                if isinstance(record, Mapping) and not bool(record.get("fork", False))
+                if isinstance(record, Mapping)
+                and not bool(record.get("fork", False))
+                and _record_matches(record, capability_id)
             )
             return SourceDiagnostic(
                 source_id=self.source_id,
@@ -92,10 +94,24 @@ class SkillsShSource:
 
     def search(self, capability_id: str) -> SourceDiagnostic:
         try:
-            html = self._transport.get_text(
-                "https://skills.sh/search", params={"q": capability_id}
-            )
-            records = _skills_records(html)
+            try:
+                payload = self._transport.get_json(
+                    "https://skills.sh/api/search",
+                    params={"q": capability_id, "limit": "100"},
+                )
+                records_value = payload.get("skills", ())
+                if not isinstance(records_value, list):
+                    raise SourceRequestError("skills.sh API response has no skills list")
+                records = tuple(
+                    cast(Mapping[str, Any], item)
+                    for item in records_value
+                    if isinstance(item, Mapping)
+                )
+            except Exception:
+                html = self._transport.get_text(
+                    "https://skills.sh/search", params={"q": capability_id}
+                )
+                records = _skills_records(html)
             tokens = _query_tokens(capability_id)
             matched = tuple(
                 record
@@ -195,6 +211,7 @@ class McpRegistrySource:
                 self._normalize(record, capability_id)
                 for record in records
                 if isinstance(record, Mapping)
+                and _mcp_record_matches(record, capability_id)
             )
             return SourceDiagnostic(
                 source_id=self.source_id,
@@ -275,12 +292,21 @@ def _failure(source_id: str, error: Exception) -> SourceDiagnostic:
 
 
 def _skills_records(html: str) -> tuple[Mapping[str, Any], ...]:
-    direct = re.findall(r"\{[^{}]{1,2000}\}", html)
-    escaped = re.findall(r"\{(?:\\\"|[^{}]){1,2000}\}", html)
+    normalized = html.replace('\\"', '"')
     records: list[Mapping[str, Any]] = []
-    for raw in (*direct, *escaped):
+    cursor = 0
+    while True:
+        marker = normalized.find('"skillId"', cursor)
+        if marker < 0:
+            break
+        start = normalized.rfind("{", max(0, marker - 1500), marker)
+        end = normalized.find("}", marker, min(len(normalized), marker + 3000))
+        cursor = marker + len('"skillId"')
+        if start < 0 or end < 0:
+            continue
+        raw = normalized[start : end + 1]
         try:
-            value = json.loads(raw.replace('\\"', '"'))
+            value = json.loads(raw)
         except json.JSONDecodeError:
             continue
         if isinstance(value, dict) and "source" in value and "skillId" in value:
@@ -290,6 +316,20 @@ def _skills_records(html: str) -> tuple[Mapping[str, Any], ...]:
 
 def _query_tokens(value: str) -> set[str]:
     return {item for item in re.split(r"[^a-z0-9]+", value.casefold()) if len(item) >= 3}
+
+
+def _record_matches(record: Mapping[str, Any], capability_id: str) -> bool:
+    haystack = " ".join(
+        str(record.get(key, "")) for key in ("name", "full_name", "description", "topics")
+    )
+    return bool(_query_tokens(capability_id).intersection(_query_tokens(haystack)))
+
+
+def _mcp_record_matches(record: Mapping[str, Any], capability_id: str) -> bool:
+    server = record.get("server", record)
+    if not isinstance(server, Mapping):
+        return False
+    return _record_matches(cast(Mapping[str, Any], server), capability_id)
 
 
 def _guess_kind(record: Mapping[str, Any]) -> CapabilityKind:

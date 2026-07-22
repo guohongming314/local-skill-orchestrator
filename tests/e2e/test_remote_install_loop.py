@@ -111,6 +111,9 @@ def test_gap_to_approved_remote_install_doctor_and_uninstall_round_trip(
     assert "fit=" in remote["why"]
     assert "trust=" in remote["why"]
     assert "risk=" in remote["why"]
+    assert remote["maintenance_score"] >= 0
+    assert remote["popularity_score"] >= 0
+    assert remote["total_score"] >= 0
 
     baseline = _tree(built.root)
     installed = runner.invoke(

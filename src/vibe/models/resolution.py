@@ -32,6 +32,13 @@ class RecommendationCandidate(VersionedModel):
     fit_score: int | None = Field(default=None, exclude_if=lambda value: value is None)
     trust_score: int | None = Field(default=None, exclude_if=lambda value: value is None)
     risk_score: int | None = Field(default=None, exclude_if=lambda value: value is None)
+    maintenance_score: int | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    popularity_score: int | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    total_score: int | None = Field(default=None, exclude_if=lambda value: value is None)
     score_explanations: tuple[str, ...] | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
@@ -65,4 +72,3 @@ class ResolutionPlan(VersionedModel):
     blueprint_digest: str = Field(min_length=8)
     inventory_digest: str = Field(min_length=8)
     resolutions: tuple[CapabilityResolution, ...]
-

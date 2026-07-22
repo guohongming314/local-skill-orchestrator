@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
 from typing import Any
 
@@ -86,9 +85,12 @@ def test_skills_sh_source_extracts_embedded_directory_records() -> None:
         "weeklyInstalls": [100, 200],
         "isOfficial": True,
     }
-    html = f"<script>self.__next_f.push({json.dumps(record)})</script>"
     transport = FixtureTransport(
-        text_payloads={"https://skills.sh/search?q=browser.validation": html}
+        json_payloads={
+            "https://skills.sh/api/search?limit=100&q=browser.validation": {
+                "skills": [record]
+            }
+        }
     )
 
     diagnostic = SkillsShSource(transport=transport).search("browser.validation")
@@ -98,6 +100,24 @@ def test_skills_sh_source_extracts_embedded_directory_records() -> None:
     assert item.name == "browser-validation"
     assert item.adoption == 12000
     assert item.canonical_repository == "https://github.com/example/browser-skills"
+
+
+def test_skills_sh_source_handles_escaped_next_payload() -> None:
+    escaped = (
+        r'<script>self.__next_f.push("{\"source\":\"example/browser-skills\",'
+        r'\"skillId\":\"browser-validation\",\"name\":\"browser-validation\",'
+        r'\"installs\":9000}")</script>'
+    )
+    api_key = "https://skills.sh/api/search?limit=100&q=browser.validation"
+    transport = FixtureTransport(
+        text_payloads={"https://skills.sh/search?q=browser.validation": escaped},
+        failures={api_key: SourceRequestError("API unavailable", status_code=500)},
+    )
+
+    diagnostic = SkillsShSource(transport=transport).search("browser.validation")
+
+    assert diagnostic.status is SourceStatus.SUCCESS
+    assert diagnostic.candidates[0].adoption == 9000
 
 
 def test_json_catalog_source_supports_organization_registry() -> None:

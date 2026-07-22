@@ -30,7 +30,7 @@ from vibe.remote.scoring import (
     CandidateEvidence,
     RankedCandidate,
     ScoringContext,
-    rank_candidates,
+    rank_multi_source_candidates,
 )
 from vibe.resolver.policy import (
     ResolverPolicy,
@@ -468,7 +468,7 @@ def _gap_recommendation(
         )
         ranked = tuple(
             sorted(
-                rank_candidates(
+                rank_multi_source_candidates(
                     eligible,
                     ScoringContext(
                         requirement=requirement.capability,
@@ -530,10 +530,15 @@ def _remote_recommendation(
         fit_score=ranked.fit.score,
         trust_score=ranked.trust.score,
         risk_score=ranked.risk.score,
+        maintenance_score=ranked.maintenance.score,
+        popularity_score=ranked.popularity.score,
+        total_score=ranked.total_score,
         score_explanations=(
             ranked.fit.explanation,
             ranked.trust.explanation,
             ranked.risk.explanation,
+            ranked.maintenance.explanation,
+            ranked.popularity.explanation,
         ),
         risk_flags=evidence.get(candidate.candidate_ref, CandidateEvidence()).scan_flags,
     )
