@@ -52,7 +52,8 @@ _PERMISSION_QUESTIONS = {
 }
 _ENGLISH_DENY = re.compile(
     r"\b(?:no|deny|denied|disallow|forbid|forbidden|never|cannot|can't)\b|"
-    r"\b(?:do|does)\s+not\b|\bdon't\b|\bnot\s+(?:allowed|permitted|okay|ok)\b"
+    r"\b(?:do|does)\s+not\b|\bdon't\b|\byou\s+may\s+not\b|"
+    r"\bnot\s+(?:allowed|permitted|okay|ok)\b"
 )
 _ENGLISH_ALLOW = re.compile(
     r"\b(?:yes|allow|allowed|permit|permitted|approve|approved|okay|ok)\b|"

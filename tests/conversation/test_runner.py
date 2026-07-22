@@ -133,6 +133,31 @@ def test_reconcile_rejects_ambiguous_english_permission_answers(
 
 
 @pytest.mark.parametrize(
+    "question_id",
+    (
+        "permissions.write_project",
+        "permissions.execute_command",
+        "permissions.network",
+    ),
+)
+def test_reconcile_prioritizes_explicit_english_denial(
+    tmp_path: Path, question_id: str
+) -> None:
+    reconciled = _reconcile_answers(
+        model_result(tmp_path),
+        {question_id: "you may not do that"},
+        {question_id: FieldProvenance.USER_RESPONSE},
+        set(),
+    )
+
+    field = question_id.removeprefix("permissions.")
+    if field == "network":
+        assert reconciled.blueprint.decisions.network_policy.value is NetworkPolicy.DENIED
+    else:
+        assert getattr(reconciled.blueprint.decisions, field).value is TriState.DENIED
+
+
+@pytest.mark.parametrize(
     ("answer", "expected"),
     (
         ("yes", NetworkPolicy.ALLOWED),
