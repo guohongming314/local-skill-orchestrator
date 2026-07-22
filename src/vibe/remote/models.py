@@ -72,6 +72,17 @@ class RemoteCandidate(VersionedModel):
     permissions_as_declared: tuple[str, ...] = ()
     source_tier: SourceTier
     provenance: Provenance | None = None
+    canonical_repository: str | None = None
+    revision: str | None = None
+    cross_source_ref: str | None = None
+    description: str | None = None
+    stars: int = Field(default=0, ge=0)
+    forks: int = Field(default=0, ge=0)
+    adoption: int = Field(default=0, ge=0)
+    weekly_adoption: int = Field(default=0, ge=0)
+    last_activity: str | None = None
+    archived: bool = False
+    official: bool = False
 
 
 class SearchResult(VersionedModel):
