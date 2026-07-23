@@ -26,7 +26,10 @@ def answers(tmp_path: Path) -> Path:
                 "goal": "Build safely",
                 "lifecycle_stage": "active-development",
                 "risk_level": "medium",
-                "preferences": {"testing": "test-first"},
+                "preferences": {
+                    "testing": "test-first",
+                    "candidate_decisions": "*=defer",
+                },
             }
         ),
         encoding="utf-8",
@@ -99,6 +102,30 @@ def test_init_dry_run_previews_all_changes_without_writes(tmp_path: Path) -> Non
     assert "CREATE .ai-project/capability-requirements.yaml" in payload["preview"]
     assert "UPDATE AGENTS.md" in payload["preview"]
     assert project_files(root) == {"AGENTS.md": original}
+
+
+def test_init_does_not_offer_changeset_before_discovery_decision(tmp_path: Path) -> None:
+    root = tmp_path / "adaptive-review"
+    root.mkdir()
+    answer_path = tmp_path / "adaptive-answers.json"
+    answer_path.write_text(
+        json.dumps(
+            {
+                "goal": "Build safely",
+                "lifecycle_stage": "active-development",
+                "risk_level": "medium",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = invoke(root, answer_path, run_id="adaptive-review", dry_run=True)
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["review_readiness"]["ready"] is False
+    assert payload["review_readiness"]["next_action"] == "request-discovery-decision"
+    assert "dry_run_changeset" not in payload
 
 
 def test_init_hook_policy_dry_run_previews_managed_artifacts_without_writes(
@@ -385,6 +412,7 @@ def test_init_review_surfaces_practice_pack_origins_and_reasons(tmp_path: Path) 
                 "lifecycle_stage": "active-development",
                 "risk_level": "medium",
                 "project_type": "web-application",
+                "preferences": {"candidate_decisions": "*=defer"},
             }
         ),
         encoding="utf-8",
@@ -413,6 +441,7 @@ def test_init_json_exposes_schema_valid_gap_recommendations(tmp_path: Path) -> N
                 "lifecycle_stage": "active-development",
                 "risk_level": "medium",
                 "project_type": "web-application",
+                "preferences": {"candidate_decisions": "*=defer"},
             }
         ),
         encoding="utf-8",
@@ -646,6 +675,7 @@ def test_remote_rejection_is_recorded_and_never_reappears_on_reinit(tmp_path: Pa
                 "lifecycle_stage": "active-development",
                 "risk_level": "medium",
                 "project_type": "web-application",
+                "preferences": {"candidate_decisions": "*=defer"},
             }
         ),
         encoding="utf-8",

@@ -16,6 +16,7 @@ class InitStage(StrEnum):
     INTERVIEW = "interview"
     MODEL = "model"
     RESOLVE = "resolve"
+    RECOMMEND = "recommend"
     REVIEW = "review"
     APPLY = "apply"
     VERIFY = "verify"

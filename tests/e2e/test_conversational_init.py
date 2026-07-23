@@ -76,6 +76,8 @@ def _invoke_conversation(
             "--checkpoints",
             str(checkpoint),
             "--confirm",
+            "--recommendation-decision",
+            "*=defer",
             "--json",
             *extra,
         ],

@@ -55,6 +55,8 @@ def _init(
         "--answers",
         str(_answers(tmp_path, run_id, lifecycle_stage=lifecycle_stage)),
         "--confirm",
+        "--recommendation-decision",
+        "*=defer",
         "--json",
     ]
     if dry_run:

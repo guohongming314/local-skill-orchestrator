@@ -56,6 +56,8 @@ def _invoke(
             "--answers",
             str(_answers(tmp_path, lifecycle=lifecycle)),
             "--confirm",
+            "--recommendation-decision",
+            "*=defer",
             "--json",
             *extra,
         ],
@@ -147,7 +149,8 @@ def test_cancel_then_resume_completes_from_checkpoint(tmp_path: Path) -> None:
         app,
         [
             "init", "--path", str(root), "--run-id", "resume",
-            "--checkpoints", str(checkpoint), "--confirm", "--resume", "--json",
+                "--checkpoints", str(checkpoint), "--confirm", "--resume",
+                "--recommendation-decision", "*=defer", "--json",
         ],
     )
     assert resumed.exit_code == 0, resumed.output
@@ -378,9 +381,11 @@ def test_blank_project_materialization_only_generates_configuration_and_approved
             "blank-bootstrap",
             "--checkpoints",
             str(tmp_path / "blank-bootstrap.sqlite3"),
-            "--confirm",
-            "--git-init",
-            "--json",
+                "--confirm",
+                "--git-init",
+                "--recommendation-decision",
+                "*=defer",
+                "--json",
         ],
     )
 

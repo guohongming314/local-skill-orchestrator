@@ -41,6 +41,8 @@ from vibe.materialize.writer import ApplyFailure, ConcurrentChangeError, apply_c
 from vibe.models.blueprint import Blueprint
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
 from vibe.models.resolution import ResolutionPlan, ResolutionStatus
+from vibe.practices.models import RequirementStrength
+from vibe.recommendation.readiness import ReviewReadiness, evaluate_review_readiness
 from vibe.recommendation.search_terms import DiscoveryQueryContext, discovery_queries
 from vibe.remote.discovery import (
     DiscoveryReport,
@@ -103,6 +105,13 @@ def init_command(
     ] = False,
     remote_decision: Annotated[
         list[str] | None, typer.Option("--remote-decision")
+    ] = None,
+    recommendation_decision: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--recommendation-decision",
+            help="Capability decision as requirement=accept|reject|defer; repeat as needed.",
+        ),
     ] = None,
     hook_policy_file: Annotated[
         Path | None,
@@ -216,7 +225,7 @@ def init_command(
                 InitStage.RESOLVE,
                 confirmed={"structured_result": structured.model_dump(mode="json")},
             )
-            checkpoint = workflow.advance(run_id, InitStage.REVIEW)
+            checkpoint = workflow.advance(run_id, InitStage.RECOMMEND)
 
         assert structured is not None
         stored_answers = checkpoint.confirmed.get("answers", {})
@@ -263,7 +272,10 @@ def init_command(
             remote_evidence=remote_evidence,
             rejected_remote_candidates=suppressed_remote_candidates,
         )
-        if checkpoint.stage is InitStage.REVIEW and answer_payload is not None:
+        if (
+            checkpoint.stage in {InitStage.RECOMMEND, InitStage.REVIEW}
+            and answer_payload is not None
+        ):
             structured = _build_structured(snapshot, answer_payload)
             checkpoint = workflow.revise(
                 run_id,
@@ -278,6 +290,15 @@ def init_command(
                 remote_evidence=remote_evidence,
                 rejected_remote_candidates=suppressed_remote_candidates,
             )
+        readiness = _review_readiness(
+            project_plan.requirements,
+            project_plan.resolution,
+            discovery_reports,
+            structured.blueprint,
+            effective_remote_decisions,
+            remote_candidates,
+            _parse_recommendation_decisions(recommendation_decision or []),
+        )
         review_payload = _review_payload(run_id, checkpoint, structured)
         review_payload.update(
             _plan_payload(
@@ -287,6 +308,14 @@ def init_command(
         review_payload["discovery"] = [
             report.model_dump(mode="json") for report in discovery_reports
         ]
+        review_payload["review_readiness"] = readiness.__dict__
+        if checkpoint.stage is InitStage.RECOMMEND and not readiness.ready and not model_only:
+            paused = workflow.pause(run_id)
+            review_payload.update(status=paused.status.value, stage=paused.stage.value)
+            _emit(review_payload, json_output)
+            return
+        if checkpoint.stage is InitStage.RECOMMEND:
+            checkpoint = workflow.advance(run_id, InitStage.REVIEW)
         if checkpoint.stage is InitStage.REVIEW and not confirm:
             paused = workflow.pause(run_id)
             review_payload.update(status=paused.status.value, stage=paused.stage.value)
@@ -714,6 +743,100 @@ def _discover_remote(
         evidence,
         tuple(live_reports),
     )
+
+
+def _review_readiness(
+    requirements: tuple[AbstractCapabilityRequirement, ...],
+    resolution: ResolutionPlan,
+    discovery_reports: tuple[DiscoveryReport, ...],
+    blueprint: Blueprint,
+    remote_decisions: Mapping[str, str],
+    remote_candidates: tuple[RemoteCandidate, ...],
+    supplied_decisions: Mapping[str, str],
+) -> ReviewReadiness:
+    gaps = {
+        item.requirement
+        for item in resolution.resolutions
+        if item.status is ResolutionStatus.GAP
+    }
+    strengths = {item.capability: item.strength for item in requirements}
+    candidate_decisions = _requirement_candidate_decisions(
+        blueprint,
+        remote_decisions,
+        tuple(
+            {
+                candidate.candidate_ref: candidate
+                for candidate in (
+                    *remote_candidates,
+                    *(candidate for report in discovery_reports for candidate in report.candidates),
+                )
+            }.values()
+        ),
+    )
+    candidate_decisions.update(supplied_decisions)
+    discovery_status = {item.requirement: item.status.value for item in discovery_reports}
+    accepting_candidate = any(
+        candidate_decisions.get(requirement, candidate_decisions.get("*")) == "accept"
+        for requirement in gaps
+    )
+    unknown_permissions = (
+        ("network_policy",)
+        if (
+            blueprint.decisions.network_policy.value.value == "unknown"
+            and accepting_candidate
+        )
+        else ()
+    )
+    return evaluate_review_readiness(
+        required_gaps=tuple(
+            sorted(item for item in gaps if strengths.get(item) is RequirementStrength.REQUIRED)
+        ),
+        recommended_gaps=tuple(
+            sorted(item for item in gaps if strengths.get(item) is not RequirementStrength.REQUIRED)
+        ),
+        discovery_status=discovery_status,
+        candidate_decisions=candidate_decisions,
+        unknown_permissions=unknown_permissions,
+    )
+
+
+def _requirement_candidate_decisions(
+    blueprint: Blueprint,
+    remote_decisions: Mapping[str, str],
+    remote_candidates: tuple[RemoteCandidate, ...],
+) -> dict[str, str]:
+    raw = blueprint.preferences.get("candidate_decisions")
+    decisions: dict[str, str] = {}
+    if isinstance(raw, str):
+        for item in raw.split(","):
+            requirement, separator, decision = item.partition("=")
+            if separator and decision in {"accept", "reject", "defer"}:
+                decisions[requirement.strip()] = decision
+        default_decision = decisions.get("*")
+        if default_decision is not None:
+            for candidate in remote_candidates:
+                for requirement in candidate.provides:
+                    decisions.setdefault(requirement, default_decision)
+    by_ref = {item.candidate_ref: item for item in remote_candidates}
+    for candidate_ref, decision in remote_decisions.items():
+        decided_candidate = by_ref.get(candidate_ref)
+        if decided_candidate is not None:
+            decisions.update(dict.fromkeys(decided_candidate.provides, decision))
+    return decisions
+
+
+def _parse_recommendation_decisions(values: list[str]) -> dict[str, str]:
+    decisions: dict[str, str] = {}
+    for raw in values:
+        requirement, separator, decision = raw.partition("=")
+        requirement = requirement.strip()
+        decision = decision.strip().casefold()
+        if not separator or not requirement or decision not in {"accept", "reject", "defer"}:
+            raise ValueError(
+                "recommendation decisions must use requirement=accept|reject|defer"
+            )
+        decisions[requirement] = decision
+    return decisions
 
 
 def _string_values(value: object) -> tuple[str, ...]:
