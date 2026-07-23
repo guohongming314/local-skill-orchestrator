@@ -14,6 +14,7 @@ from tests.materialize.test_templates import inputs, requirements
 from vibe.cli import app
 from vibe.commands.init import _project_changeset
 from vibe.models.resolution import ResolutionPlan
+from vibe.workflows.checkpoints import SqliteCheckpointStore
 
 runner = CliRunner()
 
@@ -75,6 +76,11 @@ def invoke(
     ]
     if dry_run:
         args.append("--dry-run")
+    if not any(
+        option in extra_args
+        for option in ("--remote-discovery", "--no-remote-discovery", "--remote-offline")
+    ):
+        args.append("--remote-offline")
     args.extend(extra_args)
     return runner.invoke(app, args)
 
@@ -598,7 +604,7 @@ def remote_snapshot(root: Path) -> None:
     )
 
 
-def test_init_reports_not_requested_instead_of_claiming_empty_search(tmp_path: Path) -> None:
+def test_init_allows_explicit_remote_discovery_opt_out(tmp_path: Path) -> None:
     root = tmp_path / "web-no-discovery"
     root.mkdir()
     answer_path = tmp_path / "web-no-discovery.json"
@@ -614,7 +620,13 @@ def test_init_reports_not_requested_instead_of_claiming_empty_search(tmp_path: P
         encoding="utf-8",
     )
 
-    result = invoke(root, answer_path, run_id="not-requested", dry_run=True)
+    result = invoke(
+        root,
+        answer_path,
+        run_id="not-requested",
+        dry_run=True,
+        extra_args=("--no-remote-discovery",),
+    )
 
     assert result.exit_code == 0, result.output
     payload = json.loads(result.stdout)
@@ -625,6 +637,91 @@ def test_init_reports_not_requested_instead_of_claiming_empty_search(tmp_path: P
     )
     assert browser["status"] == "not-requested"
     assert browser["attempted_sources"] == []
+
+
+def test_init_enables_remote_discovery_by_default(tmp_path: Path) -> None:
+    root = tmp_path / "web-default-discovery"
+    root.mkdir()
+    remote_snapshot(root)
+    answer_path = tmp_path / "web-default-discovery.json"
+    answer_path.write_text(
+        json.dumps(
+            {
+                "goal": "Build a web application",
+                "lifecycle_stage": "active-development",
+                "risk_level": "medium",
+                "project_type": "web-application",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = invoke(
+        root,
+        answer_path,
+        run_id="default-discovery",
+        dry_run=True,
+        extra_args=("--remote-discovery",),
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    browser = next(
+        item
+        for item in payload["discovery"]
+        if item["requirement"] == "browser.validation"
+    )
+    assert browser["status"] == "candidates-found"
+    assert browser["attempted_sources"] == ["project-cache"]
+
+
+def test_init_persists_per_source_discovery_diagnostics_in_checkpoint(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "web-offline-discovery"
+    root.mkdir()
+    answer_path = tmp_path / "web-offline-discovery.json"
+    answer_path.write_text(
+        json.dumps(
+            {
+                "goal": "Build a web application",
+                "lifecycle_stage": "active-development",
+                "risk_level": "medium",
+                "project_type": "web-application",
+            }
+        ),
+        encoding="utf-8",
+    )
+    run_id = "persist-discovery"
+
+    result = invoke(
+        root,
+        answer_path,
+        run_id=run_id,
+        dry_run=True,
+        extra_args=("--remote-offline",),
+    )
+
+    assert result.exit_code == 0, result.output
+    checkpoint = SqliteCheckpointStore(tmp_path / f"{run_id}.sqlite3").load(run_id)
+    reports = checkpoint.confirmed["discovery_reports"]
+    browser = next(
+        item for item in reports if item["requirement"] == "browser.validation"
+    )
+    assert browser["status"] == "source-unavailable"
+    assert browser["attempted_sources"] == ["project-cache"]
+    assert browser["diagnostics"] == [
+        {
+            "schema_version": "1",
+            "source_id": "project-cache",
+            "query": None,
+            "status": "unavailable",
+            "candidates": [],
+            "matched_count": 0,
+            "filtered_count": 0,
+            "message": "no cached remote candidate snapshot",
+        }
+    ]
 
 
 def test_legacy_remote_snapshot_is_reported_as_cached_discovery(tmp_path: Path) -> None:

@@ -120,6 +120,39 @@ def test_skills_sh_source_handles_escaped_next_payload() -> None:
     assert diagnostic.candidates[0].adoption == 9000
 
 
+@pytest.mark.parametrize("html", ["", "<html><body>temporarily unavailable</body></html>"])
+def test_skills_sh_source_reports_unparseable_fallback_as_failed(html: str) -> None:
+    api_key = "https://skills.sh/api/search?limit=100&q=browser.validation"
+    transport = FixtureTransport(
+        text_payloads={"https://skills.sh/search?q=browser.validation": html},
+        failures={api_key: SourceRequestError("API unavailable", status_code=500)},
+    )
+
+    diagnostic = SkillsShSource(transport=transport).search("browser.validation")
+
+    assert diagnostic.status is SourceStatus.FAILED
+    assert diagnostic.message is not None
+    assert "fallback" in diagnostic.message.casefold()
+    if html:
+        assert html not in diagnostic.message
+
+
+def test_skills_sh_valid_empty_api_result_is_successful_no_results() -> None:
+    transport = FixtureTransport(
+        json_payloads={
+            "https://skills.sh/api/search?limit=100&q=browser.validation": {
+                "skills": []
+            }
+        }
+    )
+
+    diagnostic = SkillsShSource(transport=transport).search("browser.validation")
+
+    assert diagnostic.status is SourceStatus.SUCCESS
+    assert diagnostic.matched_count == 0
+    assert diagnostic.candidates == ()
+
+
 def test_json_catalog_source_supports_organization_registry() -> None:
     url = "https://catalog.example.test/capabilities"
     transport = FixtureTransport(

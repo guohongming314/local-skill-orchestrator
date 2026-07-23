@@ -87,8 +87,12 @@ def init_command(
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
     git_init: Annotated[bool, typer.Option("--git-init")] = False,
     remote_discovery: Annotated[
-        bool, typer.Option("--remote-discovery")
-    ] = False,
+        bool,
+        typer.Option(
+            "--remote-discovery/--no-remote-discovery",
+            help="Search supported read-only capability metadata sources.",
+        ),
+    ] = True,
     remote_registry: Annotated[
         list[str] | None,
         typer.Option(
@@ -243,9 +247,7 @@ def init_command(
             **stored_remote_decisions,
             **requested_remote_decisions,
         }
-        discovery_enabled = remote_discovery or bool(
-            structured.blueprint.preferences.get("remote_discovery", False)
-        )
+        discovery_enabled = remote_discovery
         suppressed_remote_candidates = frozenset(effective_remote_decisions)
         base_plan = build_project_plan(
             root,
@@ -262,6 +264,14 @@ def init_command(
             approved=discovery_enabled,
             offline=remote_offline,
             organization_registries=tuple(remote_registry or ()),
+        )
+        checkpoint = workflow.revise(
+            run_id,
+            confirmed={
+                "discovery_reports": [
+                    report.model_dump(mode="json") for report in discovery_reports
+                ]
+            },
         )
         project_plan = build_project_plan(
             root,
@@ -701,13 +711,13 @@ def _discover_remote(
         return (), {}, reports
 
     transport = ReadOnlyHttpTransport(
-        headers={"User-Agent": "local-skill-orchestrator/0.1.0"}
+        headers={"User-Agent": "local-skill-orchestrator/0.1.0"}, timeout=3.0
     )
     github_headers = {"User-Agent": "local-skill-orchestrator/0.1.0"}
     github_token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     if github_token:
         github_headers["Authorization"] = f"Bearer {github_token}"
-    github_transport = ReadOnlyHttpTransport(headers=github_headers)
+    github_transport = ReadOnlyHttpTransport(headers=github_headers, timeout=3.0)
     sources: list[DiscoverySource] = [
         McpRegistrySource(transport=transport),
         SkillsShSource(transport=transport),

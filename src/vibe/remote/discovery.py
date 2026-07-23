@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from enum import StrEnum
 from typing import Protocol
 
@@ -88,11 +89,11 @@ class DiscoveryService:
                 diagnostics=(),
             )
         search_queries = tuple(dict.fromkeys(queries or (requirement,)))
-        diagnostics = tuple(
-            source.search(query).model_copy(update={"query": query})
-            for query in search_queries
-            for source in self._sources
+        searches = tuple(
+            (source, query) for query in search_queries for source in self._sources
         )
+        with ThreadPoolExecutor(max_workers=min(8, len(searches))) as executor:
+            diagnostics = tuple(executor.map(lambda item: _search(*item), searches))
         successful = tuple(
             item
             for item in diagnostics
@@ -184,6 +185,10 @@ def _blocked(candidate: RemoteCandidate) -> bool:
         return True
     provenance = candidate.provenance
     return provenance is not None and provenance.permission_level is PermissionLevel.L4
+
+
+def _search(source: DiscoverySource, query: str) -> SourceDiagnostic:
+    return source.search(query).model_copy(update={"query": query})
 
 
 def _deduplicate(candidates: tuple[RemoteCandidate, ...]) -> tuple[RemoteCandidate, ...]:

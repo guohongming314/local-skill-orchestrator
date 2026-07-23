@@ -107,11 +107,17 @@ class SkillsShSource:
                     for item in records_value
                     if isinstance(item, Mapping)
                 )
-            except Exception:
+            except Exception as primary_error:
                 html = self._transport.get_text(
                     "https://skills.sh/search", params={"q": capability_id}
                 )
                 records = _skills_records(html)
+                if not records:
+                    raise SourceRequestError(
+                        "skills.sh API request failed and fallback returned no "
+                        "parseable skill records "
+                        f"({type(primary_error).__name__})"
+                    ) from primary_error
             tokens = _query_tokens(capability_id)
             matched = tuple(
                 record

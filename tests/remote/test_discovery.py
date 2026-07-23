@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from threading import Barrier
+
 from vibe.models.risk import RiskLevel
 from vibe.remote.discovery import (
     DiscoveryService,
@@ -126,6 +128,31 @@ def test_eligible_candidates_produce_candidates_found() -> None:
 
     assert report.status is DiscoveryStatus.CANDIDATES_FOUND
     assert report.candidates == (item,)
+
+
+def test_discovery_queries_sources_concurrently_and_preserves_source_order() -> None:
+    barrier = Barrier(2, timeout=1)
+
+    class BlockingSource:
+        def __init__(self, source_id: str) -> None:
+            self.source_id = source_id
+
+        def search(self, capability_id: str) -> SourceDiagnostic:
+            barrier.wait()
+            return SourceDiagnostic(
+                source_id=self.source_id,
+                status=SourceStatus.SUCCESS,
+            )
+
+    report = DiscoveryService(
+        (BlockingSource("first"), BlockingSource("second"))
+    ).discover(
+        "browser.validation",
+        risk_level=RiskLevel.MEDIUM,
+        approved=True,
+    )
+
+    assert [item.source_id for item in report.diagnostics] == ["first", "second"]
 
 
 class StaticSource:
