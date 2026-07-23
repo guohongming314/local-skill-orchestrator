@@ -94,27 +94,34 @@ def blueprint(*, lifecycle: LifecycleStage = LifecycleStage.ACTIVE_DEVELOPMENT) 
     )
 
 
-def repository(*, monorepo: bool, size: str) -> RepositorySnapshot:
+def repository(
+    *,
+    monorepo: bool,
+    size: str,
+    extra_facts: dict[str, str | list[str] | None] | None = None,
+) -> RepositorySnapshot:
+    facts: dict[str, str | list[str] | None] = {
+        "is_monorepo": str(monorepo).lower(),
+        "repository_size": size,
+        **(extra_facts or {}),
+    }
     return RepositorySnapshot(
         root=Path("demo"),
         is_empty=False,
-        facts=(
+        facts=tuple(
             RepositoryFact(
-                key="is_monorepo",
-                value=str(monorepo).lower(),
+                key=key,
+                value=value,
                 confidence=FactConfidence.CONFIRMED,
-            ),
-            RepositoryFact(
-                key="repository_size",
-                value=size,
-                confidence=FactConfidence.CONFIRMED,
-            ),
+            )
+            for key, value in facts.items()
         ),
         source_digest="repository-digest",
     )
 
 
 pytestmark = pytest.mark.validation
+
 
 def test_small_projects_reject_unnecessary_codegraph() -> None:
     codegraph = candidate("product.codegraph", provides=("code-navigation",))
@@ -130,7 +137,7 @@ def test_small_projects_reject_unnecessary_codegraph() -> None:
         (ResolutionStatus.REJECTED, "product.codegraph"),
         (ResolutionStatus.GAP, None),
     ]
-    assert "large monorepos" in plan.resolutions[0].reason
+    assert "context evidence" in plan.resolutions[0].reason
 
 
 def test_large_monorepo_selects_available_codegraph() -> None:
@@ -144,7 +151,15 @@ def test_large_monorepo_selects_available_codegraph() -> None:
         (requirement("code-navigation"),),
         inventory(codegraph),
         blueprint(),
-        repository(monorepo=True, size="large"),
+        repository(
+            monorepo=True,
+            size="large",
+            extra_facts={
+                "module_count": "25",
+                "language_count": "2",
+                "cross_module_changes": "frequent",
+            },
+        ),
     )
 
     selected = [item for item in plan.resolutions if item.status is ResolutionStatus.SELECTED]
@@ -153,6 +168,51 @@ def test_large_monorepo_selects_available_codegraph() -> None:
     assert "trust=" in selected[0].reason
     assert "risk=" in selected[0].reason
     assert "verification=" in selected[0].reason
+
+
+def test_medium_complex_repository_selects_codegraph_with_context_evidence() -> None:
+    codegraph = candidate("product.codegraph", provides=("code-navigation",))
+
+    plan = resolve_local_capabilities(
+        (requirement("code-navigation"),),
+        inventory(codegraph),
+        blueprint(),
+        repository(
+            monorepo=False,
+            size="medium",
+            extra_facts={
+                "module_count": "30",
+                "language_count": "3",
+                "cross_module_changes": "frequent",
+            },
+        ),
+    )
+
+    assert plan.resolutions[0].status is ResolutionStatus.SELECTED
+    assert "cross-module" in plan.resolutions[0].reason
+
+
+def test_large_simple_repository_rejects_codegraph_with_context_evidence() -> None:
+    codegraph = candidate("product.codegraph", provides=("code-navigation",))
+
+    plan = resolve_local_capabilities(
+        (requirement("code-navigation"),),
+        inventory(codegraph),
+        blueprint(),
+        repository(
+            monorepo=True,
+            size="large",
+            extra_facts={
+                "module_count": "4",
+                "language_count": "1",
+                "cross_module_changes": "rare",
+                "local_symbol_index": "true",
+            },
+        ),
+    )
+
+    assert plan.resolutions[0].status is ResolutionStatus.REJECTED
+    assert "local symbol index" in plan.resolutions[0].reason
 
 
 def test_short_lived_projects_defer_persistent_memory() -> None:
@@ -168,6 +228,110 @@ def test_short_lived_projects_defer_persistent_memory() -> None:
     assert len(plan.resolutions) == 1
     assert plan.resolutions[0].status is ResolutionStatus.DEFERRED
     assert "short-lived" in plan.resolutions[0].reason
+
+
+def test_explicit_memory_denial_defers_installed_memory() -> None:
+    memory = candidate("product.memory", provides=("cross-session-memory",))
+    denied = blueprint().model_copy(update={"preferences": {"memory.persistence": "denied"}})
+
+    plan = resolve_local_capabilities(
+        (requirement("cross-session-memory"),),
+        inventory(memory),
+        denied,
+        repository(monorepo=False, size="small"),
+    )
+
+    assert plan.resolutions[0].status is ResolutionStatus.DEFERRED
+    assert "denied" in plan.resolutions[0].reason
+
+
+def test_explicit_memory_preference_selects_memory_for_long_lived_project() -> None:
+    memory = candidate("product.memory", provides=("cross-session-memory",))
+    allowed = blueprint(lifecycle=LifecycleStage.MAINTENANCE).model_copy(
+        update={"preferences": {"memory.persistence": True}}
+    )
+
+    plan = resolve_local_capabilities(
+        (requirement("cross-session-memory"),),
+        inventory(memory),
+        allowed,
+        repository(monorepo=False, size="small"),
+    )
+
+    assert plan.resolutions[0].status is ResolutionStatus.SELECTED
+    assert "durable decisions" in plan.resolutions[0].reason
+
+
+def test_unknown_memory_preference_does_not_infer_persistence_permission() -> None:
+    memory = candidate("product.memory", provides=("cross-session-memory",))
+
+    plan = resolve_local_capabilities(
+        (requirement("cross-session-memory"),),
+        inventory(memory),
+        blueprint(lifecycle=LifecycleStage.PRODUCTION),
+        repository(monorepo=False, size="small"),
+    )
+
+    assert plan.resolutions[0].status is ResolutionStatus.DEFERRED
+    assert "explicit" in plan.resolutions[0].reason
+
+
+def test_browser_runner_stays_preferred_without_interactive_preference() -> None:
+    runner = candidate("cli.playwright", provides=("browser.validation",))
+    interactive = candidate(
+        "mcp.chrome-devtools",
+        provides=("browser.validation",),
+        kind=CapabilityKind.MCP,
+    )
+
+    plan = resolve_local_capabilities(
+        (requirement("browser.validation"),),
+        inventory(interactive, runner),
+        blueprint(),
+        repository(monorepo=False, size="small"),
+    )
+
+    assert plan.resolutions[0].capability_id == "cli.playwright"
+
+
+def test_interactive_browser_preference_can_promote_mcp_candidate() -> None:
+    runner = candidate("cli.playwright", provides=("browser.validation",))
+    interactive = candidate(
+        "mcp.chrome-devtools",
+        provides=("browser.validation",),
+        kind=CapabilityKind.MCP,
+    )
+    interactive_blueprint = blueprint().model_copy(
+        update={"preferences": {"browser.interactive-debugging": True}}
+    )
+
+    plan = resolve_local_capabilities(
+        (requirement("browser.validation"),),
+        inventory(interactive, runner),
+        interactive_blueprint,
+        repository(monorepo=False, size="small"),
+    )
+
+    assert plan.resolutions[0].capability_id == "mcp.chrome-devtools"
+    assert "interactive browser" in plan.resolutions[0].reason
+
+
+def test_unknown_browser_preference_keeps_installed_mcp_as_provider() -> None:
+    interactive = candidate(
+        "mcp.chrome-devtools",
+        provides=("browser.validation",),
+        kind=CapabilityKind.MCP,
+    )
+
+    plan = resolve_local_capabilities(
+        (requirement("browser.validation"),),
+        inventory(interactive),
+        blueprint(),
+        repository(monorepo=False, size="small"),
+    )
+
+    assert plan.resolutions[0].status is ResolutionStatus.SELECTED
+    assert "preference unknown" in plan.resolutions[0].reason
 
 
 def test_lower_permission_cli_replaces_higher_permission_mcp() -> None:
@@ -378,9 +542,7 @@ def test_unmet_e18_pack_requirements_resolve_to_gaps() -> None:
 
     packs = load_practice_packs(Path(__file__).parents[2] / "practice-packs")
     production = blueprint(lifecycle=LifecycleStage.PRODUCTION)
-    large_repo = repository(monorepo=True, size="large").model_copy(
-        update={"is_empty": True}
-    )
+    large_repo = repository(monorepo=True, size="large").model_copy(update={"is_empty": True})
     requirements = evaluate_practice_packs(packs, production, large_repo)
 
     plan = resolve_local_capabilities(

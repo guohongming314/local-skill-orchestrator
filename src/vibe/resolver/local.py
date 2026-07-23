@@ -6,7 +6,7 @@ from pathlib import Path
 
 from vibe.inventory.adapters.base import AdapterScanResult
 from vibe.inventory.service import InventoryResult
-from vibe.models.blueprint import Blueprint, LifecycleStage
+from vibe.models.blueprint import Blueprint
 from vibe.models.capability import CapabilityKind, Permission
 from vibe.models.repository import RepositorySnapshot
 from vibe.models.resolution import (
@@ -20,6 +20,12 @@ from vibe.policy.org import load_org_policy
 from vibe.practices.loader import load_practice_pack
 from vibe.practices.models import RequirementStrength
 from vibe.practices.paths import bundled_practice_packs_root
+from vibe.recommendation.context import (
+    ContextValue,
+    browser_value,
+    codegraph_value,
+    memory_value,
+)
 from vibe.remote.models import (
     CapabilityKind as RemoteCapabilityKind,
 )
@@ -63,9 +69,7 @@ def resolve_local_capabilities(
             org_policy=org_policy,
             org_policy_path=str(loaded_path),
         )
-    effective_requirements = _with_mandatory_practice_packs(
-        requirements, active_policy
-    )
+    effective_requirements = _with_mandatory_practice_packs(requirements, active_policy)
     resolutions: list[CapabilityResolution] = []
     for requirement in sorted(effective_requirements, key=lambda item: item.capability):
         matching = sorted(
@@ -111,9 +115,7 @@ def _with_mandatory_practice_packs(
         return requirements
     by_capability = {item.capability: item for item in requirements}
     for pack_id in sorted(org_policy.mandatory_practice_packs):
-        pack = load_practice_pack(
-            bundled_practice_packs_root() / pack_id / "pack.yaml"
-        )
+        pack = load_practice_pack(bundled_practice_packs_root() / pack_id / "pack.yaml")
         for item in pack.requirements:
             existing = by_capability.get(item.capability)
             if existing is None:
@@ -126,15 +128,11 @@ def _with_mandatory_practice_packs(
                     verification=item.verification,
                 )
                 continue
-            strength = max(
-                (existing.strength, item.strength), key=_STRENGTH_ORDER.__getitem__
-            )
+            strength = max((existing.strength, item.strength), key=_STRENGTH_ORDER.__getitem__)
             by_capability[item.capability] = existing.model_copy(
                 update={
                     "strength": strength,
-                    "originating_packs": tuple(
-                        sorted({*existing.originating_packs, pack_id})
-                    ),
+                    "originating_packs": tuple(sorted({*existing.originating_packs, pack_id})),
                     "originating_requirements": tuple(
                         sorted({*existing.originating_requirements, item.requirement_id})
                     ),
@@ -158,35 +156,46 @@ def _resolve_requirement(
     rejected_remote_candidates: frozenset[str],
 ) -> list[CapabilityResolution]:
     rejected: list[CapabilityResolution] = []
-    eligible: list[tuple[AdapterScanResult, CandidateScore]] = []
+    eligible: list[tuple[AdapterScanResult, CandidateScore, ContextValue]] = []
     for candidate in candidates:
-        contextual_reason = _contextual_filter(candidate, blueprint, repository)
-        if contextual_reason is not None:
-            status = (
-                ResolutionStatus.DEFERRED
-                if _is_persistent_memory(candidate)
-                else ResolutionStatus.REJECTED
-            )
-            rejected.append(
-                _resolution(requirement, status, candidate, contextual_reason)
-            )
-            continue
         policy_reason = hard_filter_reason(candidate, blueprint, policy)
         if policy_reason is not None:
             rejected.append(
                 _resolution(requirement, ResolutionStatus.REJECTED, candidate, policy_reason)
             )
             continue
-        eligible.append((candidate, score_candidate(candidate, requirement.capability)))
+        context = _contextual_value(candidate, requirement.capability, blueprint, repository)
+        if _contextually_ineligible(candidate, context):
+            status = (
+                ResolutionStatus.DEFERRED
+                if _is_persistent_memory(candidate)
+                else ResolutionStatus.REJECTED
+            )
+            rejected.append(
+                _resolution(
+                    requirement,
+                    status,
+                    candidate,
+                    "; ".join(context.reasons)
+                    or "context evidence does not show enough repository complexity",
+                )
+            )
+            continue
+        eligible.append((candidate, score_candidate(candidate, requirement.capability), context))
 
     if eligible:
         eligible.sort(key=_ranking_key)
-        winner, winner_score = eligible[0]
+        winner, winner_score, winner_context = eligible[0]
+        context_explanation = (
+            f"; contextual evidence: {'; '.join(winner_context.reasons)}"
+            if winner_context.reasons
+            else ""
+        )
         selected = _resolution(
             requirement,
             ResolutionStatus.SELECTED,
             winner,
-            f"selected local provider; {winner_score.explanation()}",
+            f"selected local provider; {winner_score.explanation()}{context_explanation}",
         )
         lower_ranked = [
             _resolution(
@@ -198,7 +207,7 @@ def _resolve_requirement(
                     f"{score.explanation()} versus {winner_score.explanation()}"
                 ),
             )
-            for candidate, score in eligible[1:]
+            for candidate, score, _context in eligible[1:]
         ]
         return [selected, *sorted((*rejected, *lower_ranked), key=_resolution_key)]
 
@@ -223,16 +232,37 @@ def _resolve_requirement(
     return [*sorted(rejected, key=_resolution_key), gap]
 
 
-def _contextual_filter(
+def _contextual_value(
     candidate: AdapterScanResult,
+    requirement: str,
     blueprint: Blueprint,
     repository: RepositorySnapshot,
-) -> str | None:
-    if _is_codegraph(candidate) and not _is_large_monorepo(repository):
-        return "CodeGraph is reserved for large monorepos where graph navigation adds value"
-    if _is_persistent_memory(candidate) and blueprint.lifecycle_stage is LifecycleStage.EXPLORATION:
-        return "persistent memory deferred for a short-lived exploration project"
-    return None
+) -> ContextValue:
+    repository_facts = {item.key: item.value for item in repository.facts}
+    if _is_codegraph(candidate):
+        return codegraph_value(repository_facts)
+    if _is_persistent_memory(candidate):
+        return memory_value(
+            {
+                **repository_facts,
+                "lifecycle_stage": blueprint.lifecycle_stage.value,
+                "memory.persistence": blueprint.preferences.get("memory.persistence"),
+            }
+        )
+    if requirement == "browser.validation" and candidate.manifest.kind is CapabilityKind.MCP:
+        return browser_value(
+            {
+                "browser.interactive-debugging": blueprint.preferences.get(
+                    "browser.interactive-debugging"
+                )
+            }
+        )
+    return ContextValue(True, 0, ())
+
+
+def _contextually_ineligible(candidate: AdapterScanResult, context: ContextValue) -> bool:
+    conditional = _is_codegraph(candidate) or _is_persistent_memory(candidate)
+    return conditional and not context.recommended
 
 
 def _is_codegraph(candidate: AdapterScanResult) -> bool:
@@ -243,17 +273,15 @@ def _is_persistent_memory(candidate: AdapterScanResult) -> bool:
     return "cross-session-memory" in candidate.manifest.provides
 
 
-def _is_large_monorepo(repository: RepositorySnapshot) -> bool:
-    facts = {item.key: item.value for item in repository.facts}
-    monorepo = facts.get("is_monorepo") in (True, "true", "True", "yes")
-    return monorepo and facts.get("repository_size") == "large"
-
-
 def _ranking_key(
-    item: tuple[AdapterScanResult, CandidateScore],
+    item: tuple[AdapterScanResult, CandidateScore, ContextValue],
 ) -> tuple[int, int, str]:
-    candidate, score = item
-    return (-score.total, len(candidate.manifest.permissions), candidate.manifest.capability_id)
+    candidate, score, context = item
+    return (
+        -(score.total + context.score),
+        len(candidate.manifest.permissions),
+        candidate.manifest.capability_id,
+    )
 
 
 def _resolution(
@@ -530,9 +558,7 @@ def _gap_recommendation(
         )
         remote_by_name = {item.candidate.name: item for item in ranked}
         merged = [
-            _remote_recommendation(
-                remote_by_name.pop(item.provider), remote_evidence
-            )
+            _remote_recommendation(remote_by_name.pop(item.provider), remote_evidence)
             if item.provider in remote_by_name
             else item
             for item in local_candidates
@@ -556,9 +582,7 @@ def _remote_recommendation(
 ) -> RecommendationCandidate:
     candidate = ranked.candidate
     provenance = candidate.provenance
-    permission_level = (
-        provenance.permission_level if provenance is not None else PermissionLevel.L4
-    )
+    permission_level = provenance.permission_level if provenance is not None else PermissionLevel.L4
     return RecommendationCandidate(
         kind=_remote_kind(candidate.kind),
         provider=candidate.name,
@@ -614,9 +638,7 @@ def _remote_permissions(values: tuple[str, ...]) -> tuple[Permission, ...]:
         "network-write": Permission.NETWORK,
     }
     return tuple(
-        dict.fromkeys(
-            aliases[value.lower()] for value in values if value.lower() in aliases
-        )
+        dict.fromkeys(aliases[value.lower()] for value in values if value.lower() in aliases)
     )
 
 
