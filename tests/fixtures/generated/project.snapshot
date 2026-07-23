@@ -110,6 +110,12 @@ file only after item-specific user approval, including non-empty
 # Quality and governance
 
 - Explain the capability gap and why current capabilities do not suffice.
+- Search supported read-only metadata sources automatically for unresolved gaps. Do not ask
+  the user to approve discovery or select trusted search sources. Source trust is candidate
+  evidence, not search permission.
+- Preserve per-source discovery failures. Empty or unparseable output is search-failed, not
+  no-results. Continue to show verified local capabilities and clearly unverified static
+  leads without fabricating remote results.
 - Prefer approved, least-privilege providers and the smallest reversible change.
 - Obtain explicit approval before install, replace, update, disable, or remove actions.
 - Preserve project-owned files and record deterministic capability state.

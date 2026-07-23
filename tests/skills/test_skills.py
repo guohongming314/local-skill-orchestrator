@@ -72,10 +72,7 @@ def test_bootstrap_skill_preserves_capability_governance_boundaries() -> None:
 
     assert "Inventory never executes discovered capabilities" in document
     assert "Do not bypass approval" in document
-    assert (
-        "Remote discovery begins only after a capability gap is established and approved"
-        in document
-    )
+    assert "automatically perform read-only remote discovery" in document
     assert "Project-local installation is the default" in document
 
 
@@ -84,19 +81,18 @@ def test_bootstrap_skill_separates_discovery_from_installation_approval() -> Non
 
     for requirement in (
         "static candidate leads",
-        "discovery approval",
-        "named remote sources",
-        "not-requested",
+        "Do not ask the user to approve discovery",
+        "Do not ask the user to select trusted search sources",
         "source-unavailable",
         "search-failed",
         "no-results",
         "all-filtered",
         "candidates-found",
-        "Discovery approval never authorizes installation",
         "separate installation approval",
         "missing cache",
     ):
         assert requirement in document
+    assert "request discovery approval" not in document
 
 
 def test_bootstrap_skill_requires_adaptive_recommendations_before_changeset() -> None:
