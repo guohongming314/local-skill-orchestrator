@@ -6,6 +6,7 @@ from vibe.recommendation.context import (
     codegraph_value,
     memory_value,
 )
+from vibe.recommendation.explanations import RecommendationEvidence, explain_candidate
 from vibe.recommendation.questions import (
     AdaptiveQuestion,
     RecommendationQuestionContext,
@@ -18,6 +19,7 @@ __all__ = [
     "AdaptiveQuestion",
     "ContextValue",
     "DiscoveryQueryContext",
+    "RecommendationEvidence",
     "RecommendationQuestionContext",
     "ReviewReadiness",
     "adaptive_questions",
@@ -25,5 +27,6 @@ __all__ = [
     "codegraph_value",
     "discovery_queries",
     "evaluate_review_readiness",
+    "explain_candidate",
     "memory_value",
 ]

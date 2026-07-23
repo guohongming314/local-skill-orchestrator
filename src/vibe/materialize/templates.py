@@ -312,6 +312,29 @@ def _decisions(blueprint: Blueprint, resolution_plan: ResolutionPlan) -> str:
     )
     lines.extend(["", "## Preferences"])
     lines.extend(f"- {key}: {blueprint.preferences[key]}" for key in sorted(blueprint.preferences))
+    lines.extend(["", "## Capability permissions"])
+    decisions = blueprint.decisions
+    for field in (
+        "read_project",
+        "write_project",
+        "execute_command",
+        "write_outside_project",
+        "access_secrets",
+        "network_policy",
+    ):
+        decision = getattr(decisions, field)
+        lines.append(
+            f"- {field}: {decision.value.value} "
+            f"(source: {decision.provenance.source.value}; "
+            f"reference: {decision.provenance.reference})"
+        )
+    lines.extend(
+        (
+            f"- discovery_approval: {decisions.discovery_approval.value}",
+            f"- artifact_fetch_approval: {decisions.artifact_fetch_approval.value}",
+            f"- candidate_runtime_network: {decisions.candidate_runtime_network.value}",
+        )
+    )
     recommendations = [
         item
         for item in resolution_plan.resolutions

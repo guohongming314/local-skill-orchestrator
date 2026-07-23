@@ -22,6 +22,13 @@ from vibe.models.capability import (
     CapabilityScope,
     Permission,
 )
+from vibe.models.decisions import (
+    DecisionProvenance,
+    DecisionSource,
+    NetworkDecision,
+    NetworkPolicy,
+    ProjectDecisions,
+)
 from vibe.models.resolution import CapabilityResolution, ResolutionPlan, ResolutionStatus
 from vibe.models.risk import RiskLevel
 from vibe.practices.models import RequirementStrength
@@ -68,6 +75,15 @@ def write_configuration(
         lifecycle_stage=LifecycleStage.ACTIVE_DEVELOPMENT,
         risk_level=RiskLevel.MEDIUM,
         repository_digest="repository-digest",
+        decisions=ProjectDecisions(
+            network_policy=NetworkDecision(
+                value=NetworkPolicy.DENIED,
+                provenance=DecisionProvenance(
+                    source=DecisionSource.REPOSITORY_EVIDENCE,
+                    reference="test-fixture",
+                ),
+            )
+        ),
     )
     plan = ResolutionPlan(
         blueprint_digest="blueprint-digest",
@@ -117,6 +133,55 @@ def test_healthy_configuration_reports_success(tmp_path: Path) -> None:
 
     assert report.healthy
     assert report.findings == ()
+
+
+def test_doctor_reports_unknown_network_policy_and_unresolved_required_gap(
+    tmp_path: Path,
+) -> None:
+    current = inventory()
+    blueprint = Blueprint(
+        project_name="doctor-fixture",
+        goal="Check unresolved recommendations",
+        lifecycle_stage=LifecycleStage.ACTIVE_DEVELOPMENT,
+        risk_level=RiskLevel.MEDIUM,
+        repository_digest="repository-digest",
+        decisions=ProjectDecisions(),
+    )
+    plan = ResolutionPlan(
+        blueprint_digest="blueprint-digest",
+        inventory_digest=current.inventory_digest,
+        resolutions=(
+            CapabilityResolution(
+                requirement="quality.gates",
+                status=ResolutionStatus.GAP,
+                reason="no provider selected",
+            ),
+        ),
+    )
+    rendered = render_project_configuration(
+        blueprint,
+        plan,
+        current,
+        requirements=(
+            AbstractCapabilityRequirement(
+                capability="quality.gates",
+                strength=RequirementStrength.REQUIRED,
+                originating_packs=("base-engineering",),
+                originating_requirements=("quality-gates",),
+                reasons=("Quality gates are required.",),
+                verification=("Run project quality gates.",),
+            ),
+        ),
+    )
+    for relative, content in rendered.as_dict().items():
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+
+    findings = run_health_checks(tmp_path, current).findings
+
+    assert any(item.code == "unknown-capability-permission" for item in findings)
+    assert any(item.code == "unresolved-required-capability" for item in findings)
 
 
 def test_invalid_schema_is_distinct_and_does_not_expose_values(tmp_path: Path) -> None:

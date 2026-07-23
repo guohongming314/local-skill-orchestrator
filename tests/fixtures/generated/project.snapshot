@@ -269,6 +269,17 @@ schema_version: '1'
 ## Preferences
 - parallelism: 1
 - testing: test-first
+
+## Capability permissions
+- read_project: unknown (source: unknown; reference: unresolved)
+- write_project: unknown (source: unknown; reference: unresolved)
+- execute_command: unknown (source: unknown; reference: unresolved)
+- write_outside_project: unknown (source: unknown; reference: unresolved)
+- access_secrets: unknown (source: unknown; reference: unresolved)
+- network_policy: unknown (source: unknown; reference: unresolved)
+- discovery_approval: not-requested
+- artifact_fetch_approval: not-requested
+- candidate_runtime_network: unknown
 === .ai-project/policy.yaml ===
 permissions:
 - read-project

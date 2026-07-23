@@ -20,6 +20,7 @@ from vibe.inventory.service import InventoryResult
 from vibe.materialize.project_hooks import combined_hook_trust_digest
 from vibe.materialize.templates import (
     CapabilityLock,
+    CapabilityRequirements,
     CapabilityUsage,
     ProjectPolicy,
     ProjectTaskPolicies,
@@ -38,6 +39,7 @@ from vibe.persistence.database import default_database_path
 from vibe.policy.org import load_org_policy
 from vibe.practices.calibration import CalibrationOutcome, pending_suggestions
 from vibe.practices.loader import load_practice_pack
+from vibe.practices.models import RequirementStrength
 from vibe.practices.paths import bundled_practice_packs_root
 
 CommandResolver = Callable[[str], str | None]
@@ -129,6 +131,58 @@ class SchemaVersionCheck:
                         remediation="Review `vibe migrate --dry-run`, then run `vibe migrate`.",
                     )
                 )
+        return tuple(findings)
+
+
+class RecommendationStateCheck:
+    def check(self, context: DoctorContext) -> tuple[DoctorFinding, ...]:
+        blueprint = _load(context.root, ".ai-project/blueprint.yaml", Blueprint)
+        capabilities = _load(
+            context.root, ".ai-project/capabilities.yaml", RenderedCapabilities
+        )
+        requirements = _load(
+            context.root,
+            ".ai-project/capability-requirements.yaml",
+            CapabilityRequirements,
+        )
+        if blueprint is None or capabilities is None or requirements is None:
+            return ()
+        findings: list[DoctorFinding] = []
+        if blueprint.decisions.network_policy.value.value == "unknown":
+            findings.append(
+                DoctorFinding(
+                    code="unknown-capability-permission",
+                    severity=Severity.WARNING,
+                    summary="The project network policy remains unknown.",
+                    evidence=("network_policy",),
+                    remediation=(
+                        "Record an explicit user decision before networked discovery "
+                        "or runtime use."
+                    ),
+                )
+            )
+        required = {
+            item.capability
+            for item in requirements.requirements
+            if item.strength is RequirementStrength.REQUIRED
+        }
+        unresolved = sorted(
+            str(item.get("requirement"))
+            for item in capabilities.resolutions
+            if item.get("status") == "gap" and item.get("requirement") in required
+        )
+        findings.extend(
+            DoctorFinding(
+                code="unresolved-required-capability",
+                severity=Severity.ERROR,
+                summary="A required capability remains unresolved.",
+                evidence=(capability,),
+                remediation=(
+                    "Select a verified provider or explicitly revise the capability requirement."
+                ),
+            )
+            for capability in unresolved
+        )
         return tuple(findings)
 
 
@@ -670,6 +724,7 @@ class OrganizationPolicyCheck:
 DEFAULT_CHECKS: tuple[DoctorCheck, ...] = (
     SchemaVersionCheck(),
     ConfigurationSchemaCheck(),
+    RecommendationStateCheck(),
     LockedProviderCheck(),
     InstalledCapabilityDriftCheck(),
     CommandAvailabilityCheck(),
