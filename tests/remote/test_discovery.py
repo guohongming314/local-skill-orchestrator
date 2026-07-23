@@ -137,6 +137,31 @@ class StaticSource:
         return self._result
 
 
+class RecordingSource:
+    source_id = "recording"
+
+    def __init__(self) -> None:
+        self.queries: list[str] = []
+
+    def search(self, capability_id: str) -> SourceDiagnostic:
+        self.queries.append(capability_id)
+        return diagnostic("recording", SourceStatus.SUCCESS)
+
+
+def test_service_searches_every_query_and_preserves_query_diagnostics() -> None:
+    source = RecordingSource()
+
+    report = DiscoveryService((source,)).discover(
+        "code.optimization",
+        queries=("code.optimization", "python code optimization"),
+        approved=True,
+        risk_level=RiskLevel.MEDIUM,
+    )
+
+    assert source.queries == ["code.optimization", "python code optimization"]
+    assert [item.query for item in report.diagnostics] == source.queries
+
+
 def test_service_deduplicates_cross_listed_repository() -> None:
     github = candidate("browser").model_copy(
         update={

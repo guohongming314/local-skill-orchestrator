@@ -41,6 +41,7 @@ from vibe.materialize.writer import ApplyFailure, ConcurrentChangeError, apply_c
 from vibe.models.blueprint import Blueprint
 from vibe.models.repository import FactConfidence, RepositoryFact, RepositorySnapshot
 from vibe.models.resolution import ResolutionPlan, ResolutionStatus
+from vibe.recommendation.search_terms import DiscoveryQueryContext, discovery_queries
 from vibe.remote.discovery import (
     DiscoveryReport,
     DiscoveryService,
@@ -248,6 +249,7 @@ def init_command(
             root,
             base_plan.resolution,
             structured.blueprint,
+            snapshot,
             approved=discovery_enabled,
             offline=remote_offline,
             organization_registries=tuple(remote_registry or ()),
@@ -600,6 +602,7 @@ def _discover_remote(
     root: Path,
     resolution: ResolutionPlan,
     blueprint: Blueprint,
+    repository: RepositorySnapshot,
     *,
     approved: bool,
     offline: bool,
@@ -673,12 +676,28 @@ def _discover_remote(
         for index, url in enumerate(organization_registries)
     )
     service = DiscoveryService(tuple(sources))
+    repository_facts = {item.key: item.value for item in repository.facts}
+    languages = _string_values(repository_facts.get("stack.languages"))
+    frameworks = _string_values(repository_facts.get("stack.frameworks"))
+    product_leads = tuple(
+        item.strip()
+        for item in str(blueprint.preferences.get("product_leads", "")).split(",")
+        if item.strip()
+    )
     live_reports: list[DiscoveryReport] = []
     candidates: dict[str, RemoteCandidate] = {}
     evidence: dict[str, CandidateEvidence] = {}
     for requirement in gaps:
         report = service.discover(
             requirement,
+            queries=discovery_queries(
+                DiscoveryQueryContext(
+                    capability=requirement,
+                    languages=languages,
+                    frameworks=frameworks,
+                    user_product_leads=product_leads,
+                )
+            ),
             approved=True,
             risk_level=blueprint.risk_level,
             target_platforms=blueprint.target_platforms,
@@ -695,6 +714,14 @@ def _discover_remote(
         evidence,
         tuple(live_reports),
     )
+
+
+def _string_values(value: object) -> tuple[str, ...]:
+    if isinstance(value, list):
+        return tuple(str(item) for item in value if str(item).strip())
+    if isinstance(value, str) and value.strip():
+        return (value.strip(),)
+    return ()
 
 
 def _cached_discovery_report(

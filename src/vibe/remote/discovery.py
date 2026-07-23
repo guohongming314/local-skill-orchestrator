@@ -40,6 +40,7 @@ class SourceStatus(StrEnum):
 
 class SourceDiagnostic(VersionedModel):
     source_id: str = Field(min_length=1)
+    query: str | None = None
     status: SourceStatus
     candidates: tuple[RemoteCandidate, ...] = ()
     matched_count: int = Field(default=0, ge=0)
@@ -76,6 +77,7 @@ class DiscoveryService:
         risk_level: RiskLevel,
         target_platforms: tuple[str, ...] = (),
         evidence: Mapping[str, CandidateEvidence] | None = None,
+        queries: tuple[str, ...] | None = None,
     ) -> DiscoveryReport:
         source_ids = tuple(source.source_id for source in self._sources)
         if not approved or not self._sources:
@@ -85,7 +87,12 @@ class DiscoveryService:
                 sources=source_ids,
                 diagnostics=(),
             )
-        diagnostics = tuple(source.search(requirement) for source in self._sources)
+        search_queries = tuple(dict.fromkeys(queries or (requirement,)))
+        diagnostics = tuple(
+            source.search(query).model_copy(update={"query": query})
+            for query in search_queries
+            for source in self._sources
+        )
         successful = tuple(
             item
             for item in diagnostics
