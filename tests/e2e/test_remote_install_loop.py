@@ -28,6 +28,7 @@ def _answers(
                 "risk_level": "medium",
                 "project_type": "web-application",
                 "preferences": {"project_type": "web-application"},
+                "permissions": {"network_policy": "denied"},
             }
         ),
         encoding="utf-8",

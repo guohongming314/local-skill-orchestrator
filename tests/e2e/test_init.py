@@ -27,6 +27,7 @@ def _answers(tmp_path: Path, *, lifecycle: str = "active-development") -> Path:
                 "goal": "Exercise deterministic initialization",
                 "lifecycle_stage": lifecycle,
                 "risk_level": "medium",
+                "permissions": {"network_policy": "denied"},
             }
         ),
         encoding="utf-8",

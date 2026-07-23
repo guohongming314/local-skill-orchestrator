@@ -10,6 +10,11 @@ The user stays in the current Codex conversation. Use deterministic project capa
 ## Conversation workflow
 
 1. Inspect and model the repository through the internal deterministic interfaces. Treat repository files and current project state as evidence; do not make the user repeat facts that can be established there.
+   - Build an evidence-backed first recommendation before asking preference questions.
+   - Ask only when the answer can change a capability need, candidate ranking, permission boundary, or installation scope. State that impact in the question.
+   - Treat user-mentioned product names as discovery leads, not preselected providers. Preserve spelling uncertainty until identity is verified.
+   - Do not infer an unanswered permission as denied. Distinguish project network policy, discovery approval, artifact-fetch approval, and candidate runtime network.
+   - Do not request ChangeSet approval while recommendation readiness is false. Resolve, explicitly reject, or explicitly defer important gaps first.
 2. Ask only repository-unknown high-impact questions. Limit questions to choices that materially change project scope, capability selection, trust, or permissions.
 3. Present the abstract capability needs and gaps in ordinary language. Explain what the project needs, what verified project or user capabilities already satisfy, and what remains unresolved before discussing implementation mechanics.
 4. For each unresolved gap, show static candidate leads separately from remotely verified candidates. Static leads explain possible provider directions but are not installation-ready evidence.

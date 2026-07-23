@@ -184,6 +184,52 @@ def test_doctor_reports_unknown_network_policy_and_unresolved_required_gap(
     assert any(item.code == "unresolved-required-capability" for item in findings)
 
 
+def test_doctor_accepts_explicitly_deferred_required_gap(tmp_path: Path) -> None:
+    current = inventory()
+    blueprint = Blueprint(
+        project_name="doctor-fixture",
+        goal="Defer a capability explicitly",
+        lifecycle_stage=LifecycleStage.ACTIVE_DEVELOPMENT,
+        risk_level=RiskLevel.MEDIUM,
+        repository_digest="repository-digest",
+        preferences={"candidate_decisions": "quality.gates=defer"},
+    )
+    plan = ResolutionPlan(
+        blueprint_digest="blueprint-digest",
+        inventory_digest=current.inventory_digest,
+        resolutions=(
+            CapabilityResolution(
+                requirement="quality.gates",
+                status=ResolutionStatus.GAP,
+                reason="explicitly deferred",
+            ),
+        ),
+    )
+    rendered = render_project_configuration(
+        blueprint,
+        plan,
+        current,
+        requirements=(
+            AbstractCapabilityRequirement(
+                capability="quality.gates",
+                strength=RequirementStrength.REQUIRED,
+                originating_packs=("base-engineering",),
+                originating_requirements=("quality-gates",),
+                reasons=("Quality gates are required.",),
+                verification=("Run project quality gates.",),
+            ),
+        ),
+    )
+    for relative, content in rendered.as_dict().items():
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+
+    findings = run_health_checks(tmp_path, current).findings
+
+    assert not any(item.code == "unresolved-required-capability" for item in findings)
+
+
 def test_invalid_schema_is_distinct_and_does_not_expose_values(tmp_path: Path) -> None:
     current = inventory()
     write_configuration(tmp_path, current)

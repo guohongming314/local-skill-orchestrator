@@ -99,6 +99,17 @@ def test_bootstrap_skill_separates_discovery_from_installation_approval() -> Non
         assert requirement in document
 
 
+def test_bootstrap_skill_requires_adaptive_recommendations_before_changeset() -> None:
+    document = (ROOT / "bootstrap-skill/SKILL.md").read_text(encoding="utf-8")
+
+    assert "Do not infer an unanswered permission as denied" in document
+    assert "Ask only when the answer can change" in document
+    assert (
+        "Do not request ChangeSet approval while recommendation readiness is false"
+        in document
+    )
+
+
 def test_generated_project_skill_still_passes_structural_validation(tmp_path: Path) -> None:
     blueprint, plan, inventory = inputs()
     rendered = render_project_configuration(

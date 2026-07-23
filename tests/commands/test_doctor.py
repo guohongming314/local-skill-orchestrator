@@ -18,6 +18,7 @@ from vibe.inspect.repository import inspect_repository
 from vibe.inventory.service import InventoryResult
 from vibe.materialize.writer import apply_changeset
 from vibe.models.blueprint import Blueprint, LifecycleStage
+from vibe.models.decisions import NetworkDecision, NetworkPolicy, ProjectDecisions
 from vibe.models.repository import RepositorySnapshot
 from vibe.models.risk import RiskLevel
 from vibe.remote.models import RemoteCandidate
@@ -32,6 +33,10 @@ def initialized_project(root: Path) -> None:
         goal="Verify project health",
         lifecycle_stage=LifecycleStage.ACTIVE_DEVELOPMENT,
         risk_level=RiskLevel.MEDIUM,
+        preferences={"candidate_decisions": "*=defer"},
+        decisions=ProjectDecisions(
+            network_policy=NetworkDecision(value=NetworkPolicy.DENIED)
+        ),
         repository_digest=inspect_repository(root).source_digest,
     )
     apply_changeset(_project_changeset(root, blueprint))

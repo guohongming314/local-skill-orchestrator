@@ -11,6 +11,7 @@ from vibe.commands.init import _project_changeset
 from vibe.inspect.repository import inspect_repository
 from vibe.materialize.writer import apply_changeset
 from vibe.models.blueprint import Blueprint, LifecycleStage
+from vibe.models.decisions import NetworkDecision, NetworkPolicy, ProjectDecisions
 from vibe.models.risk import RiskLevel
 
 pytestmark = pytest.mark.validation
@@ -24,6 +25,10 @@ def initialized_project(root: Path) -> None:
         goal="Keep generated configuration aligned with the repository",
         lifecycle_stage=LifecycleStage.ACTIVE_DEVELOPMENT,
         risk_level=RiskLevel.MEDIUM,
+        preferences={"candidate_decisions": "*=defer"},
+        decisions=ProjectDecisions(
+            network_policy=NetworkDecision(value=NetworkPolicy.DENIED)
+        ),
         repository_digest=inspect_repository(root).source_digest,
     )
     apply_changeset(_project_changeset(root, blueprint))

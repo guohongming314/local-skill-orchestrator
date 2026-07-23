@@ -166,10 +166,16 @@ class RecommendationStateCheck:
             for item in requirements.requirements
             if item.strength is RequirementStrength.REQUIRED
         }
+        candidate_decisions = _candidate_decisions(blueprint.preferences.get("candidate_decisions"))
         unresolved = sorted(
             str(item.get("requirement"))
             for item in capabilities.resolutions
-            if item.get("status") == "gap" and item.get("requirement") in required
+            if item.get("status") == "gap"
+            and item.get("requirement") in required
+            and candidate_decisions.get(
+                str(item.get("requirement")), candidate_decisions.get("*")
+            )
+            not in {"reject", "defer"}
         )
         findings.extend(
             DoctorFinding(
@@ -184,6 +190,17 @@ class RecommendationStateCheck:
             for capability in unresolved
         )
         return tuple(findings)
+
+
+def _candidate_decisions(value: object) -> dict[str, str]:
+    decisions: dict[str, str] = {}
+    if not isinstance(value, str):
+        return decisions
+    for item in value.split(","):
+        requirement, separator, decision = item.partition("=")
+        if separator and decision in {"accept", "reject", "defer"}:
+            decisions[requirement.strip()] = decision
+    return decisions
 
 
 class LockedProviderCheck:

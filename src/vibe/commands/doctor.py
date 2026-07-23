@@ -12,7 +12,12 @@ import yaml
 from pydantic import ValidationError
 
 from vibe.commands.capabilities import _default_cli_specs
-from vibe.commands.init import _project_changeset, _without_managed_project_hook
+from vibe.commands.init import (
+    _load_remote_decisions,
+    _load_remote_snapshot,
+    _project_changeset,
+    _without_managed_project_hook,
+)
 from vibe.commands.project_plan import build_project_plan, scan_project_inventory
 from vibe.compiler.invalidation import InvalidationReason
 from vibe.doctor.checks import run_health_checks
@@ -93,9 +98,36 @@ def _project_report(root: Path) -> DoctorReport:
     hook_policy = _recorded_hook_policy(root)
     if hook_policy is not None:
         project_inventory = _without_managed_project_hook(project_inventory)
+    remote_candidates, remote_evidence = _load_remote_snapshot(root)
+    remote_decisions = _load_remote_decisions(root)
     project_plan = build_project_plan(
-        root, blueprint, current, inventory=project_inventory
+        root,
+        blueprint,
+        current,
+        inventory=project_inventory,
+        rejected_remote_candidates=frozenset(remote_decisions),
     )
+    if remote_candidates:
+        gaps = {
+            item.requirement
+            for item in project_plan.resolution.resolutions
+            if item.status.value == "gap"
+        }
+        remote_candidates = tuple(
+            candidate
+            for candidate in remote_candidates
+            if gaps.intersection(candidate.provides)
+        )
+        if remote_candidates:
+            project_plan = build_project_plan(
+                root,
+                blueprint,
+                current,
+                inventory=project_inventory,
+                remote_candidates=remote_candidates,
+                remote_evidence=remote_evidence,
+                rejected_remote_candidates=frozenset(remote_decisions),
+            )
     changeset = _project_changeset(
         root,
         blueprint,

@@ -19,10 +19,11 @@ from vibe.conversation.structured_result import (
     StructuredProjectResult,
     ValueSource,
 )
-from vibe.models.blueprint import Blueprint
+from vibe.models.blueprint import Blueprint, LifecycleStage
 from vibe.models.decisions import (
     AuthorizationState,
     DecisionSource,
+    NetworkDecision,
     NetworkPolicy,
     PermissionDecision,
     ProjectDecisions,
@@ -33,6 +34,7 @@ from vibe.models.repository import (
     RepositoryFact,
     RepositorySnapshot,
 )
+from vibe.models.risk import RiskLevel
 
 FAKE_SERVER = Path(__file__).parents[1] / "fakes" / "fake_interview_app_server.py"
 FAKE_EXEC = Path(__file__).parents[1] / "fakes" / "fake_codex_exec.py"
@@ -59,8 +61,8 @@ def model_result(root: Path) -> StructuredProjectResult:
         blueprint=Blueprint(
             project_name="fixture",
             goal="model goal",
-            lifecycle_stage="exploration",
-            risk_level="low",
+            lifecycle_stage=LifecycleStage.EXPLORATION,
+            risk_level=RiskLevel.LOW,
             repository_digest="0123456789abcdef",
         ),
         field_sources={
@@ -441,7 +443,7 @@ def test_reconcile_without_network_answer_preserves_unknown_policy(tmp_path: Pat
     result = model_result(tmp_path)
     model_decisions = ProjectDecisions(
         read_project=PermissionDecision(value=TriState.ALLOWED),
-        network_policy={"value": "allowed"},
+        network_policy=NetworkDecision(value=NetworkPolicy.ALLOWED),
         discovery_approval=AuthorizationState.APPROVED,
     )
     result = result.model_copy(

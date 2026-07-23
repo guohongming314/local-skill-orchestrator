@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -303,7 +304,11 @@ def _resolution_key(item: CapabilityResolution) -> tuple[str, str]:
 
 
 def _blueprint_digest(blueprint: Blueprint) -> str:
-    payload = blueprint.model_dump_json(exclude_none=True)
+    payload = json.dumps(
+        blueprint.model_dump(mode="json", exclude_none=True),
+        sort_keys=True,
+        separators=(",", ":"),
+    )
     return hashlib.sha256(payload.encode()).hexdigest()
 
 

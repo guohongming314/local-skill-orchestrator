@@ -270,6 +270,8 @@ class CodexNativeProjectFixture:
                     "lifecycle_stage": "active-development",
                     "risk_level": "medium",
                     "project_type": "web-application",
+                    "preferences": {"candidate_decisions": "*=defer"},
+                    "permissions": {"network_policy": "denied"},
                 }
             ),
             encoding="utf-8",

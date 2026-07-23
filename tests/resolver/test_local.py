@@ -123,6 +123,24 @@ def repository(
 pytestmark = pytest.mark.validation
 
 
+def test_blueprint_digest_is_stable_across_preference_insertion_order() -> None:
+    first = blueprint().model_copy(
+        update={"preferences": {"project_type": "web", "candidate_decisions": "*=defer"}}
+    )
+    second = blueprint().model_copy(
+        update={"preferences": {"candidate_decisions": "*=defer", "project_type": "web"}}
+    )
+
+    first_plan = resolve_local_capabilities(
+        (), inventory(), first, repository(monorepo=False, size="small")
+    )
+    second_plan = resolve_local_capabilities(
+        (), inventory(), second, repository(monorepo=False, size="small")
+    )
+
+    assert first_plan.blueprint_digest == second_plan.blueprint_digest
+
+
 def test_small_projects_reject_unnecessary_codegraph() -> None:
     codegraph = candidate("product.codegraph", provides=("code-navigation",))
 

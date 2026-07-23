@@ -277,6 +277,23 @@ def init_command(
             and answer_payload is not None
         ):
             structured = _build_structured(snapshot, answer_payload)
+        supplied_recommendation_decisions = _parse_recommendation_decisions(
+            recommendation_decision or []
+        )
+        if supplied_recommendation_decisions:
+            preferences = dict(structured.blueprint.preferences)
+            preferences["candidate_decisions"] = ",".join(
+                f"{requirement}={decision}"
+                for requirement, decision in sorted(supplied_recommendation_decisions.items())
+            )
+            structured = structured.model_copy(
+                update={
+                    "blueprint": structured.blueprint.model_copy(
+                        update={"preferences": preferences}
+                    )
+                }
+            )
+        if answer_payload is not None or supplied_recommendation_decisions:
             checkpoint = workflow.revise(
                 run_id,
                 confirmed={"structured_result": structured.model_dump(mode="json")},
@@ -297,7 +314,7 @@ def init_command(
             structured.blueprint,
             effective_remote_decisions,
             remote_candidates,
-            _parse_recommendation_decisions(recommendation_decision or []),
+            supplied_recommendation_decisions,
         )
         review_payload = _review_payload(run_id, checkpoint, structured)
         review_payload.update(
