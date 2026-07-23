@@ -71,6 +71,7 @@ def _init(
             "--answers",
             str(_answers(tmp_path, run_id, lifecycle=lifecycle)),
             "--confirm",
+            "--no-remote-discovery",
             "--dry-run",
             "--json",
         ],

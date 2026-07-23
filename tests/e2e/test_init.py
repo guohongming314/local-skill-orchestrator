@@ -57,6 +57,7 @@ def _invoke(
             "--answers",
             str(_answers(tmp_path, lifecycle=lifecycle)),
             "--confirm",
+            "--no-remote-discovery",
             "--recommendation-decision",
             "*=defer",
             "--json",
@@ -140,6 +141,7 @@ def test_cancel_then_resume_completes_from_checkpoint(tmp_path: Path) -> None:
         [
             "init", "--path", str(root), "--run-id", "resume",
             "--checkpoints", str(checkpoint), "--answers", str(_answers(tmp_path)),
+            "--no-remote-discovery",
             "--json",
         ],
     )
@@ -150,8 +152,9 @@ def test_cancel_then_resume_completes_from_checkpoint(tmp_path: Path) -> None:
         app,
         [
             "init", "--path", str(root), "--run-id", "resume",
-                "--checkpoints", str(checkpoint), "--confirm", "--resume",
-                "--recommendation-decision", "*=defer", "--json",
+            "--checkpoints", str(checkpoint), "--confirm", "--resume",
+            "--no-remote-discovery",
+            "--recommendation-decision", "*=defer", "--json",
         ],
     )
     assert resumed.exit_code == 0, resumed.output
@@ -293,6 +296,7 @@ def test_blank_web_init_selects_configured_chrome_devtools_mcp(
             "--answers",
             str(_web_answers(tmp_path, name="blank-web-chrome")),
             "--confirm",
+            "--no-remote-discovery",
             "--dry-run",
             "--json",
         ],
@@ -328,6 +332,7 @@ def test_blank_web_init_reports_ranked_browser_gap_without_provider(
             "--answers",
             str(_web_answers(tmp_path, name="blank-web-no-browser")),
             "--confirm",
+            "--no-remote-discovery",
             "--dry-run",
             "--json",
         ],
@@ -382,11 +387,12 @@ def test_blank_project_materialization_only_generates_configuration_and_approved
             "blank-bootstrap",
             "--checkpoints",
             str(tmp_path / "blank-bootstrap.sqlite3"),
-                "--confirm",
-                "--git-init",
-                "--recommendation-decision",
-                "*=defer",
-                "--json",
+            "--confirm",
+            "--no-remote-discovery",
+            "--git-init",
+            "--recommendation-decision",
+            "*=defer",
+            "--json",
         ],
     )
 

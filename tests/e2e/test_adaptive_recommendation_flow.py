@@ -34,6 +34,7 @@ def test_recommendation_pause_then_explicit_deferral_reaches_review(tmp_path: Pa
         "adaptive",
         "--checkpoints",
         str(checkpoint),
+        "--no-remote-discovery",
         "--json",
     ]
 
