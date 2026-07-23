@@ -12,6 +12,7 @@ from vibe.migrations.registry import (
     ArtifactKind,
     MigrationRegistry,
     UnknownSchemaVersionError,
+    migrate_artifact,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -86,3 +87,23 @@ def test_chained_migrations_match_direct_v3_fixture() -> None:
         ("1", "2"),
         ("2", "3"),
     ]
+
+
+def test_legacy_blueprint_migrates_missing_decisions_to_unknown() -> None:
+    migrated = migrate_artifact(
+        "blueprint",
+        {
+            "schema_version": "1",
+            "project_name": "legacy",
+            "goal": "Maintain a project",
+            "lifecycle_stage": "maintenance",
+            "risk_level": "medium",
+            "repository_digest": "01234567",
+        },
+    )
+
+    assert migrated["decisions"]["network_policy"]["value"] == "unknown"
+    assert migrated["decisions"]["network_policy"]["provenance"]["source"] == "migration"
+    assert migrated["decisions"]["network_policy"]["provenance"]["reference"] == (
+        "legacy-blueprint-without-decisions"
+    )

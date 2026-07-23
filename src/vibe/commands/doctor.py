@@ -35,6 +35,7 @@ from vibe.inventory.adapters.base import CapabilityAdapter
 from vibe.inventory.adapters.cli_tool import CliToolAdapter
 from vibe.inventory.service import InventoryResult, InventoryService
 from vibe.materialize.project_hooks import ProjectHookPolicy
+from vibe.migrations.registry import migrate_artifact
 from vibe.models.blueprint import Blueprint
 from vibe.models.capability import CapabilityScope
 from vibe.models.repository import RepositorySnapshot
@@ -171,7 +172,10 @@ def _load_blueprint(root: Path) -> Blueprint | None:
         return None
     try:
         return Blueprint.model_validate(
-            yaml.safe_load(target.read_text(encoding="utf-8-sig"))
+            migrate_artifact(
+                "blueprint",
+                yaml.safe_load(target.read_text(encoding="utf-8-sig")),
+            )
         )
     except (OSError, UnicodeError, yaml.YAMLError, ValidationError, ValueError):
         return None

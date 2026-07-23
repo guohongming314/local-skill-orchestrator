@@ -13,6 +13,8 @@ from typing import Any
 
 import yaml
 
+from vibe.models.decisions import DecisionSource, ProjectDecisions
+
 Migration = Callable[[dict[str, Any]], dict[str, Any]]
 
 
@@ -198,3 +200,29 @@ def version_bump(to_version: str) -> Migration:
 
 
 default_registry = MigrationRegistry()
+
+
+def migrate_artifact(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Apply artifact-specific compatibility migrations within a schema version."""
+    migrated = deepcopy(dict(payload))
+    if kind != "blueprint":
+        raise ValueError(f"unsupported artifact migration kind: {kind!r}")
+    _schema_version(migrated)
+    if "decisions" in migrated:
+        return migrated
+    decisions = ProjectDecisions().model_dump(mode="json")
+    for field in (
+        "read_project",
+        "write_project",
+        "execute_command",
+        "write_outside_project",
+        "access_secrets",
+        "network_policy",
+    ):
+        decisions[field]["provenance"] = {
+            "schema_version": "1",
+            "source": DecisionSource.MIGRATION.value,
+            "reference": "legacy-blueprint-without-decisions",
+        }
+    migrated["decisions"] = decisions
+    return migrated
